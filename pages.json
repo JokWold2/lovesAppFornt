@@ -1,0 +1,101 @@
+{
+	"easycom": {
+		"autoscan": true,
+		"custom": {
+			"^uni-(.*)": "@dcloudio/uni-ui/lib/uni-$1/uni-$1.vue"
+		}
+	},
+	"pages": [
+		{
+			"path": "pages/login/login360",
+			"style": {
+				"navigationBarTitleText": "登录"
+			}
+		},
+		{
+			"path": "pages/index/index360",
+			"style": {
+				"navigationBarTitleText": "幸福人生",
+				"enablePullDownRefresh": true,
+				"onReachBottomDistance": 100
+			}
+		},
+		{
+			"path": "pages/notice/notice",
+			"style": {
+				"enablePullDownRefresh": true,
+				"navigationBarTitleText": "消息"
+			}
+		},
+		{
+			"path": "pages/my/my",
+			"style": {
+				"navigationBarTitleText": "个人中心"
+			}
+		},
+		{
+			"path": "pages/my/myFile/myFile",
+			"style": {
+				"navigationBarTitleText": ""
+			}
+		},
+		{
+			"path": "pages/searchPerson/searchPerson",
+			"style": {
+				"navigationBarTitleText": ""
+			}
+		},
+		{
+			"path": "pages/my/myLifeShow/myLifeShow",
+			"style": {
+				"navigationBarTitleText": ""
+			}
+		},
+		{
+			"path": "pages/my/myLifeShowEdit/myLifeShowEdit",
+			"style": {
+				"navigationBarTitleText": ""
+			}
+		},
+		{
+			"path": "pages/searchPerson/personShow/personShow",
+			"style": {
+				"navigationBarTitleText": ""
+			}
+		}
+
+	],
+	"globalStyle": {
+		"navigationBarTextStyle": "black",
+		"navigationBarTitleText": "uni-app",
+		"navigationBarBackgroundColor": "#fff6df",
+		"backgroundColor": "#fff6df"
+	},
+	"tabBar": {
+		"color": "#888888",
+		"selectedColor": "#fff6df",
+		"backgroundColor": "#FFFFFF",
+		"borderStyle": "white",
+		"list": [
+			{
+				"pagePath": "pages/index/index360",
+				"text": "首頁",
+				"iconPath": "static/tabbar/home-no.png",
+				"selectedIconPath": "static/tabbar/home-active.png"
+			},
+			{
+				"pagePath": "pages/notice/notice",
+				"text": "消息",
+				"iconPath": "static/tabbar/notice-no.png",
+				"selectedIconPath": "static/tabbar/notice-active.png"
+			},
+			{
+				"pagePath": "pages/my/myLifeShow/myLifeShow",
+				"text": "朋友圈",
+				"iconPath": "static/tabbar/my-no.png",
+				"selectedIconPath": "static/tabbar/my-active.png"
+			}
+		]
+	},
+	"uniIdRouter": {}
+}
