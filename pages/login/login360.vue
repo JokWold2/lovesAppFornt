@@ -85,7 +85,7 @@
     <view v-else class="auth-view">
       <view class="auth-content">
         <!-- 注册表单 -->
-        <input class="custom-input" type="number" placeholder="请输入您的邮箱" placeholder-class="ph-color"
+        <input class="custom-input"  placeholder="请输入您的邮箱" placeholder-class="ph-color"
           v-model="registerForm.email" />
 
         <!-- 带发送验证码的输入框 -->
