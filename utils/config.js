@@ -4,8 +4,8 @@
 
 export const config = {
   // 后端 API 基础地址
-  // baseURL: 'http://localhost:3000',
-  baseURL: 'http://8.218.94.132',
+  baseURL: 'http://localhost:3000',
+  // baseURL: 'http://8.218.94.132',
 
   // 请求超时时间（毫秒）
   timeout: 10000,

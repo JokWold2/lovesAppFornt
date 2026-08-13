@@ -14,17 +14,17 @@
       </view>
 
       <view class="nav-center">
-        <view class="nav-tab" :class="{ 'active': model === '古董收藏' }" @click="model = '古董收藏'">
-          <text class="tab-text">古董收藏</text>
-          <view class="tab-line" v-if="model === '古董收藏'"></view>
+        <view class="nav-tab" :class="{ 'active': model === '教學' }" @click="model = '教學'">
+          <text class="tab-text">教學</text>
+          <view class="tab-line" v-if="model === '教學'"></view>
         </view>
         <view class="nav-tab " :class="{ 'active': model === '為您推薦' }" @click="model = '為您推薦'">
           <text class="tab-text">為您推薦</text>
           <view class="tab-line" v-if="model === '為您推薦'"></view>
         </view>
-        <view class="nav-tab" :class="{ 'active': model === '拍卖活動' }" @click="model = '拍卖活動'">
-          <text class="tab-text">拍卖活動</text>
-          <view class="tab-line" v-if="model === '拍卖活動'"></view>
+        <view class="nav-tab" :class="{ 'active': model === '活動' }" @click="model = '活動'">
+          <text class="tab-text">活動</text>
+          <view class="tab-line" v-if="model === '活動'"></view>
         </view>
       </view>
 
@@ -151,8 +151,8 @@
         <uni-icons type="plusempty" size="24" color="#000"></uni-icons>
       </view>
     </view>
-    <AntiqueCollection v-if="model === '古董收藏'" />
-    <AuctionActivity v-if="model === '拍卖活動'" />
+    <AntiqueCollection v-if="model === '教學'" />
+    <AuctionActivity v-if="model === '活動'" />
     <!-- 底部安全区留白 -->
     <view class="safe-area-bottom"></view>
   </view>
@@ -330,7 +330,10 @@ async function submitComment(item) {
 
 // 将原本分散在九宫格和列表里的所有入口整合到一个数组中
 const originalEntries = ref([
+  { name: '精选', page: '/pages/choose/index' },
   { name: '祝福', page: '/pages/wishes/index' },
+  { name: '古董', page: '/pages/wishes/index' },
+  { name: '二手市场', page: '/pages/analysis/index' },
   { name: '分析工具', page: '/pages/analysis/index' },
   { name: '通知', page: '/pages/notification/index' },
   { name: '搜尋候選人', page: '/pages/searchPerson/searchPerson' },
@@ -345,7 +348,7 @@ const originalEntries = ref([
 ]);
 
 // 当前选中的滚动 Tab 索引
-const currentEntryIndex = ref(0);
+const currentEntryIndex = ref(1);
 
 // 点击入口跳转
 const handleEntryClick = (index, url) => {
@@ -529,7 +532,7 @@ $gray-bg: #F5F6F8;
   width: 100rpx;
   height: 100rpx;
   border-radius: 50%;
-  
+
 }
 
 .post-card {

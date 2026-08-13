@@ -483,7 +483,7 @@ function changeCover() {
       try {
         uni.showLoading({ title: '上传中...' })
         const result = await uploadCoverApi(res.tempFilePaths[0])
-        userInfo.value.coverUrl = config.baseURL + result.url
+        userInfo.value.coverUrl = result.url
         // 同步更新本地缓存，避免下次进页面读到旧值
         const cached = uni.getStorageSync('USER_INFO') || {}
         uni.setStorageSync('USER_INFO', { ...cached, cover_url: result.url })
