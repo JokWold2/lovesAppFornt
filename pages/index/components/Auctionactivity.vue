@@ -76,6 +76,8 @@
   
   <script setup>
   import { ref, computed, onMounted, onUnmounted } from 'vue';
+  import { onShow } from '@dcloudio/uni-app';
+  import { getAuctionList } from '@/api/auction.js';
   
   // ------- 状态筛选 -------
   const statusFilters = ref([
@@ -87,21 +89,13 @@
   ]);
   const currentStatus = ref('all');
   
-  // ------- 数据（先做页面，暂用本地占位数据，不接口） -------
+  // ------- 数据 -------
   const auctions = ref([]);
   let timer = null;
   
-  function buildMockData() {
-    const now = Date.now();
-    const raw = [
-      { id: 1, title: '清代 官窑粉彩百鹿尊', lotNo: 'A1024', category: '瓷器专场', currentPrice: 128000, bidCount: 34, status: 'ongoing', endAt: now + 3 * 3600 * 1000 + 20 * 60 * 1000, cover: 'https://picsum.photos/seed/antique1/400/560' },
-      { id: 2, title: '明代 沉香木雕摆件', lotNo: 'A1025', category: '木器杂项', currentPrice: 56000, bidCount: 12, status: 'ongoing', endAt: now + 45 * 60 * 1000, cover: 'https://picsum.photos/seed/antique2/400/420' },
-      { id: 3, title: '张大千 山水手卷', lotNo: 'A1026', category: '书画专场', currentPrice: 860000, bidCount: 21, status: 'preview', endAt: now + 26 * 3600 * 1000, cover: 'https://picsum.photos/seed/antique3/400/500' },
-      { id: 4, title: '战国 青铜错金带钩', lotNo: 'A1027', category: '青铜杂项', currentPrice: 32000, bidCount: 0, status: 'upcoming', endAt: now + 5 * 3600 * 1000, cover: 'https://picsum.photos/seed/antique4/400/380' },
-      { id: 5, title: '清乾隆 田黄石印章', lotNo: 'A1028', category: '文玩篆刻', currentPrice: 210000, bidCount: 45, status: 'ended', endAt: now - 3 * 3600 * 1000, cover: 'https://picsum.photos/seed/antique5/400/600' },
-      { id: 6, title: '民国 掐丝珐琅香炉', lotNo: 'A1029', category: '金属工艺', currentPrice: 18800, bidCount: 8, status: 'upcoming', endAt: now + 30 * 3600 * 1000, cover: 'https://picsum.photos/seed/antique7/400/480' }
-    ];
-    return raw.map((r) => ({ ...r, countdownText: '', endTimeText: formatDate(r.endAt) }));
+  async function loadAuctions() {
+    auctions.value = await getAuctionList();
+    tickCountdown();
   }
   
   // ------- 倒计时 -------
@@ -134,16 +128,20 @@
   function tickCountdown() {
     const now = Date.now();
     auctions.value.forEach((item) => {
-      if (item.status === 'ended') return;
+      if (item.status === 'ended') {
+        item.endTimeText = formatDate(item.endAt);
+        return;
+      }
       item.countdownText = formatCountdown(item.endAt - now);
     });
   }
   
-  onMounted(() => {
-    auctions.value = buildMockData();
-    tickCountdown();
+  onMounted(async () => {
+    await loadAuctions();
     timer = setInterval(tickCountdown, 1000);
   });
+
+  onShow(loadAuctions);
   
   onUnmounted(() => {
     if (timer) clearInterval(timer);
@@ -168,8 +166,7 @@
   }
   
   function openDetail(item) {
-    // 拍品详情/竞拍接口未接入，先提示
-    uni.showToast({ title: '拍品详情开发中', icon: 'none' });
+    uni.navigateTo({ url: `/pages/index/auctionDetail/auctionDetail?id=${item.id}` });
   }
   </script>
   
