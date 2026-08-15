@@ -49,6 +49,20 @@ export function getUserListApi(params) {
   return get('/api/user/list', params)
 }
 
+// ===== 拍卖相关 =====
+// 后端接口上线后，页面数据源可直接改用这些方法。
+export function getAuctionListApi(params) {
+  return get('/api/auctions', params)
+}
+
+export function getAuctionDetailApi(id) {
+  return get(`/api/auctions/${id}`)
+}
+
+export function placeAuctionBidApi(id, payload) {
+  return post(`/api/auctions/${id}/bids`, payload)
+}
+
 // ===== 个人资料 =====
 
 /**

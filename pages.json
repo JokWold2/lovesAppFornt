@@ -7,6 +7,14 @@
 	},
 	"pages": [
 		{
+			"path": "pages/index/auctionDetail",
+			"style": {
+				"navigationBarTitleText": "拍品详情",
+				"navigationBarBackgroundColor": "#FFCE00",
+				"navigationBarTextStyle": "black"
+			}
+		},
+		{
 			"path": "pages/login/login360",
 			"style": {
 				"navigationBarTitleText": "登录"
