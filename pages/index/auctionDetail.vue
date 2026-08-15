@@ -42,7 +42,18 @@
     </template>
 
     <view v-if="auction" class="bottom-bar">
-      <view class="bottom-tip"><text>竞价阶梯 ¥{{ formatPrice(auction.priceStep) }}</text></view>
+      <view class="bottom-action" @click="showFeatureTip('客服功能开发中')">
+        <uni-icons type="headphones" size="25" color="#333" />
+        <text>联系客服</text>
+      </view>
+      <view class="bottom-action" @click="showFeatureTip('参拍提醒开发中')">
+        <uni-icons type="notification" size="25" color="#333" />
+        <text>参拍提醒</text>
+      </view>
+      <view class="bottom-action" @click="showFeatureTip('代理出价开发中')">
+        <uni-icons type="paperplane" size="25" color="#333" />
+        <text>代理出价</text>
+      </view>
       <button class="bid-button" :disabled="!canBid || bidding" @click="handleBid">{{ bidding ? '出价中...' : canBid ? `立即出价 ¥${formatPrice(nextBidAmount)}` : '当前不可出价' }}</button>
     </view>
   </view>
@@ -97,6 +108,11 @@ async function handleBid() {
   }
 }
 
+// 三个扩展能力暂未接入；保留独立入口，后续接接口时不影响竞价流程。
+function showFeatureTip(title) {
+  uni.showToast({ title, icon: 'none' })
+}
+
 function formatPrice(value) { return Number(value || 0).toLocaleString('zh-CN') }
 function formatCountdown(diff) {
   if (diff <= 0) return '00:00:00'
@@ -146,8 +162,9 @@ $page-bg: #F7F7F7;
 .bid-time { margin-top: 6rpx; color: #999; font-size: 22rpx; }
 .bid-amount { color: #c67f00; font-size: 28rpx; font-weight: 600; }
 .empty-bids { padding: 48rpx 0; text-align: center; color: #999; font-size: 26rpx; }
-.bottom-bar { position: fixed; right: 0; bottom: 0; left: 0; display: flex; align-items: center; padding: 18rpx 24rpx calc(18rpx + env(safe-area-inset-bottom)); background: #fff; box-shadow: 0 -4rpx 18rpx rgba(0, 0, 0, .08); }
-.bottom-tip { flex: 1; color: #777; font-size: 23rpx; }
-.bid-button { margin: 0; padding: 0 34rpx; border-radius: 8rpx; background: $brand-yellow; color: #1a1a1a; font-size: 29rpx; font-weight: 600; line-height: 82rpx; }
+.bottom-bar { position: fixed; right: 0; bottom: 0; left: 0; display: flex; align-items: center; padding: 12rpx 20rpx calc(12rpx + env(safe-area-inset-bottom)); background: #fff; box-shadow: 0 -4rpx 18rpx rgba(0, 0, 0, .08); }
+.bottom-action { display: flex; width: 112rpx; flex-shrink: 0; flex-direction: column; align-items: center; color: #333; font-size: 21rpx; line-height: 1.5; }
+.bottom-action text { margin-top: 4rpx; }
+.bid-button { flex: 1; margin: 0 0 0 14rpx; padding: 0 12rpx; border-radius: 8rpx; background: $brand-yellow; color: #1a1a1a; font-size: 27rpx; font-weight: 600; line-height: 82rpx; }
 .bid-button[disabled] { background: #e3e3e3; color: #999; }
 </style>
