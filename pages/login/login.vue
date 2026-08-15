@@ -23,7 +23,7 @@
         <view class="input-group">
           <text class="input-label">電子郵件</text>
           <input type="text" class="form-input" placeholder="請輸入您的 Email" v-model="loginForm.email" />
-        </view>
+        </view>    
         <view class="input-group">
           <text class="input-label">密碼</text>
           <input type="password" class="form-input" placeholder="請輸入密碼" v-model="loginForm.password" />

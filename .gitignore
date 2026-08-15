@@ -2,3 +2,8 @@ unpackage/
 .DS_Store
 .hbuilderx/
 node_modules/
+/.idea/.gitignore
+/.idea/lovesAppFornt.iml
+/.idea/misc.xml
+/.idea/modules.xml
+/.idea/vcs.xml
