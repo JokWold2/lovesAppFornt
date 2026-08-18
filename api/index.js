@@ -20,6 +20,13 @@ export function loginApi(email, password, opts = {}) {
 }
 
 /**
+ * App 原生 Google 授权完成后，将授权结果交给后端校验并换取项目 JWT。
+ */
+export function socialLoginApi(provider, authResult) {
+  return post('/api/auth/social-login', { provider, authResult }, { noAuth: true })
+}
+
+/**
  * 注册
  * @param {string} email    邮箱
  * @param {string} password 密码

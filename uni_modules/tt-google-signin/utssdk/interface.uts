@@ -1,0 +1,94 @@
+export interface TTGoogleLoginFail extends IUniError {
+
+}
+
+export type TTGoogleLoginSuccess = {
+	/**
+	 * 用于验证用户身份的 ID Token
+	 */
+	idToken: string,
+	/**
+	 * 用于访问 Google API 的 Access Token
+	 */
+	accessToken: string | null,
+	/**
+	 * 用户ID
+	 */
+	userID: string | null,
+	/**
+	 * 用户名称
+	 */
+	name: string | null,
+	/**
+	 * 用户头像URL
+	 */
+	pictureURL: string | null,
+	/**
+	 * 用户邮箱
+	 */
+	email: string | null
+};
+
+export type TTGoogleLoginSuccessCallback = (result: TTGoogleLoginSuccess) => void;
+export type TTGoogleLoginFailCallback = (result: TTGoogleLoginFail) => void;
+export type TTGoogleLoginCompleteCallback = (result: any) => void;
+
+export type TTGoogleLoginOptions = {
+
+	/**
+	 * Google Web 客户端 ID，格式：xxxxx.apps.googleusercontent.com
+	 */
+	serverClientId: string,
+
+	/**
+	 * 是否使用旧版 Google Sign-In API 登录（仅 Android 平台有效）
+	 * - false（默认）：使用新版 Credential Manager API
+	 * - true：使用旧版 Google Sign-In API
+	 */
+	useLegacyLogin?: boolean | null,
+
+	success : TTGoogleLoginSuccessCallback | null,
+
+	fail : TTGoogleLoginFailCallback | null,
+
+	complete : TTGoogleLoginCompleteCallback | null
+}
+
+export interface TTGoogleLogoutFail extends IUniError {
+
+}
+
+export type TTGoogleLogoutSuccess = {
+
+};
+
+export type TTGoogleLogoutSuccessCallback = (result: TTGoogleLogoutSuccess) => void;
+export type TTGoogleLogoutFailCallback = (result: TTGoogleLogoutFail) => void;
+export type TTGoogleLogoutCompleteCallback = (result: any) => void;
+
+export type TTGoogleLogoutOptions = {
+	/**
+	 * 是否使用旧版 Google Sign-In API 退出登录（仅 Android 平台有效）
+	 * - false（默认）：使用新版 Credential Manager API
+	 * - true：使用旧版 Google Sign-In API
+	 */
+	useLegacyLogout?: boolean | null,
+
+	success : TTGoogleLogoutSuccessCallback | null,
+
+	fail : TTGoogleLogoutFailCallback | null,
+
+	complete : TTGoogleLogoutCompleteCallback | null
+}
+
+export interface TTGoogleSign{
+
+	/* Google登录 */
+	login(options : TTGoogleLoginOptions) : void
+	
+	/* Google退出登录 */
+	logout(options : TTGoogleLogoutOptions) : void
+}
+
+export type GetTTGoogleSign = () => TTGoogleSign;
+

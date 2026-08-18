@@ -49,7 +49,7 @@
               class="link-text">隐私政策</text></text>
         </view>
 
-        <!-- 更多登录方式 (保留样式，暂不做功能) -->
+        <!-- 更多登录方式 -->
         <view class="more-login-section">
           <view class="divider">
             <view class="line"></view>
@@ -63,7 +63,7 @@
               <view class="circle-icon wechat">
                 <text class="icon-text">微</text>
               </view>
-              <view class="circle-icon google">
+              <view class="circle-icon google" :class="{ 'social-loading': socialLoading }" @click="handleGoogleLogin">
                 <text class="icon-text-g">G</text>
               </view>
               <view class="circle-icon facebook">
@@ -132,12 +132,14 @@
 
 <script setup>
 import { ref, reactive, computed, onMounted } from 'vue';
-import { loginApi, registerApi } from '@/api/index.js';
+import { loginApi, registerApi, socialLoginApi } from '@/api/index.js';
 import { setToken, setUserInfo, getSavedAccount } from '@/utils/auth.js';
+import { signInWithGoogle } from '@/utils/googleAuth.js';
 
 // 视图状态：true 为登入视图，false 为注册视图
 const isLoginView = ref(true);
 const loading = ref(false);
+const socialLoading = ref(false);
 
 // 隐私协议同意状态
 const agreePrivacy = ref(false);
@@ -228,6 +230,47 @@ const handleLogin = async () => {
   }
 };
 
+// App 端由原生 Google SDK 返回 ID Token；令牌仅提交给后端校验，不在前端解析或保存。
+const handleGoogleLogin = async () => {
+  if (!agreePrivacy.value) {
+    uni.showToast({ title: '请先阅读并同意《隐私协议》', icon: 'none' });
+    return;
+  }
+  if (socialLoading.value) return;
+
+  // #ifndef APP-PLUS
+  uni.showToast({ title: '请在 Android App 中使用 Google 登录', icon: 'none' });
+  return;
+  // #endif
+
+  // #ifdef APP-PLUS
+  socialLoading.value = true;
+  try {
+    const { idToken } = await signInWithGoogle();
+    const data = await socialLoginApi('google', { idToken });
+    if (!data?.token) throw new Error('Google 登录未返回登录凭证');
+
+    setToken(data.token);
+    setUserInfo(data.user || {});
+    uni.showToast({ title: 'Google 登录成功', icon: 'success' });
+    navigateAfterAuth();
+  } catch (error) {
+    console.error('google login error', error);
+    // 原生 SDK 的失败对象通常使用 errMsg / errCode，不是标准 Error.message。
+    const errorCode = error?.errCode || error?.code || '未知';
+    const errorMessage = typeof error === 'string' ? error : error?.errMsg || error?.message || '未返回原生错误信息';
+    // Toast 放不下 Google 原生错误（例如 login:fail 10），使用弹窗完整展示，便于排查配置问题。
+    uni.showModal({
+      title: `Google 授权失败（${errorCode}）`,
+      content: errorMessage,
+      showCancel: false
+    });
+  } finally {
+    socialLoading.value = false;
+  }
+  // #endif
+};
+
 // 处理注册
 const handleRegister = async () => {
   if (!isRegisterValid.value) return;
@@ -294,6 +337,11 @@ $border-color: #f0f0f0;
   flex-direction: column;
   position: relative;
   overflow: hidden;
+}
+
+.social-loading {
+  opacity: 0.5;
+  pointer-events: none;
 }
 
 /* 顶部暖黄渐变背景模拟 */
