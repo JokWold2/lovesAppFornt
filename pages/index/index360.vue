@@ -1,10 +1,10 @@
 <template>
 	<view class="container">
 		<!-- 状态栏占位 -->
-		<view
+		<!-- <view
 			class="status-bar"
 			:style="{ height: statusBarHeight + 'px' }"
-		></view>
+		></view> -->
 
 		<!-- 顶部导航栏 -->
 		<view class="header-nav">
@@ -13,7 +13,7 @@
 				<view class="avatar-circle" @click="handleLogout">
 					<image
 						v-if="userInfo.avatar_url"
-						class="avatar-img"
+						class="avatar-img1"
 						:src="userInfo.avatar_url"
 						mode="aspectFill"
 					></image>
@@ -321,6 +321,7 @@ onMounted(async () => {
 	}
 	uni.getSystemInfo({
 		success: (res) => {
+			console.log("System Info:", res);
 			// 动态获取状态栏高度以适配刘海屏
 			statusBarHeight.value = res.statusBarHeight || 44;
 		},
@@ -488,17 +489,17 @@ const originalEntries = ref([
 	{ name: "祝福", page: "/pages/wishes/index" },
 	{ name: "古董", page: "/pages/wishes/index" },
 	{ name: "二手市场", page: "/pages/analysis/index" },
-	{ name: "分析工具", page: "/pages/analysis/index" },
-	{ name: "通知", page: "/pages/notification/index" },
+	// { name: "分析工具", page: "/pages/analysis/index" },
+	// { name: "通知", page: "/pages/notification/index" },
 	{ name: "搜尋候選人", page: "/pages/searchPerson/searchPerson" },
-	{ name: "關心管理", page: "/pages/care/index" },
-	{ name: "家庭交流管理", page: "/pages/family/index" },
-	{ name: "初用者", page: "/pages/my/myFile/myFile" },
-	{ name: "祝福子女政策", page: "/pages/policy/index" },
-	{ name: "註冊", page: "/pages/auth/register" },
-	{ name: "協助者手冊", page: "/pages/manual/helper" },
-	{ name: "會員手冊", page: "/pages/manual/member" },
-	{ name: "連絡", page: "/pages/contact/index" },
+	// { name: "關心管理", page: "/pages/care/index" },
+	// { name: "家庭交流管理", page: "/pages/family/index" },
+	// { name: "初用者", page: "/pages/my/myFile/myFile" },
+	// { name: "祝福子女政策", page: "/pages/policy/index" },
+	// { name: "註冊", page: "/pages/auth/register" },
+	// { name: "協助者手冊", page: "/pages/manual/helper" },
+	// { name: "會員手冊", page: "/pages/manual/member" },
+	// { name: "連絡", page: "/pages/contact/index" },
 ]);
 
 // 当前选中的滚动 Tab 索引
@@ -506,10 +507,13 @@ const currentEntryIndex = ref(1);
 
 // 点击入口跳转
 const handleEntryClick = (index, url) => {
+	if (index == 4) {
+		uni.navigateTo({
+			url: url,
+		});
+		return;
+	}
 	currentEntryIndex.value = index;
-	//   uni.navigateTo({
-	//     url: url
-	//   });
 };
 </script>
 
@@ -537,13 +541,18 @@ $gray-bg: #f5f6f8;
 
 	.nav-left {
 		.avatar-circle {
-			width: 60rpx;
-			height: 60rpx;
+			width: 70rpx;
+			height: 70rpx;
 			border-radius: 50%;
 			background-color: #e8e8e8;
 			display: flex;
 			justify-content: center;
 			align-items: center;
+			.avatar-img1 {
+				width: 100%;
+				height: 100%;
+				border-radius: 50%;
+			}
 		}
 	}
 
