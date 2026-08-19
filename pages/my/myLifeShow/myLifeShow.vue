@@ -7,9 +7,15 @@
 
     <!-- 1. 顶部背景与用户信息 -->
     <view class="header">
-      <!-- 背景封面图 -->
-      <image class="cover-bg" :src="userInfo.coverUrl || 'https://via.placeholder.com/800x600/1AAD19/ffffff?text=Cover'"
-        mode="aspectFill" @click="changeCover"></image>
+      <!-- 资料照片同时是个人页封面；没有照片时显示本地默认封面。 -->
+      <swiper class="cover-swiper" :autoplay="profilePhotos.length > 1" circular :interval="3500" :duration="450" @tap="changeCover">
+        <swiper-item v-for="(photo, index) in profilePhotos" :key="`${photo}-${index}`">
+          <image class="cover-bg" :src="photo" mode="aspectFill"></image>
+        </swiper-item>
+        <swiper-item v-if="!profilePhotos.length">
+          <view class="cover-default"><image class="cover-default-logo" src="/static/logo.png" mode="aspectFit"></image></view>
+        </swiper-item>
+      </swiper>
 
       <!-- 用户名与头像 -->
       <view class="user-info">
@@ -20,6 +26,14 @@
         <image class="avatar" :src="userInfo.avatarUrl || 'https://via.placeholder.com/150/cccccc/ffffff?text=Avatar'"
           mode="aspectFill" @click="changeAvatar"></image>
       </view>
+    </view>
+
+    <!-- 收到点赞：只展示最近 3 个头像与最新点赞人的名称。 -->
+    <view v-if="receivedLikeTotal > 0" class="received-likes" @tap="showLikesSheet = true">
+      <view class="received-avatars">
+        <image v-for="like in receivedLikes.slice(0, 3)" :key="`${like.userId}-${like.createdAt}`" class="received-avatar" :src="getFullImageUrl(like.avatarUrl) || '/static/logo.png'" mode="aspectFill"></image>
+      </view>
+      <text class="received-likes-text">{{ receivedLikes[0]?.name || '好友' }} 和其他 {{ receivedLikeTotal }} 人为您点赞</text>
     </view>
 
     <!-- 2. 个性签名 -->
@@ -34,6 +48,13 @@
         <!-- <loading2 /> -->
       </view>
     </view>
+    <ProfileDetailSections
+      v-if="profileData"
+      :profile="profileData"
+      :enable-like="false"
+      :liked="false"
+      :like-count="0"
+    />
     <!-- 3. 内容列表区域 -->
     <view class="moments-list">
       <!-- 空状态 -->
@@ -152,6 +173,7 @@
 
     <!-- 底部安全区域占位 -->
     <view class="footer-spacer"></view>
+    <ProfileLikesSheet :visible="showLikesSheet" :likes="receivedLikes" :total="receivedLikeTotal" @close="showLikesSheet = false" />
   </view>
 </template>
 
@@ -160,17 +182,24 @@ import { ref, onMounted } from 'vue'
 import { onShow } from '@dcloudio/uni-app'
 import {
   getMomentsApi, togglePinMomentApi, deleteMomentApi,
-  toggleLikeMomentApi, uploadAvatarApi, uploadCoverApi,
+  toggleLikeMomentApi, uploadAvatarApi, uploadProfilePhotosApi,
   getProfileApi, getCommentsApi, addCommentApi, updateBioApi,
-  getLikesApi
+  getLikesApi, getProfileLikesApi
 } from '@/api/index.js'
 import { config } from '@/utils/config.js'
 import botton2 from '@/static/botton/botton2.vue'
 import botton3 from '@/static/botton/botton3.vue'
+import ProfileDetailSections from '@/components/profile/ProfileDetailSections.vue'
+import ProfileLikesSheet from '@/components/profile/ProfileLikesSheet.vue'
 // import loading2 from '@/static/loading/loading2.vue'
 // 状态
 const loading = ref(false)
 const moments = ref([])
+const profileData = ref(null)
+const profilePhotos = ref([])
+const receivedLikes = ref([])
+const receivedLikeTotal = ref(0)
+const showLikesSheet = ref(false)
 const userInfo = ref({
   username: '',
   email: '',
@@ -184,6 +213,16 @@ function getFullImageUrl(path) {
   if (!path) return ''
   if (path.startsWith('http')) return path
   return config.baseURL + path
+}
+
+function normalizePhotoUrls(value) {
+  if (Array.isArray(value)) return value.filter(url => typeof url === 'string' && url)
+  if (typeof value !== 'string') return []
+  try {
+    return normalizePhotoUrls(JSON.parse(value))
+  } catch (_) {
+    return []
+  }
 }
 
 function goToSearch() {
@@ -232,6 +271,8 @@ async function loadUserProfile() {
     const res = await getProfileApi()
     const profile = res.profile
     if (profile) {
+      profileData.value = profile
+      profilePhotos.value = normalizePhotoUrls(profile.photos).map(getFullImageUrl)
       userInfo.value.avatarUrl = getFullImageUrl(profile.avatar_url) || userInfo.value.avatarUrl
       userInfo.value.coverUrl = getFullImageUrl(profile.cover_url) || userInfo.value.coverUrl
       userInfo.value.username = profile.en_first_name || userInfo.value.username
@@ -246,11 +287,23 @@ async function loadUserProfile() {
         name: profile.en_first_name || cached.name,
         avatar_url: profile.avatar_url,
         cover_url: profile.cover_url,
+        photos: profilePhotos.value,
         bio: profile.bio
       })
+      loadReceivedLikes(profile.id)
     }
   } catch (e) {
     console.error('获取用户资料失败，暂用本地缓存', e)
+  }
+}
+
+async function loadReceivedLikes(profileId) {
+  try {
+    const result = await getProfileLikesApi(profileId)
+    receivedLikes.value = Array.isArray(result.likes) ? result.likes : []
+    receivedLikeTotal.value = Number(result.total || 0)
+  } catch (error) {
+    console.error('获取收到的点赞失败', error)
   }
 }
 
@@ -482,17 +535,23 @@ function showItemActions(item) {
 
 // 修改封面
 function changeCover() {
+  const remaining = 9 - profilePhotos.value.length
+  if (remaining <= 0) {
+    uni.showToast({ title: '最多只能上传 9 张照片', icon: 'none' })
+    return
+  }
   uni.chooseImage({
-    count: 1,
+    count: remaining,
     sourceType: ['album'],
     success: async (res) => {
       try {
         uni.showLoading({ title: '上传中...' })
-        const result = await uploadCoverApi(res.tempFilePaths[0])
-        userInfo.value.coverUrl = result.url
-        // 同步更新本地缓存，避免下次进页面读到旧值
+        const result = await uploadProfilePhotosApi(res.tempFilePaths)
+        profilePhotos.value = normalizePhotoUrls(result.photos).map(getFullImageUrl)
+        if (profileData.value) profileData.value.photos = profilePhotos.value
+        // 同步更新本地缓存，避免下次进页面读到旧照片。
         const cached = uni.getStorageSync('USER_INFO') || {}
-        uni.setStorageSync('USER_INFO', { ...cached, cover_url: result.url })
+        uni.setStorageSync('USER_INFO', { ...cached, photos: profilePhotos.value })
       } catch (e) {
         console.error('封面上传失败', e)
         uni.showToast({ title: '上传失败', icon: 'none' })
@@ -537,6 +596,7 @@ function getUserInfo() {
         coverUrl: info.cover_url || '',
         bio: info.bio || ''
       }
+      profilePhotos.value = normalizePhotoUrls(info.photos).map(getFullImageUrl)
     }
   } catch (e) {
     console.error('获取用户信息失败', e)
@@ -580,6 +640,28 @@ onShow(() => {
 .cover-bg {
   width: 100%;
   height: 100%;
+}
+
+.cover-swiper {
+  width: 100%;
+  height: 100%;
+}
+
+.cover-default {
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(135deg, #fff1bf, #f2ca72);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.cover-default-logo {
+  width: 144rpx;
+  height: 144rpx;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.76);
+  padding: 24rpx;
 }
 
 .user-info {
@@ -628,6 +710,34 @@ onShow(() => {
   color: #888888;
   font-size: 26rpx;
   margin-bottom: 20rpx;
+}
+
+.received-likes {
+  min-height: 68rpx;
+  padding: 18rpx 30rpx 0;
+  display: flex;
+  align-items: center;
+  gap: 16rpx;
+}
+
+.received-avatars {
+  display: flex;
+  align-items: center;
+  padding-left: 10rpx;
+}
+
+.received-avatar {
+  width: 48rpx;
+  height: 48rpx;
+  border-radius: 50%;
+  border: 2rpx solid #fff;
+  margin-left: -10rpx;
+  background: #eee;
+}
+
+.received-likes-text {
+  color: #333;
+  font-size: 26rpx;
 }
 
 /* --- 列表区域 --- */

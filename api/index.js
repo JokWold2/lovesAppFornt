@@ -253,6 +253,31 @@ export function uploadCoverApi(filePath) {
   }).then(res => JSON.parse(res.data))
 }
 
+// 资料照片会追加保存到 profiles.photos。必须串行上传，避免多个请求并发覆盖同一数组。
+export function uploadProfilePhotosApi(filePaths) {
+  const token = uni.getStorageSync('AUTH_TOKEN')
+  let latestResult = null
+
+  return filePaths.reduce((chain, filePath) => chain.then(() => new Promise((resolve, reject) => {
+    uni.uploadFile({
+      url: config.baseURL + '/api/profile/photos',
+      filePath,
+      name: 'photos',
+      header: { Authorization: `Bearer ${token}` },
+      success: (res) => {
+        if (res.statusCode !== 200) return reject(new Error(res.data || '上传失败'))
+        try {
+          latestResult = JSON.parse(res.data)
+          resolve()
+        } catch (_) {
+          reject(new Error('解析上传响应失败'))
+        }
+      },
+      fail: reject
+    })
+  })), Promise.resolve()).then(() => latestResult)
+}
+
 export function getProfileApi() {
   return get('/api/profile')
 }
@@ -327,6 +352,7 @@ export default {
   toggleLikeMomentApi,
   uploadAvatarApi,
   uploadCoverApi,
+  uploadProfilePhotosApi,
   getExploreFeedApi,
   toggleProfileLikeApi,
   getProfileLikesApi,
