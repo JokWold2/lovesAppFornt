@@ -33,6 +33,9 @@ export function signInWithGoogle() {
 
     sdk.login({
       serverClientId: GOOGLE_WEB_CLIENT_ID,
+      // 部分 Android 设备的 Credential Manager 会返回非 Google ID Token 凭据（错误 103）。
+      // 旧版 Google Sign-In 仍会返回可供服务端校验的 ID Token；该选项仅影响 Android。
+      useLegacyLogin: true,
       success(result) {
         const idToken = result && result.idToken;
         if (typeof idToken !== 'string' || !idToken.trim()) {
