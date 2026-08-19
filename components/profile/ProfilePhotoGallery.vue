@@ -64,7 +64,7 @@ function handlePhotoTap(index) {
 }
 
 .photo-cell {
-  width: calc(50% - 8rpx);
+  width: calc(50% - 10rpx);
 }
 
 .photo {
@@ -83,8 +83,8 @@ function handlePhotoTap(index) {
 
 .like-button {
   position: absolute;
-  top: 0;
-  right: 0;
+  top: 12rpx;
+  right: 12rpx;
   min-width: 72rpx;
   height: 56rpx;
   padding: 0 14rpx;

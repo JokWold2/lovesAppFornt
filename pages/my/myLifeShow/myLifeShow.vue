@@ -33,7 +33,7 @@
       <view class="received-avatars">
         <image v-for="like in receivedLikes.slice(0, 3)" :key="`${like.userId}-${like.createdAt}`" class="received-avatar" :src="getFullImageUrl(like.avatarUrl) || '/static/logo.png'" mode="aspectFill"></image>
       </view>
-      <text class="received-likes-text">{{ receivedLikes[0]?.name || '好友' }} 和其他 {{ receivedLikeTotal }} 人为您点赞</text>
+      <text class="received-likes-text">{{ receivedLikes[0]?.name || '好友' }}<text v-if="receivedLikeTotal > 1">和其他 {{ receivedLikeTotal - 1 }} 人</text> 为您点赞</text>
     </view>
 
     <!-- 2. 个性签名 -->
@@ -724,7 +724,7 @@ onShow(() => {
   padding: 80rpx 30rpx 20rpx;
   color: #888888;
   font-size: 26rpx;
-  margin-bottom: 20rpx;
+  background: #fff6df;
 }
 
 .received-likes {
@@ -733,6 +733,7 @@ onShow(() => {
   display: flex;
   align-items: center;
   gap: 16rpx;
+  background: #fff6df;
 }
 
 .received-avatars {
@@ -746,7 +747,7 @@ onShow(() => {
   height: 48rpx;
   border-radius: 50%;
   border: 2rpx solid #fff;
-  margin-left: -10rpx;
+  margin-left: -24rpx;
   background: #eee;
 }
 
@@ -1061,7 +1062,7 @@ onShow(() => {
   position: fixed;
   bottom: 60rpx;
   right: 40rpx;
-  z-index: 100;
+//   z-index: 100;
 }
 
 .fab {
