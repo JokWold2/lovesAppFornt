@@ -565,6 +565,8 @@ function changeCover() {
         // 同步更新本地缓存，避免下次进页面读到旧照片。
         const cached = uni.getStorageSync('USER_INFO') || {}
         uni.setStorageSync('USER_INFO', { ...cached, photos: profilePhotos.value })
+        // 以服务端最终保存的数据刷新资料区，确保轮播与下方照片展示完全一致。
+        await loadUserProfile()
       } catch (e) {
         console.error('封面上传失败', e)
         uni.showToast({ title: '上传失败', icon: 'none' })
