@@ -22,7 +22,8 @@ import { onLoad } from '@dcloudio/uni-app'
 import { getCandidateProfileApi, getProfileLikesApi, toggleProfileLikeApi } from '@/api/index.js'
 import ProfileDetailSections from '@/components/profile/ProfileDetailSections.vue'
 
-const GUIDE_KEY = 'PROFILE_LIKE_DOUBLE_TAP_GUIDE_V1'
+// 升级 key，确保此前没有看到引导的用户也能在本次功能发布后看到一次说明。
+const GUIDE_KEY = 'PROFILE_LIKE_DOUBLE_TAP_GUIDE_V2'
 const profile = ref(null)
 const loading = ref(true)
 const isLiked = ref(false)
@@ -47,8 +48,15 @@ async function fetchProfile() {
     if (!profile.value) return
 
     const likeData = await getProfileLikesApi(profile.value.id)
-    isLiked.value = !!likeData.isLiked
-    likeCount.value = Number(likeData.total || 0)
+    const likes = Array.isArray(likeData.likes) ? likeData.likes : []
+    const currentUserId = uni.getStorageSync('USER_INFO')?.id
+
+    // 新接口由后端直接提供 isLiked / total；旧线上接口仅返回 likes 时，
+    // 用缓存中的当前用户 id 和列表长度兜底，避免返回页面后红心错误变灰。
+    isLiked.value = typeof likeData.isLiked === 'boolean'
+      ? likeData.isLiked
+      : likes.some(like => Number(like.userId ?? like.user_id) === Number(currentUserId))
+    likeCount.value = Number(likeData.total ?? likes.length)
     showLikeGuideOnce()
   } catch (error) {
     console.error('加载候选人资料失败', error)
@@ -85,12 +93,15 @@ async function toggleProfileLike() {
 
 function showLikeGuideOnce() {
   if (uni.getStorageSync(GUIDE_KEY)) return
-  uni.showModal({
-    title: '点赞提示',
-    content: '双击照片可点赞，再次双击可取消点赞。',
-    showCancel: false,
-    complete: () => uni.setStorageSync(GUIDE_KEY, '1')
-  })
+  // 等页面完成首次渲染后再弹出，避免 App 端页面切换期间的弹窗被吞掉。
+  setTimeout(() => {
+    uni.showModal({
+      title: '点赞提示',
+      content: '双击照片可点赞，再次双击可取消点赞。',
+      showCancel: false,
+      success: () => uni.setStorageSync(GUIDE_KEY, '1')
+    })
+  }, 250)
 }
 
 function goBack() {

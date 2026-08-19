@@ -300,10 +300,23 @@ async function loadUserProfile() {
 async function loadReceivedLikes(profileId) {
   try {
     const result = await getProfileLikesApi(profileId)
-    receivedLikes.value = Array.isArray(result.likes) ? result.likes : []
-    receivedLikeTotal.value = Number(result.total || 0)
+    const likes = Array.isArray(result.likes) ? result.likes : []
+    // 兼容线上旧接口的 snake_case 字段；后端更新后会直接使用完整的 camelCase 数据。
+    receivedLikes.value = likes.map(normalizeProfileLike)
+    receivedLikeTotal.value = Number(result.total ?? receivedLikes.value.length)
   } catch (error) {
     console.error('获取收到的点赞失败', error)
+  }
+}
+
+function normalizeProfileLike(like) {
+  const email = like.email || ''
+  return {
+    userId: like.userId ?? like.user_id,
+    email,
+    name: like.name || email.split('@')[0] || '好友',
+    avatarUrl: like.avatarUrl || like.avatar_url || '',
+    createdAt: like.createdAt || like.created_at || ''
   }
 }
 
