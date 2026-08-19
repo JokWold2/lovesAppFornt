@@ -37,6 +37,7 @@ export function logoutAndRedirect(showTip = true) {
  * @param {Object} [options.header]   额外请求头
  * @param {boolean} [options.noAuth]  true 则不携带 token（用于登录/注册接口）
  * @param {boolean} [options.silent]  true 则不自动 toast 错误
+ * @param {boolean} [options.skipAuthRedirect] true 则由调用方处理 401，不自动跳登录页
  * @returns {Promise} resolve(res.data) / reject(err)
  */
 export function request(options) {
@@ -47,6 +48,7 @@ export function request(options) {
     header = {},
     noAuth = false,
     silent = false,
+    skipAuthRedirect = false,
     timeout = config.timeout
   } = options || {}
 
@@ -87,7 +89,7 @@ export function request(options) {
             return reject(res.data || { error: msg })
           }
           if (!silent) showToast('登录已过期')
-          logoutAndRedirect(false)
+          if (!skipAuthRedirect) logoutAndRedirect(false)
           return reject(res.data || { error: '未授权' })
         }
         if (res.statusCode >= 400) {
@@ -105,7 +107,7 @@ export function request(options) {
               return reject(res.data)
             }
             if (!silent) showToast(msg || '登录已过期')
-            logoutAndRedirect(false)
+            if (!skipAuthRedirect) logoutAndRedirect(false)
             return reject(res.data)
           }
           if (res.data.code !== config.successCode) {

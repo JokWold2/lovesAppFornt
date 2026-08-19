@@ -9,6 +9,9 @@ let googleSdk;
 
 function getGoogleSdk() {
   if (!googleSdk) {
+    if (!googleSignin || typeof googleSignin.getTTGoogleSign !== 'function') {
+      throw new Error('Google 登录插件未加载：请使用包含 tt-google-signin 的自定义调试基座或云打包 APK');
+    }
     googleSdk = googleSignin.getTTGoogleSign();
   }
   return googleSdk;

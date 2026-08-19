@@ -13,7 +13,10 @@
 
       <!-- 用户名与头像 -->
       <view class="user-info">
-        <text class="username">{{ userInfo.username || '用户' }}</text>
+        <view class="user-text">
+          <text class="username">{{ userInfo.username || '用户' }}</text>
+          <text v-if="userInfo.email" class="email">{{ userInfo.email }}</text>
+        </view>
         <image class="avatar" :src="userInfo.avatarUrl || 'https://via.placeholder.com/150/cccccc/ffffff?text=Avatar'"
           mode="aspectFill" @click="changeAvatar"></image>
       </view>
@@ -170,6 +173,7 @@ const loading = ref(false)
 const moments = ref([])
 const userInfo = ref({
   username: '',
+  email: '',
   avatarUrl: '',
   coverUrl: '',
   bio: ''
@@ -230,6 +234,7 @@ async function loadUserProfile() {
     if (profile) {
       userInfo.value.avatarUrl = getFullImageUrl(profile.avatar_url) || userInfo.value.avatarUrl
       userInfo.value.coverUrl = getFullImageUrl(profile.cover_url) || userInfo.value.coverUrl
+      userInfo.value.username = profile.en_first_name || userInfo.value.username
       if (profile.bio !== undefined && profile.bio !== null) {
         userInfo.value.bio = profile.bio
       }
@@ -238,6 +243,7 @@ async function loadUserProfile() {
       const cached = uni.getStorageSync('USER_INFO') || {}
       uni.setStorageSync('USER_INFO', {
         ...cached,
+        name: profile.en_first_name || cached.name,
         avatar_url: profile.avatar_url,
         cover_url: profile.cover_url,
         bio: profile.bio
@@ -526,6 +532,7 @@ function getUserInfo() {
     if (info) {
       userInfo.value = {
         username: info.username || info.name || '',
+        email: info.email || '',
         avatarUrl: info.avatar_url || '',
         coverUrl: info.cover_url || '',
         bio: info.bio || ''
@@ -583,12 +590,25 @@ onShow(() => {
   align-items: flex-end;
 }
 
+.user-text {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  margin-right: 30rpx;
+  margin-bottom: 48rpx;
+}
+
 .username {
   color: #ffffff;
   font-size: 38rpx;
   font-weight: bold;
-  margin-right: 30rpx;
-  margin-bottom: 70rpx;
+  margin-bottom: 8rpx;
+  text-shadow: 1px 1px 3px rgba(0, 0, 0, 0.4);
+}
+
+.email {
+  color: rgba(255, 255, 255, 0.88);
+  font-size: 24rpx;
   text-shadow: 1px 1px 3px rgba(0, 0, 0, 0.4);
 }
 

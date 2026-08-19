@@ -43,7 +43,8 @@ export function registerApi(email, password, code) {
  *  - 网络错误 → reject（前端会按未登录处理）
  */
 export function validateTokenApi() {
-  return get('/api/auth/validate')
+  // 启动阶段由 App.vue 决定如何恢复或清理会话，不能让请求层抢先跳转。
+  return get('/api/auth/validate', {}, { silent: true, skipAuthRedirect: true })
 }
 
 // ===== 用户相关（示例，按需扩展） =====

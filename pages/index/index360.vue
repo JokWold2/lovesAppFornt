@@ -10,7 +10,7 @@
 		<view class="header-nav">
 			<view class="nav-left">
 				<!-- 用户头像占位 -->
-				<view class="avatar-circle">
+				<view class="avatar-circle" @click="handleLogout">
 					<image
 						v-if="userInfo.avatar_url"
 						class="avatar-img"
@@ -293,11 +293,21 @@ import { config } from "@/utils/config.js";
 import { ensureTokenValid } from "@/utils/guard.js";
 import AntiqueCollection from "./components/Antiquecollection.vue";
 import AuctionActivity from "./components/Auctionactivity.vue";
+import { clearAuth } from "@/utils/auth.js";
 
 // 状态栏高度适配
 const statusBarHeight = ref(44);
 const model = ref("為您推薦");
 const userInfo = ref({});
+
+function handleLogout() {
+	clearAuth();
+	uni.showToast({ title: "已退出登录", icon: "success" });
+	setTimeout(() => {
+		uni.reLaunch({ url: "/pages/login/login360" });
+	}, 500);
+}
+
 onMounted(async () => {
 	// 兜底：进入首页时再校验一次 token，避免路由守卫漏掉的过期场景
 

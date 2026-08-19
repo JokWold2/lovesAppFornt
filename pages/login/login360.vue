@@ -1,5 +1,8 @@
 <template>
   <view class="container">
+    <view v-if="restoringSession" class="session-restoring-mask">
+      <text>正在恢复登录…</text>
+    </view>
     <!-- 顶部柔和暖黄渐变背景 -->
     <view class="bg-gradient"></view>
 
@@ -133,13 +136,14 @@
 <script setup>
 import { ref, reactive, computed, onMounted } from 'vue';
 import { loginApi, registerApi, socialLoginApi } from '@/api/index.js';
-import { setToken, setUserInfo, getSavedAccount } from '@/utils/auth.js';
+import { setToken, setUserInfo, getUserInfo } from '@/utils/auth.js';
 import { signInWithGoogle } from '@/utils/googleAuth.js';
 
 // 视图状态：true 为登入视图，false 为注册视图
 const isLoginView = ref(true);
 const loading = ref(false);
 const socialLoading = ref(false);
+const restoringSession = ref(false);
 
 // 隐私协议同意状态
 const agreePrivacy = ref(false);
@@ -217,7 +221,8 @@ const handleLogin = async () => {
     const data = await loginApi(loginForm.email, loginForm.password);
     if (data && data.token) {
       setToken(data.token);
-      if (data.user) setUserInfo({ ...data.user, password: loginForm.password });
+      // 仅邮箱密码登录保存密码；第三方授权凭证不写入本地存储。
+      if (data.user) setUserInfo({ ...data.user, loginType: data.user.loginType || 'email', password: loginForm.password });
       uni.showToast({ title: '登入成功', icon: 'success' });
       navigateAfterAuth();
     } else {
@@ -251,7 +256,7 @@ const handleGoogleLogin = async () => {
     if (!data?.token) throw new Error('Google 登录未返回登录凭证');
 
     setToken(data.token);
-    setUserInfo(data.user || {});
+    setUserInfo({ ...data.user, loginType: 'google' });
     uni.showToast({ title: 'Google 登录成功', icon: 'success' });
     navigateAfterAuth();
   } catch (error) {
@@ -304,16 +309,32 @@ const handleForgotPassword = () => {
 };
 
 
-onMounted(() => {
+function tryEmailAutoLogin() {
   console.log('onMounted');
-    const savedAccount =uni.getStorageSync('USER_INFO');
-    if (savedAccount && savedAccount.email && savedAccount.password) {
-      console.log('savedAccount', savedAccount);
-      loginForm.email = savedAccount.email;
-      loginForm.password = savedAccount.password;
-      agreePrivacy.value = true;
-      handleLogin();
-    }
+  const savedAccount = getUserInfo();
+  // 兼容旧缓存（没有 loginType 时按邮箱账号处理），第三方账号绝不使用密码重登。
+  const isEmailLogin = !savedAccount?.loginType || savedAccount.loginType === 'email';
+  if (isEmailLogin && savedAccount?.email && savedAccount?.password) {
+    console.log('savedAccount', savedAccount);
+    loginForm.email = savedAccount.email;
+    loginForm.password = savedAccount.password;
+    agreePrivacy.value = true;
+    handleLogin();
+  }
+}
+
+onMounted(() => {
+  const app = getApp();
+  restoringSession.value = !!app?.globalData?.restoringSession;
+
+  if (restoringSession.value) {
+    uni.$once('auth-session-ready', () => {
+      restoringSession.value = false;
+    });
+    return;
+  }
+
+  tryEmailAutoLogin();
 });
 </script>
 
@@ -337,6 +358,18 @@ $border-color: #f0f0f0;
   flex-direction: column;
   position: relative;
   overflow: hidden;
+}
+
+.session-restoring-mask {
+  position: fixed;
+  z-index: 999;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #ffffff;
+  color: #666666;
+  font-size: 30rpx;
 }
 
 .social-loading {
