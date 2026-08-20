@@ -33,6 +33,16 @@
       </view>
     </view>
 
+    <view class="chat-title">群聊会话</view>
+    <view class="notice-list" v-if="chatGroups.length">
+      <view class="list-item" v-for="group in chatGroups" :key="group.id" @click="openGroup(group.id)">
+        <view class="item-avatar group-avatar">群</view>
+        <view class="item-content"><text class="item-title">{{ group.name }}</text><text class="item-note">{{ group.last_message || '暂无消息' }}</text></view>
+        <text v-if="group.unread_count" class="badge">{{ group.unread_count > 99 ? '99+' : group.unread_count }}</text>
+      </view>
+    </view>
+    <view v-else class="empty-state"><text class="empty-text">暂无群聊会话</text></view>
+
     <view class="empty-state" v-if="noticeItems.length === 0">
       <uni-icons type="chatboxes-filled" size="60" color="#CCCCCC"></uni-icons>
       <text class="empty-text">暂无消息</text>
@@ -45,11 +55,13 @@ import { ref } from 'vue';
 import { onPullDownRefresh, onShow } from '@dcloudio/uni-app';
 import { getNotificationsApi, markNotificationsReadApi } from '@/api/notifications.js';
 import { refreshUnreadBadge } from '@/utils/unreadBadge.js';
+import { getChatGroupsApi } from '@/api/chat.js';
 import loading2 from '@/static/loading/loading2.vue';
 import loading3 from '@/static/loading/loading3.vue';
 import loading4 from '@/static/loading/loading4.vue';
 
 const noticeItems = ref([]);
+const chatGroups = ref([]);
 
 const loadingDuration = ref(18);
 
@@ -65,8 +77,11 @@ async function loadNotifications() {
     const unreadIds = list.filter(item => !item.is_read).map(item => item.id);
     if (unreadIds.length) await markNotificationsReadApi(unreadIds);
     await refreshUnreadBadge();
+    const groupData = await getChatGroupsApi();
+    chatGroups.value = Array.isArray(groupData?.groups) ? groupData.groups : [];
   } catch (error) { console.error('加载互动消息失败', error); }
 }
+function openGroup(id) { uni.navigateTo({ url: `/pages/chat/chatRoom?id=${id}` }); }
 onShow(loadNotifications);
 onPullDownRefresh(async () => { loadingDuration.value = 2; await loadNotifications(); uni.stopPullDownRefresh(); });
 </script>
@@ -177,4 +192,7 @@ $text-color-black: #333;
     color: #CCCCCC;
   }
 }
+.chat-title { margin: 30rpx 15rpx 16rpx; font-size: 30rpx; font-weight: 700; color: #333; }
+.group-avatar { display:flex; align-items:center; justify-content:center; background:#ffce00; color:#333; font-weight:700; }
+.badge { background:#f33; color:#fff; min-width:34rpx; padding:4rpx 8rpx; border-radius:30rpx; text-align:center; font-size:22rpx; }
 </style>
