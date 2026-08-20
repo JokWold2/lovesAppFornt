@@ -1,7 +1,7 @@
 <template>
   <view class="page">
     <view v-if="isGroupAdmin" class="group-tools"><text class="add-member" @click="pickerVisible = true">＋ 拉成员</text></view>
-    <scroll-view class="messages" scroll-y><view v-for="message in messages" :key="message.id" class="message" :class="{ mine: message.sender_user_id === myId }"><text>{{ message.sender_name }}：{{ message.content }}</text></view></scroll-view>
+    <scroll-view class="messages" scroll-y :scroll-into-view="scrollIntoView"><view v-for="message in messages" :id="`message-${message.id}`" :key="message.id" class="message" :class="{ mine: message.sender_user_id === myId }"><text>{{ message.sender_name }}：{{ message.content }}</text></view></scroll-view>
     <view class="input-bar"><input v-model="draft" confirm-type="send" @confirm="send" placeholder="输入消息" /><text @click="send">发送</text></view>
     <MemberPickerSheet :visible="pickerVisible" title="选择要拉入群聊的成员" @close="pickerVisible = false" @confirm="addMembers" />
   </view>
@@ -9,7 +9,7 @@
 
 <script setup>
 import { ref } from 'vue';
-import { onLoad, onShow } from '@dcloudio/uni-app';
+import { onHide, onLoad, onShow, onUnload } from '@dcloudio/uni-app';
 import { addChatMemberApi, getChatGroupsApi, getChatMessagesApi, sendChatMessageApi } from '@/api/chat.js';
 import MemberPickerSheet from '@/components/chat/MemberPickerSheet.vue';
 
@@ -18,30 +18,50 @@ const messages = ref([]);
 const draft = ref('');
 const pickerVisible = ref(false);
 const isGroupAdmin = ref(false);
+const scrollIntoView = ref('');
 const myId = Number(uni.getStorageSync('USER_INFO')?.id);
+let pollTimer = null;
+let loading = false;
 
-async function load() {
-  if (!groupId.value) return;
+async function load({ silent = false } = {}) {
+  if (!groupId.value || loading) return;
+  loading = true;
   try {
     const [messageData, groupData] = await Promise.all([getChatMessagesApi(groupId.value), getChatGroupsApi()]);
     messages.value = messageData?.messages || [];
+    const lastMessage = messages.value[messages.value.length - 1];
+    if (lastMessage) scrollIntoView.value = `message-${lastMessage.id}`;
     const group = (groupData?.groups || []).find(item => Number(item.id) === Number(groupId.value));
     isGroupAdmin.value = group?.role === 'admin';
   } catch (error) {
-    uni.showToast({ title: error?.error || '无权访问群聊', icon: 'none' });
+    if (!silent) uni.showToast({ title: error?.error || '无权访问群聊', icon: 'none' });
+  } finally {
+    loading = false;
   }
 }
 
-onLoad(options => { groupId.value = options.id; load(); });
-onShow(load);
+function startPolling() {
+  if (pollTimer) return;
+  pollTimer = setInterval(() => load({ silent: true }), 5000);
+}
+function stopPolling() {
+  if (!pollTimer) return;
+  clearInterval(pollTimer);
+  pollTimer = null;
+}
+
+onLoad(options => { groupId.value = options.id; });
+onShow(() => { load(); startPolling(); });
+onHide(stopPolling);
+onUnload(stopPolling);
 
 async function send() {
   const content = draft.value.trim();
   if (!content) return;
   try {
-    const data = await sendChatMessageApi(groupId.value, content);
-    messages.value.push(data.message);
+    await sendChatMessageApi(groupId.value, content);
     draft.value = '';
+    await load();
   } catch (error) {
     uni.showToast({ title: error?.error || '发送失败', icon: 'none' });
   }
