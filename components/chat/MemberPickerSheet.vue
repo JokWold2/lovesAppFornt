@@ -5,6 +5,10 @@
         <text class="sheet-title">{{ title }}</text>
         <text class="sheet-close" @click="close">×</text>
       </view>
+      <view v-if="showReviewFields" class="review-fields">
+        <input v-model="groupName" class="search-input" placeholder="群名称" />
+        <textarea v-model="reviewMessage" class="review-message" placeholder="给申请人的审核回复（可选）" />
+      </view>
       <input v-model="keyword" class="search-input" placeholder="搜索姓名" @input="searchMembers" />
       <scroll-view scroll-y class="member-list">
         <view v-for="member in candidates" :key="member.userId" class="member-row" @click="toggleMember(member.userId)">
@@ -33,6 +37,7 @@ import { searchCandidatesApi } from '@/api/index.js';
 const props = defineProps({
   visible: { type: Boolean, default: false },
   title: { type: String, default: '选择群成员' },
+  showReviewFields: { type: Boolean, default: false },
   excludedUserIds: { type: Array, default: () => [] }
 });
 const emit = defineEmits(['close', 'confirm']);
@@ -40,6 +45,8 @@ const keyword = ref('');
 const candidates = ref([]);
 const selectedIds = ref([]);
 const loading = ref(false);
+const groupName = ref('沟通群聊');
+const reviewMessage = ref('');
 let requestVersion = 0;
 
 function displayName(item) {
@@ -78,12 +85,18 @@ function toggleMember(userId) {
 }
 
 function close() { emit('close'); }
-function confirm() { emit('confirm', selectedIds.value); }
+function confirm() {
+  emit('confirm', props.showReviewFields
+    ? { memberIds: selectedIds.value, name: groupName.value.trim() || '沟通群聊', reviewMessage: reviewMessage.value.trim() }
+    : selectedIds.value);
+}
 
 watch(() => props.visible, visible => {
   if (!visible) return;
   keyword.value = '';
   selectedIds.value = [];
+  groupName.value = '沟通群聊';
+  reviewMessage.value = '';
   searchMembers();
 });
 </script>
@@ -96,6 +109,8 @@ watch(() => props.visible, visible => {
 .sheet-title { font-size: 34rpx; font-weight: 700; }
 .sheet-close { padding: 0 12rpx; font-size: 48rpx; color: #999; }
 .search-input { padding: 18rpx; border-radius: 12rpx; background: #f4f4f4; }
+.review-fields { display: flex; flex-direction: column; gap: 16rpx; margin-bottom: 16rpx; }
+.review-message { min-height: 96rpx; padding: 18rpx; box-sizing: border-box; border-radius: 12rpx; background: #f4f4f4; }
 .member-list { height: 47vh; }
 .member-row { gap: 18rpx; padding: 20rpx 0; border-bottom: 1rpx solid #eee; }
 .member-avatar { width: 72rpx; height: 72rpx; flex: 0 0 72rpx; border-radius: 50%; overflow: hidden; }

@@ -2,7 +2,7 @@
   <view class="page">
     <view v-if="isGroupAdmin" class="group-tools"><text class="add-member" @click="pickerVisible = true">＋ 拉成员</text></view>
     <scroll-view class="messages" scroll-y :scroll-into-view="scrollIntoView"><view v-for="message in messages" :id="`message-${message.id}`" :key="message.id" class="message" :class="{ mine: message.sender_user_id === myId }"><text>{{ message.sender_name }}：{{ message.content }}</text></view></scroll-view>
-    <view class="input-bar"><input v-model="draft" confirm-type="send" @confirm="send" placeholder="输入消息" /><text @click="send">发送</text></view>
+    <view v-if="isGroupMember" class="input-bar"><input v-model="draft" confirm-type="send" @confirm="send" placeholder="输入消息" /><text @click="send">发送</text></view>
     <MemberPickerSheet :visible="pickerVisible" title="选择要拉入群聊的成员" @close="pickerVisible = false" @confirm="addMembers" />
   </view>
 </template>
@@ -19,6 +19,7 @@ const messages = ref([]);
 const draft = ref('');
 const pickerVisible = ref(false);
 const isGroupAdmin = ref(false);
+const isGroupMember = ref(false);
 const scrollIntoView = ref('');
 const myId = Number(uni.getStorageSync('USER_INFO')?.id);
 let pollTimer = null;
@@ -33,6 +34,7 @@ async function load({ silent = false } = {}) {
     const lastMessage = messages.value[messages.value.length - 1];
     if (lastMessage) scrollIntoView.value = `message-${lastMessage.id}`;
     const group = (groupData?.groups || []).find(item => Number(item.id) === Number(groupId.value));
+    isGroupMember.value = Boolean(group);
     isGroupAdmin.value = group?.role === 'admin';
     // 未读角标失败不影响当前会话读取，避免网络短暂波动打断聊天。
     refreshUnreadBadge().catch(error => console.warn('刷新未读角标失败', error));

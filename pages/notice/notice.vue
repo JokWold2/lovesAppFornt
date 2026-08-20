@@ -34,7 +34,7 @@
     </view>
     <view v-if="isAdmin" class="chat-title">待审核聊天申请</view>
     <view v-if="isAdmin && requests.length" class="notice-list"><view class="list-item" v-for="request in requests" :key="request.id"><view class="item-content"><text class="item-title">申请 #{{ request.id }}</text><text class="item-note">{{ request.message || '无申请说明' }}</text></view><text class="approve" @click="approve(request)">建群</text><text class="reject" @click="reject(request)">拒绝</text></view></view>
-    <MemberPickerSheet :visible="!!reviewRequest" title="选择要加入群聊的成员" @close="reviewRequest = null" @confirm="confirmApprove" />
+    <MemberPickerSheet :visible="!!reviewRequest" title="审核并选择群成员" :show-review-fields="true" @close="reviewRequest = null" @confirm="confirmApprove" />
 
     <view class="chat-title">群聊会话</view>
     <view class="notice-list" v-if="chatGroups.length">
@@ -91,8 +91,8 @@ async function loadNotifications() {
 }
 function openGroup(id) { uni.navigateTo({ url: `/pages/chat/chatRoom?id=${id}` }); }
 function approve(request) { reviewRequest.value = request; }
-async function confirmApprove(memberIds) { try { const result = await approveChatRequestApi(reviewRequest.value.id, { name: '沟通群聊', memberIds }); requests.value = requests.value.filter(item => item.id !== reviewRequest.value.id); reviewRequest.value = null; uni.navigateTo({ url: `/pages/chat/chatRoom?id=${result.groupId}` }); } catch (e) { uni.showToast({ title: e?.error || '审核失败', icon: 'none' }); } }
-async function reject(request) { try { await rejectChatRequestApi(request.id, {}); requests.value = requests.value.filter(item => item.id !== request.id); } catch (e) { uni.showToast({ title: e?.error || '操作失败', icon: 'none' }); } }
+async function confirmApprove(payload) { try { const result = await approveChatRequestApi(reviewRequest.value.id, payload); requests.value = requests.value.filter(item => item.id !== reviewRequest.value.id); reviewRequest.value = null; uni.navigateTo({ url: `/pages/chat/chatRoom?id=${result.groupId}` }); } catch (e) { uni.showToast({ title: e?.error || '审核失败', icon: 'none' }); } }
+async function reject(request) { uni.showModal({ title: '拒绝申请', editable: true, placeholderText: '填写审核回复（可选）', success: async result => { if (!result.confirm) return; try { await rejectChatRequestApi(request.id, { reviewMessage: result.content || '' }); requests.value = requests.value.filter(item => item.id !== request.id); } catch (e) { uni.showToast({ title: e?.error || '操作失败', icon: 'none' }); } } }); }
 onShow(loadNotifications);
 onPullDownRefresh(async () => { loadingDuration.value = 2; await loadNotifications(); uni.stopPullDownRefresh(); });
 </script>
