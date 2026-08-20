@@ -487,8 +487,8 @@ async function submitComment(item) {
 const originalEntries = ref([
 	{ name: "精选", page: "/pages/choose/index" },
 	{ name: "祝福", page: "/pages/wishes/index" },
-	{ name: "古董", page: "/pages/wishes/index" },
-	{ name: "二手市场", page: "/pages/analysis/index" },
+	{ name: "古董", page: "/pages/market/marketList?category=antique" },
+	{ name: "二手市场", page: "/pages/market/marketList?category=second_hand" },
 	// { name: "分析工具", page: "/pages/analysis/index" },
 	// { name: "通知", page: "/pages/notification/index" },
 	{ name: "搜尋候選人", page: "/pages/searchPerson/searchPerson" },

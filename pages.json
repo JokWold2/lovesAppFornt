@@ -71,6 +71,15 @@
 				"navigationBarTextStyle": "black"
 			}
 		}
+		,
+		{
+			"path": "pages/market/marketList",
+			"style": { "navigationBarTitleText": "市场" }
+		},
+		{
+			"path": "pages/market/marketFeed",
+			"style": { "navigationBarTitleText": "内容详情", "navigationBarBackgroundColor": "#111111", "navigationBarTextStyle": "white" }
+		}
 
 	],
 	"globalStyle": {
