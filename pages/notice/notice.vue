@@ -67,7 +67,8 @@ import loading4 from '@/static/loading/loading4.vue';
 const noticeItems = ref([]);
 const chatGroups = ref([]);
 const requests = ref([]);
-const isAdmin = Number(uni.getStorageSync('USER_INFO')?.loginType) === 5;
+// 登录方式 loginType（email/google）不承担权限；管理员由账号等级 accountLevel=5 决定。
+const isAdmin = Number(uni.getStorageSync('USER_INFO')?.accountLevel) === 5;
 const reviewRequest = ref(null);
 
 const loadingDuration = ref(18);
