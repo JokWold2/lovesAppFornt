@@ -12,6 +12,7 @@ import { ref } from 'vue';
 import { onHide, onLoad, onShow, onUnload } from '@dcloudio/uni-app';
 import { addChatMemberApi, getChatGroupsApi, getChatMessagesApi, sendChatMessageApi } from '@/api/chat.js';
 import MemberPickerSheet from '@/components/chat/MemberPickerSheet.vue';
+import { refreshUnreadBadge } from '@/utils/unreadBadge.js';
 
 const groupId = ref('');
 const messages = ref([]);
@@ -33,6 +34,8 @@ async function load({ silent = false } = {}) {
     if (lastMessage) scrollIntoView.value = `message-${lastMessage.id}`;
     const group = (groupData?.groups || []).find(item => Number(item.id) === Number(groupId.value));
     isGroupAdmin.value = group?.role === 'admin';
+    // 未读角标失败不影响当前会话读取，避免网络短暂波动打断聊天。
+    refreshUnreadBadge().catch(error => console.warn('刷新未读角标失败', error));
   } catch (error) {
     if (!silent) uni.showToast({ title: error?.error || '无权访问群聊', icon: 'none' });
   } finally {
