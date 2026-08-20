@@ -34,6 +34,7 @@
     </view>
     <view v-if="isAdmin" class="chat-title">待审核聊天申请</view>
     <view v-if="isAdmin && requests.length" class="notice-list"><view class="list-item" v-for="request in requests" :key="request.id"><view class="item-content"><text class="item-title">申请 #{{ request.id }}</text><text class="item-note">{{ request.message || '无申请说明' }}</text></view><text class="approve" @click="approve(request)">建群</text><text class="reject" @click="reject(request)">拒绝</text></view></view>
+    <MemberPickerSheet :visible="!!reviewRequest" title="选择要加入群聊的成员" @close="reviewRequest = null" @confirm="confirmApprove" />
 
     <view class="chat-title">群聊会话</view>
     <view class="notice-list" v-if="chatGroups.length">
@@ -58,6 +59,7 @@ import { onPullDownRefresh, onShow } from '@dcloudio/uni-app';
 import { getNotificationsApi, markNotificationsReadApi } from '@/api/notifications.js';
 import { refreshUnreadBadge } from '@/utils/unreadBadge.js';
 import { approveChatRequestApi, getChatGroupsApi, getChatRequestsApi, rejectChatRequestApi } from '@/api/chat.js';
+import MemberPickerSheet from '@/components/chat/MemberPickerSheet.vue';
 import loading2 from '@/static/loading/loading2.vue';
 import loading3 from '@/static/loading/loading3.vue';
 import loading4 from '@/static/loading/loading4.vue';
@@ -66,11 +68,12 @@ const noticeItems = ref([]);
 const chatGroups = ref([]);
 const requests = ref([]);
 const isAdmin = Number(uni.getStorageSync('USER_INFO')?.loginType) === 5;
+const reviewRequest = ref(null);
 
 const loadingDuration = ref(18);
 
 function describe(item) {
-  const labels = { moment_like: '赞了你的动态', moment_comment: '评论了你的动态', profile_like: '赞了你的资料', profile_comment: '评论了你的资料', market_like: '赞了你的市场内容', market_comment: '评论了你的市场内容' };
+  const labels = { moment_like: '赞了你的动态', moment_comment: '评论了你的动态', profile_like: '赞了你的资料', profile_comment: '评论了你的资料', market_like: '赞了你的市场内容', market_comment: '评论了你的市场内容', chat_request: '提交了聊天申请', chat_request_approved: '同意了聊天申请', chat_request_rejected: '处理了聊天申请' };
   return `${item.actor_name || item.actor_email || '用户'} ${labels[item.type] || '有一条新互动'}${item.content ? `：${item.content}` : ''}`;
 }
 async function loadNotifications() {
@@ -87,7 +90,8 @@ async function loadNotifications() {
   } catch (error) { console.error('加载互动消息失败', error); }
 }
 function openGroup(id) { uni.navigateTo({ url: `/pages/chat/chatRoom?id=${id}` }); }
-async function approve(request) { try { const result = await approveChatRequestApi(request.id, { name: '沟通群聊', memberIds: [] }); requests.value = requests.value.filter(item => item.id !== request.id); uni.navigateTo({ url: `/pages/chat/chatRoom?id=${result.groupId}` }); } catch (e) { uni.showToast({ title: e?.error || '审核失败', icon: 'none' }); } }
+function approve(request) { reviewRequest.value = request; }
+async function confirmApprove(memberIds) { try { const result = await approveChatRequestApi(reviewRequest.value.id, { name: '沟通群聊', memberIds }); requests.value = requests.value.filter(item => item.id !== reviewRequest.value.id); reviewRequest.value = null; uni.navigateTo({ url: `/pages/chat/chatRoom?id=${result.groupId}` }); } catch (e) { uni.showToast({ title: e?.error || '审核失败', icon: 'none' }); } }
 async function reject(request) { try { await rejectChatRequestApi(request.id, {}); requests.value = requests.value.filter(item => item.id !== request.id); } catch (e) { uni.showToast({ title: e?.error || '操作失败', icon: 'none' }); } }
 onShow(loadNotifications);
 onPullDownRefresh(async () => { loadingDuration.value = 2; await loadNotifications(); uni.stopPullDownRefresh(); });
