@@ -2,6 +2,7 @@
 	import { setupRouteGuard } from '@/utils/guard.js'
 	import { validateTokenApi } from '@/api/index.js'
 	import { getToken, getUserInfo, removeToken, removeUserInfo, setUserInfo } from '@/utils/auth.js'
+	import { refreshUnreadBadge } from '@/utils/unreadBadge.js'
 
 	export default {
 		globalData: {
@@ -40,6 +41,7 @@
 		},
 		onShow: function() {
 			console.log('App Show')
+			if (getToken()) refreshUnreadBadge()
 		},
 		onHide: function() {
 			console.log('App Hide')

@@ -42,23 +42,33 @@
 
 <script setup>
 import { ref } from 'vue';
-import { onPullDownRefresh } from '@dcloudio/uni-app';
+import { onPullDownRefresh, onShow } from '@dcloudio/uni-app';
+import { getNotificationsApi, markNotificationsReadApi } from '@/api/notifications.js';
+import { refreshUnreadBadge } from '@/utils/unreadBadge.js';
 import loading2 from '@/static/loading/loading2.vue';
 import loading3 from '@/static/loading/loading3.vue';
 import loading4 from '@/static/loading/loading4.vue';
 
-const noticeItems = ref([
-  { title: '系统通知：欢迎使用幸福人生', time: '2026-07-16 10:00', avatar: '/static/avatar.png' },
-  { title: '新功能上线通知', time: '2026-07-15 15:30', avatar: '/static/avatar.png' },
-  { title: '活动提醒：精彩内容等你发现', time: '2026-07-14 09:00', avatar: '/static/avatar.png' },
-]);
+const noticeItems = ref([]);
 
 const loadingDuration = ref(18);
 
-onPullDownRefresh(() => {
-  console.log('下拉刷新');
-  loadingDuration.value = 2
-});
+function describe(item) {
+  const labels = { moment_like: '赞了你的动态', moment_comment: '评论了你的动态', profile_like: '赞了你的资料', profile_comment: '评论了你的资料', market_like: '赞了你的市场内容', market_comment: '评论了你的市场内容' };
+  return `${item.actor_name || item.actor_email || '用户'} ${labels[item.type] || '有一条新互动'}${item.content ? `：${item.content}` : ''}`;
+}
+async function loadNotifications() {
+  try {
+    const data = await getNotificationsApi({ page: 1, pageSize: 50 });
+    const list = Array.isArray(data?.notifications) ? data.notifications : [];
+    noticeItems.value = list.map(item => ({ id: item.id, title: describe(item), time: item.created_at ? new Date(item.created_at).toLocaleString() : '', unread: !item.is_read }));
+    const unreadIds = list.filter(item => !item.is_read).map(item => item.id);
+    if (unreadIds.length) await markNotificationsReadApi(unreadIds);
+    await refreshUnreadBadge();
+  } catch (error) { console.error('加载互动消息失败', error); }
+}
+onShow(loadNotifications);
+onPullDownRefresh(async () => { loadingDuration.value = 2; await loadNotifications(); uni.stopPullDownRefresh(); });
 </script>
 
 <style scoped lang="scss">
