@@ -137,6 +137,7 @@
 import { ref, reactive, computed, onMounted } from 'vue';
 import { loginApi, registerApi, socialLoginApi } from '@/api/index.js';
 import { setToken, setUserInfo, getUserInfo } from '@/utils/auth.js';
+import { registerCurrentDevice } from '@/utils/pushNotifications.js';
 import { signInWithGoogle } from '@/utils/googleAuth.js';
 
 // 视图状态：true 为登入视图，false 为注册视图
@@ -223,6 +224,7 @@ const handleLogin = async () => {
       setToken(data.token);
       // 仅邮箱密码登录保存密码；第三方授权凭证不写入本地存储。
       if (data.user) setUserInfo({ ...data.user, loginType: data.user.loginType || 'email', password: loginForm.password });
+      registerCurrentDevice();
       uni.showToast({ title: '登入成功', icon: 'success' });
       navigateAfterAuth();
     } else {
@@ -257,6 +259,7 @@ const handleGoogleLogin = async () => {
 
     setToken(data.token);
     setUserInfo({ ...data.user, loginType: 'google' });
+    registerCurrentDevice();
     uni.showToast({ title: 'Google 登录成功', icon: 'success' });
     navigateAfterAuth();
   } catch (error) {

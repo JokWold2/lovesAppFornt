@@ -294,13 +294,15 @@ import { ensureTokenValid } from "@/utils/guard.js";
 import AntiqueCollection from "./components/Antiquecollection.vue";
 import AuctionActivity from "./components/Auctionactivity.vue";
 import { clearAuth } from "@/utils/auth.js";
+import { unregisterCurrentDevice } from "@/utils/pushNotifications.js";
 
 // 状态栏高度适配
 const statusBarHeight = ref(44);
 const model = ref("為您推薦");
 const userInfo = ref({});
 
-function handleLogout() {
+async function handleLogout() {
+	await unregisterCurrentDevice();
 	clearAuth();
 	uni.showToast({ title: "已退出登录", icon: "success" });
 	setTimeout(() => {
