@@ -32,6 +32,8 @@
         </view>
       </view>
     </view>
+    <view v-if="isAdmin" class="chat-title">待审核聊天申请</view>
+    <view v-if="isAdmin && requests.length" class="notice-list"><view class="list-item" v-for="request in requests" :key="request.id"><view class="item-content"><text class="item-title">申请 #{{ request.id }}</text><text class="item-note">{{ request.message || '无申请说明' }}</text></view><text class="approve" @click="approve(request)">建群</text><text class="reject" @click="reject(request)">拒绝</text></view></view>
 
     <view class="chat-title">群聊会话</view>
     <view class="notice-list" v-if="chatGroups.length">
@@ -55,13 +57,15 @@ import { ref } from 'vue';
 import { onPullDownRefresh, onShow } from '@dcloudio/uni-app';
 import { getNotificationsApi, markNotificationsReadApi } from '@/api/notifications.js';
 import { refreshUnreadBadge } from '@/utils/unreadBadge.js';
-import { getChatGroupsApi } from '@/api/chat.js';
+import { approveChatRequestApi, getChatGroupsApi, getChatRequestsApi, rejectChatRequestApi } from '@/api/chat.js';
 import loading2 from '@/static/loading/loading2.vue';
 import loading3 from '@/static/loading/loading3.vue';
 import loading4 from '@/static/loading/loading4.vue';
 
 const noticeItems = ref([]);
 const chatGroups = ref([]);
+const requests = ref([]);
+const isAdmin = Number(uni.getStorageSync('USER_INFO')?.loginType) === 5;
 
 const loadingDuration = ref(18);
 
@@ -79,9 +83,12 @@ async function loadNotifications() {
     await refreshUnreadBadge();
     const groupData = await getChatGroupsApi();
     chatGroups.value = Array.isArray(groupData?.groups) ? groupData.groups : [];
+    if (isAdmin) { const requestData = await getChatRequestsApi(); requests.value = (requestData?.requests || []).filter(item => item.status === 'pending'); }
   } catch (error) { console.error('加载互动消息失败', error); }
 }
 function openGroup(id) { uni.navigateTo({ url: `/pages/chat/chatRoom?id=${id}` }); }
+async function approve(request) { try { const result = await approveChatRequestApi(request.id, { name: '沟通群聊', memberIds: [] }); requests.value = requests.value.filter(item => item.id !== request.id); uni.navigateTo({ url: `/pages/chat/chatRoom?id=${result.groupId}` }); } catch (e) { uni.showToast({ title: e?.error || '审核失败', icon: 'none' }); } }
+async function reject(request) { try { await rejectChatRequestApi(request.id, {}); requests.value = requests.value.filter(item => item.id !== request.id); } catch (e) { uni.showToast({ title: e?.error || '操作失败', icon: 'none' }); } }
 onShow(loadNotifications);
 onPullDownRefresh(async () => { loadingDuration.value = 2; await loadNotifications(); uni.stopPullDownRefresh(); });
 </script>
@@ -195,4 +202,5 @@ $text-color-black: #333;
 .chat-title { margin: 30rpx 15rpx 16rpx; font-size: 30rpx; font-weight: 700; color: #333; }
 .group-avatar { display:flex; align-items:center; justify-content:center; background:#ffce00; color:#333; font-weight:700; }
 .badge { background:#f33; color:#fff; min-width:34rpx; padding:4rpx 8rpx; border-radius:30rpx; text-align:center; font-size:22rpx; }
+.approve,.reject{padding:12rpx;color:#333}.approve{background:#ffce00;border-radius:10rpx}.reject{color:#d33}
 </style>
