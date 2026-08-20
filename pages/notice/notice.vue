@@ -73,7 +73,7 @@ const reviewRequest = ref(null);
 const loadingDuration = ref(18);
 
 function describe(item) {
-  const labels = { moment_like: '赞了你的动态', moment_comment: '评论了你的动态', profile_like: '赞了你的资料', profile_comment: '评论了你的资料', market_like: '赞了你的市场内容', market_comment: '评论了你的市场内容', chat_request: '提交了聊天申请', chat_request_approved: '同意了聊天申请', chat_request_rejected: '处理了聊天申请' };
+  const labels = { moment_like: '赞了你的动态', moment_comment: '评论了你的动态', profile_like: '赞了你的资料', profile_comment: '评论了你的资料', market_like: '赞了你的市场内容', market_comment: '评论了你的市场内容', chat_request: '提交了聊天申请', chat_request_approved: '同意了聊天申请', chat_request_rejected: '处理了聊天申请', group_member_added: '将你加入了群聊' };
   return `${item.actor_name || item.actor_email || '用户'} ${labels[item.type] || '有一条新互动'}${item.content ? `：${item.content}` : ''}`;
 }
 async function loadNotifications() {
