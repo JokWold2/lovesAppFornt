@@ -3,6 +3,7 @@
 	import { validateTokenApi } from '@/api/index.js'
 	import { getToken, getUserInfo, removeToken, removeUserInfo, setUserInfo } from '@/utils/auth.js'
 	import { refreshUnreadBadge } from '@/utils/unreadBadge.js'
+	import { installPushListeners, registerCurrentDevice } from '@/utils/pushNotifications.js'
 
 	export default {
 		globalData: {
@@ -12,6 +13,7 @@
 			console.log('App Launch')
 			// 安装路由守卫（拦截所有页面跳转，未登录则强制跳到登录页）
 			// setupRouteGuard()
+			installPushListeners()
 			const token = getToken()
 			if (!token) return
 			this.globalData.restoringSession = true
@@ -22,6 +24,7 @@
 				// 保留邮箱账号原有的本地密码缓存，只用服务端资料刷新公开字段。
 				setUserInfo({ ...getUserInfo(), ...data.user })
 				uni.$emit('auth-session-ready', { restored: true })
+				registerCurrentDevice()
 				uni.switchTab({ url: '/pages/index/index360' })
 			} catch (error) {
 				// 不记录 Token，只记录服务端状态，方便定位重启后会话失效的原因。
@@ -41,7 +44,7 @@
 		},
 		onShow: function() {
 			console.log('App Show')
-			if (getToken()) refreshUnreadBadge()
+			if (getToken()) { refreshUnreadBadge(); registerCurrentDevice() }
 		},
 		onHide: function() {
 			console.log('App Hide')
