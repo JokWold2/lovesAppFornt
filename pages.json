@@ -28,6 +28,12 @@
 			}
 		},
 		{
+			"path": "pages/notice/interactionMessages",
+			"style": {
+				"navigationBarTitleText": "互动消息"
+			}
+		},
+		{
 			"path": "pages/my/my",
 			"style": {
 				"navigationBarTitleText": "个人中心"
