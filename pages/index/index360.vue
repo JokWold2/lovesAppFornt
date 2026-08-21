@@ -94,6 +94,8 @@
 					></uni-icons>
 				</view>
 			</view>
+			<MarketPreviewSection category="antique" title="古董" />
+			<MarketPreviewSection category="second_hand" title="二手市场" />
 
 			<!-- 帖子信息流 (随机资料卡片) -->
 			<view class="feed-container" v-if="currentEntryIndex == 1">
@@ -295,6 +297,7 @@ import AntiqueCollection from "./components/Antiquecollection.vue";
 import AuctionActivity from "./components/Auctionactivity.vue";
 import { clearAuth } from "@/utils/auth.js";
 import { unregisterCurrentDevice } from "@/utils/pushNotifications.js";
+import MarketPreviewSection from "@/components/market/MarketPreviewSection.vue";
 
 // 状态栏高度适配
 const statusBarHeight = ref(44);
@@ -509,6 +512,10 @@ const currentEntryIndex = ref(1);
 
 // 点击入口跳转
 const handleEntryClick = (index, url) => {
+	if (url.includes('/pages/market/marketList')) {
+		uni.navigateTo({ url: url });
+		return;
+	}
 	if (index == 4) {
 		uni.navigateTo({
 			url: url,
