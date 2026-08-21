@@ -2,7 +2,7 @@
 	import { setupRouteGuard } from '@/utils/guard.js'
 	import { validateTokenApi } from '@/api/index.js'
 	import { getToken, getUserInfo, removeToken, removeUserInfo, setUserInfo } from '@/utils/auth.js'
-	import { refreshUnreadBadge } from '@/utils/unreadBadge.js'
+	import { refreshUnreadBadge, startUnreadBadgePolling, stopUnreadBadgePolling } from '@/utils/unreadBadge.js'
 	import { installPushListeners, registerCurrentDevice } from '@/utils/pushNotifications.js'
 
 	export default {
@@ -25,6 +25,7 @@
 				setUserInfo({ ...getUserInfo(), ...data.user })
 				uni.$emit('auth-session-ready', { restored: true })
 				registerCurrentDevice()
+				refreshUnreadBadge()
 				uni.switchTab({ url: '/pages/index/index360' })
 			} catch (error) {
 				// 不记录 Token，只记录服务端状态，方便定位重启后会话失效的原因。
@@ -44,10 +45,11 @@
 		},
 		onShow: function() {
 			console.log('App Show')
-			if (getToken()) { refreshUnreadBadge(); registerCurrentDevice() }
+			if (getToken()) { refreshUnreadBadge(); startUnreadBadgePolling(); registerCurrentDevice() }
 		},
 		onHide: function() {
-			console.log('App Hide')
+				console.log('App Hide')
+				stopUnreadBadgePolling()
 		}
 	}
 </script>

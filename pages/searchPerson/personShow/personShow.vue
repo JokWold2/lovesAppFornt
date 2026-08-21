@@ -7,7 +7,7 @@
       :like-count="likeCount"
       @toggle-like="toggleProfileLike"
     />
-    <view v-if="canRequestChat" class="chat-request" @click="requestChat">申请私聊</view>
+    <view v-if="canRequestChat" class="chat-request" :class="`chat-request--${chatRequestButton.tone}`" @click="requestChat">{{ chatRequestButton.text }}</view>
   </view>
 
   <view v-else-if="loading" class="state-box"><text>載入中...</text></view>
@@ -18,11 +18,12 @@
 </template>
 
 <script setup>
-import { ref } from 'vue'
+import { computed, ref } from 'vue'
 import { onLoad } from '@dcloudio/uni-app'
 import { getCandidateProfileApi, getProfileLikesApi, toggleProfileLikeApi } from '@/api/index.js'
 import ProfileDetailSections from '@/components/profile/ProfileDetailSections.vue'
-import { createChatRequestApi } from '@/api/chat.js'
+import { createChatRequestApi, getChatRequestStatusApi } from '@/api/chat.js'
+import { getChatRequestButtonState } from '@/utils/chatRequestState.js'
 
 // 升级 key，确保此前没有看到引导的用户也能在本次功能发布后看到一次说明。
 const GUIDE_KEY = 'PROFILE_LIKE_DOUBLE_TAP_GUIDE_V2'
@@ -33,6 +34,8 @@ const likeCount = ref(0)
 const likePending = ref(false)
 const profileId = ref(null)
 const canRequestChat = ref(false)
+const chatRequestStatus = ref('none')
+const chatRequestButton = computed(() => getChatRequestButtonState(chatRequestStatus.value))
 
 onLoad((options) => {
   profileId.value = options?.id ? Number(options.id) : null
@@ -51,6 +54,11 @@ async function fetchProfile() {
     if (!profile.value) return
     const currentUserId = Number(uni.getStorageSync('USER_INFO')?.id)
     canRequestChat.value = Number(profile.value.user_id) !== currentUserId
+
+    if (canRequestChat.value) {
+      const requestData = await getChatRequestStatusApi(profile.value.user_id)
+      chatRequestStatus.value = requestData?.status || 'none'
+    }
 
     const likeData = await getProfileLikesApi(profile.value.id)
     const likes = Array.isArray(likeData.likes) ? likeData.likes : []
@@ -73,10 +81,12 @@ async function fetchProfile() {
 }
 
 function requestChat() {
+  if (chatRequestButton.value.disabled) return
   uni.showModal({ title: '申请私聊', editable: true, placeholderText: '可填写申请说明', success: async ({ confirm, content }) => {
     if (!confirm) return
     try {
       await createChatRequestApi({ targetUserId: profile.value.user_id, message: content || '' })
+      chatRequestStatus.value = 'pending'
       uni.showToast({ title: '已提交管理员审核', icon: 'success' })
     } catch (error) { uni.showToast({ title: error?.error || '提交失败', icon: 'none' }) }
   } })
@@ -131,4 +141,6 @@ function goBack() {
 .state-box { display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 60vh; color: #666; font-size: 28rpx; }
 .btn-back { margin-top: 30rpx; padding: 16rpx 60rpx; background: #fff6df; color: #333; border-radius: 8rpx; font-size: 28rpx; }
 .chat-request { margin: 24rpx; padding: 22rpx; border-radius: 14rpx; background: #ffce00; color: #222; text-align: center; font-weight: 700; }
+.chat-request--muted { background: #d9d9d9; color: #888; }
+.chat-request--approved { background: #69a978; color: #fff; }
 </style>

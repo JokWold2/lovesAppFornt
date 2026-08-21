@@ -1,5 +1,7 @@
 import { getUnreadCountApi } from '@/api/notifications.js'
 
+let pollingTimer = null
+
 export function formatUnreadBadge(total) {
   const count = Number(total || 0)
   if (count <= 0) return ''
@@ -17,4 +19,15 @@ export async function refreshUnreadBadge() {
     console.warn('刷新消息未读数失败', error)
     return null
   }
+}
+
+export function startUnreadBadgePolling(interval = 30000) {
+  if (pollingTimer) return
+  pollingTimer = setInterval(() => { refreshUnreadBadge() }, interval)
+}
+
+export function stopUnreadBadgePolling() {
+  if (!pollingTimer) return
+  clearInterval(pollingTimer)
+  pollingTimer = null
 }
