@@ -1,16 +1,16 @@
 <template>
-  <view v-if="visible" class="sheet-mask" @click.self="close">
-    <view class="member-sheet">
+  <view v-if="visible" class="sheet-mask" @tap="close">
+    <view class="member-sheet" @tap.stop>
       <view class="sheet-header">
         <text class="sheet-title">{{ title }}</text>
         <text class="sheet-close" @click="close">×</text>
       </view>
       <view v-if="showReviewFields" class="review-fields">
         <input v-model="groupName" class="search-input" placeholder="群名称" />
-        <textarea v-model="reviewMessage" class="review-message" placeholder="给申请人的审核回复（可选）" />
+        <textarea v-model="reviewMessage" class="review-message" placeholder="给申请人的审核回复（可选）" @tap.stop />
       </view>
-      <input v-model="keyword" class="search-input" placeholder="搜索姓名" @input="searchMembers" />
-      <scroll-view scroll-y class="member-list">
+      <input v-model="keyword" class="search-input" placeholder="搜索姓名" @tap.stop @input="searchMembers" />
+      <scroll-view scroll-y class="member-list" @tap.stop @scrolltolower="loadNextPage">
         <view v-for="member in candidates" :key="member.userId" class="member-row" @click="toggleMember(member.userId)">
           <image v-if="member.avatarUrl" class="member-avatar" :src="member.avatarUrl" mode="aspectFill" />
           <view v-else class="member-avatar member-avatar--fallback">{{ member.displayName.slice(0, 1) }}</view>
@@ -32,7 +32,7 @@
 
 <script setup>
 import { ref, watch } from 'vue';
-import { searchCandidatesApi } from '@/api/index.js';
+import { getChatRequestCandidatesApi } from '@/api/chat.js';
 
 const props = defineProps({
   visible: { type: Boolean, default: false },
@@ -48,19 +48,28 @@ const loading = ref(false);
 const groupName = ref('沟通群聊');
 const reviewMessage = ref('');
 let requestVersion = 0;
+const page = ref(1);
+const hasMore = ref(false);
 
 function displayName(item) {
   return item.native_first_name || item.en_first_name || item.native_last_name || item.en_last_name || '用户';
 }
 
 async function searchMembers() {
+  page.value = 1;
+  candidates.value = [];
+  await loadCandidates(false);
+}
+
+async function loadCandidates(append) {
+  if (loading.value || (append && !hasMore.value)) return;
   const version = ++requestVersion;
   loading.value = true;
   try {
-    const data = await searchCandidatesApi({ name: keyword.value, page: 1, pageSize: 30 });
+    const data = await getChatRequestCandidatesApi({ keyword: keyword.value, page: page.value, pageSize: 20 });
     if (version !== requestVersion) return;
     const excluded = new Set(props.excludedUserIds.map(Number));
-    candidates.value = (data?.results || [])
+    const incoming = (data?.candidates || [])
       .map(item => ({
         userId: Number(item.user_id),
         displayName: displayName(item),
@@ -68,6 +77,9 @@ async function searchMembers() {
         country: item.country || ''
       }))
       .filter(item => item.userId && !excluded.has(item.userId));
+    const merged = append ? [...candidates.value, ...incoming] : incoming;
+    candidates.value = Array.from(new Map(merged.map(item => [item.userId, item])).values());
+    hasMore.value = !!data?.hasMore;
   } catch (error) {
     if (version === requestVersion) {
       candidates.value = [];
@@ -77,6 +89,8 @@ async function searchMembers() {
     if (version === requestVersion) loading.value = false;
   }
 }
+
+async function loadNextPage() { if (!hasMore.value || loading.value) return; page.value += 1; await loadCandidates(true); }
 
 function toggleMember(userId) {
   selectedIds.value = selectedIds.value.includes(userId)
@@ -97,6 +111,8 @@ watch(() => props.visible, visible => {
   selectedIds.value = [];
   groupName.value = '沟通群聊';
   reviewMessage.value = '';
+  page.value = 1;
+  hasMore.value = false;
   searchMembers();
 });
 </script>
@@ -110,7 +126,7 @@ watch(() => props.visible, visible => {
 .sheet-close { padding: 0 12rpx; font-size: 48rpx; color: #999; }
 .search-input { padding: 18rpx; border-radius: 12rpx; background: #f4f4f4; }
 .review-fields { display: flex; flex-direction: column; gap: 16rpx; margin-bottom: 16rpx; }
-.review-message { min-height: 96rpx; padding: 18rpx; box-sizing: border-box; border-radius: 12rpx; background: #f4f4f4; }
+.review-message { display: block; width: 100%; min-height: 96rpx; padding: 18rpx; box-sizing: border-box; border-radius: 12rpx; background: #f4f4f4; }
 .member-list { height: 47vh; }
 .member-row { gap: 18rpx; padding: 20rpx 0; border-bottom: 1rpx solid #eee; }
 .member-avatar { width: 72rpx; height: 72rpx; flex: 0 0 72rpx; border-radius: 50%; overflow: hidden; }

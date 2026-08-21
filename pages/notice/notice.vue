@@ -2,19 +2,17 @@
   <view class="page">
     <view class="header"><text>消息</text><uni-icons type="search" size="28" color="#171822" /></view>
     <view class="row" @click="openInteractions"><view class="avatar interaction">⌁</view><view class="main"><text class="name">互动消息</text><text class="summary">{{ interactionSummary }}</text></view><view class="side"><text class="date">{{ interactionDate }}</text><text v-if="interactionUnread" class="badge">{{ badgeText(interactionUnread) }}</text></view></view>
-    <view v-if="isAdmin && requests.length" class="row" @click="reviewRequest = requests[0]"><view class="avatar audit">审</view><view class="main"><text class="name">待审核私聊申请</text><text class="summary">{{ requests.length }} 条申请等待处理</text></view><view class="side"><text class="reject" @click.stop="reject(requests[0])">拒绝</text><text class="badge">{{ badgeText(requests.length) }}</text></view></view>
+    <view v-if="isAdmin && requests.length" class="row" @click="openRequestReviews"><view class="avatar audit">审</view><view class="main"><text class="name">待审核私聊申请</text><text class="summary">{{ requests.length }} 条申请等待处理</text></view><view class="side"><text class="badge">{{ badgeText(requests.length) }}</text></view></view>
     <view v-for="group in chatGroups" :key="group.id" class="row" @click="openGroup(group.id)"><view class="avatar group">群</view><view class="main"><text class="name">{{ group.name }}</text><text class="summary">{{ group.last_message || '暂无消息' }}</text></view><view class="side"><text v-if="group.unread_count" class="badge">{{ badgeText(group.unread_count) }}</text></view></view>
-    <MemberPickerSheet v-if="reviewRequest" :visible="true" title="审核并选择群成员" :show-review-fields="true" @close="reviewRequest = null" @confirm="approve" />
   </view>
 </template>
 <script setup>
 import { computed, ref } from 'vue'
 import { onShow } from '@dcloudio/uni-app'
 import { getNotificationsApi } from '@/api/notifications.js'
-import { getChatGroupsApi, getChatRequestsApi, approveChatRequestApi, rejectChatRequestApi } from '@/api/chat.js'
+import { getChatGroupsApi, getChatRequestsApi } from '@/api/chat.js'
 import { refreshUnreadBadge } from '@/utils/unreadBadge.js'
-import MemberPickerSheet from '@/components/chat/MemberPickerSheet.vue'
-const notifications = ref([]), chatGroups = ref([]), requests = ref([]), reviewRequest = ref(null)
+const notifications = ref([]), chatGroups = ref([]), requests = ref([])
 const isAdmin = Number(uni.getStorageSync('USER_INFO')?.accountLevel) === 5
 const interactions = computed(() => notifications.value.filter(item => item.type !== 'chat_request'))
 const interactionUnread = computed(() => interactions.value.filter(item => !item.is_read).length)
@@ -24,8 +22,7 @@ const interactionDate = computed(() => latest.value?.created_at ? new Date(lates
 function badgeText(value) { return Number(value) > 99 ? '99+' : String(value) }
 function openInteractions() { uni.navigateTo({ url: '/pages/notice/interactionMessages' }) }
 function openGroup(id) { uni.navigateTo({ url: `/pages/chat/chatRoom?id=${id}` }) }
-async function approve(payload) { try { const result = await approveChatRequestApi(reviewRequest.value.id, payload); reviewRequest.value = null; await load(); uni.navigateTo({ url: `/pages/chat/chatRoom?id=${result.groupId}` }) } catch (error) { uni.showToast({ title: error?.error || '审核失败', icon: 'none' }) } }
-async function reject(request) { try { await rejectChatRequestApi(request.id, {}); await load() } catch (error) { uni.showToast({ title: error?.error || '操作失败', icon: 'none' }) } }
+function openRequestReviews() { uni.navigateTo({ url: '/pages/notice/chatRequestReview' }) }
 async function load() { try { const [noticeData, groupData] = await Promise.all([getNotificationsApi({ page: 1, pageSize: 50 }), getChatGroupsApi()]); notifications.value = noticeData?.notifications || []; chatGroups.value = groupData?.groups || []; if (isAdmin) { const requestData = await getChatRequestsApi(); requests.value = (requestData?.requests || []).filter(item => item.status === 'pending' || item.status === 'processing') }; await refreshUnreadBadge() } catch (error) { console.error('加载消息失败', error) } }
 onShow(load)
 </script>

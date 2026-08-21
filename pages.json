@@ -78,6 +78,8 @@
 			}
 		}
 		,
+		{ "path": "pages/notice/chatRequestReview", "style": { "navigationBarTitleText": "私聊申请审核" } }
+		,
 		{
 			"path": "pages/market/marketList",
 			"style": { "navigationBarTitleText": "市场" }
