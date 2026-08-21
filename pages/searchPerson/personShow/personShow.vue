@@ -54,7 +54,7 @@ async function fetchProfile() {
 
     const likeData = await getProfileLikesApi(profile.value.id)
     const likes = Array.isArray(likeData.likes) ? likeData.likes : []
-    const currentUserId = uni.getStorageSync('USER_INFO')?.id
+    // const currentUserId = uni.getStorageSync('USER_INFO')?.id
 
     // 新接口由后端直接提供 isLiked / total；旧线上接口仅返回 likes 时，
     // 用缓存中的当前用户 id 和列表长度兜底，避免返回页面后红心错误变灰。
