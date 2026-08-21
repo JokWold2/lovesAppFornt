@@ -39,24 +39,37 @@
 		><view class="panel" @tap.stop
 			><view class="panel-head"
 				><text>评论 {{ commentPost.commentCount }}</text
-				><text @tap="closeComments">×</text></view
+				><text class="close-button" @tap.stop="closeComments">×</text></view
 			><scroll-view @tap.stop
 				scroll-y
 				class="comment-list"
 				:scroll-into-view="commentAnchor"
-				><view
-					v-for="comment in comments"
-					:id="`comment-${comment.id}`"
-					:key="comment.id"
-					class="comment-row"
-					><view
-						><text class="author">{{
-							comment.author_name || "用户"
-						}}</text
-						><text>{{ comment.content }}</text></view
-					><text class="reply-link" @click="replyTo(comment)"
-						>回复</text
+				><view v-for="floor in comments" :id="`comment-${floor.id}`" :key="floor.id" class="comment-floor"
+					><view class="comment-row"
+						><image class="comment-avatar" :src="floor.author_avatar_url || defaultAvatar" mode="aspectFill" />
+						<view class="comment-content"
+							><text class="author">{{ floor.author_name || "用户" }}</text>
+							<text class="comment-text">{{ floor.content }}</text>
+							<view class="comment-meta"
+								><text>{{ formatCommentTime(floor.created_at) }}</text>
+								><text class="reply-link" @tap.stop="replyTo(floor)">回复</text></view
+						></view
 					></view
+					<view v-if="floor.replies?.length" class="reply-list"
+						><view v-for="reply in floor.replies" :id="`comment-${reply.id}`" :key="reply.id" class="comment-row reply-row"
+							><image class="comment-avatar reply-avatar" :src="reply.author_avatar_url || defaultAvatar" mode="aspectFill" />
+							<view class="comment-content"
+								><text class="author">{{ reply.author_name || "用户" }}</text>
+								<view class="comment-text"><text v-if="reply.reply_to_name" class="reply-prefix">回复 @{{ reply.reply_to_name }}：</text><text>{{ reply.content }}</text></view>
+								<view class="comment-meta"
+									><text>{{ formatCommentTime(reply.created_at) }}</text>
+									><text class="reply-link" @tap.stop="replyTo(reply)">回复</text></view
+								></view
+							></view
+						></view
+					<text v-if="floor.reply_count > floor.replies.length" class="expand-replies" @tap.stop="expandReplies(floor)">—— 展开 {{ floor.reply_count - floor.replies.length }} 条回复 ˅</text>
+					<text v-else-if="floor.repliesExpanded && floor.reply_count" class="expanded-replies">—— 已展开全部 {{ floor.reply_count }} 条回复</text>
+					</view>
 				><view v-if="!comments.length" class="empty"
 					>还没有评论，来说第一句吧</view
 				></scroll-view
@@ -84,9 +97,11 @@ import { onLoad } from "@dcloudio/uni-app";
 import {
 	addMarketCommentApi,
 	getMarketCommentsApi,
+	getMarketCommentRepliesApi,
 	getMarketPostsApi,
 	toggleMarketLikeApi,
 } from "@/api/market.js";
+import { appendReplies, formatCommentTime } from "@/utils/marketComments.js";
 const posts = ref([]),
 	current = ref(0),
 	commentPost = ref(null),
@@ -96,6 +111,7 @@ const posts = ref([]),
 	replyTarget = ref(null);
 let lastTap = 0,
 	requestedCommentId = "";
+const defaultAvatar = "/static/logo.png";
 onLoad(async (options) => {
 	const data = await getMarketPostsApi({ category: options.category });
 	posts.value = data?.posts || [];
@@ -129,17 +145,20 @@ async function openComments(post) {
 	replyTarget.value = null;
 	commentText.value = "";
 	try {
-		const data = await getMarketCommentsApi(post.id);
+		const data = await getMarketCommentsApi(post.id, requestedCommentId ? { targetCommentId: requestedCommentId } : undefined);
 		comments.value = data?.comments || [];
-		if (requestedCommentId) {
-			commentAnchor.value = "";
-			setTimeout(() => {
-				commentAnchor.value = `comment-${requestedCommentId}`;
-			}, 80);
-		}
+		if (requestedCommentId) await locateRequestedComment(data?.targetRootCommentId);
 	} catch (error) {
 		uni.showToast({ title: error?.error || "评论加载失败", icon: "none" });
 	}
+}
+async function locateRequestedComment(rootCommentId) {
+	const floor = comments.value.find((item) => String(item.id) === String(rootCommentId));
+	if (floor && String(floor.id) !== String(requestedCommentId)) await expandReplies(floor);
+	commentAnchor.value = "";
+	setTimeout(() => {
+		commentAnchor.value = `comment-${requestedCommentId}`;
+	}, 80);
 }
 function closeComments() {
 	commentPost.value = null;
@@ -152,18 +171,32 @@ function replyTo(comment) {
 		authorName: comment.author_name || "用户",
 	};
 }
+async function expandReplies(floor) {
+	try {
+		const data = await getMarketCommentRepliesApi(commentPost.value.id, floor.id, { page: 1, pageSize: 50 });
+		const floorIndex = comments.value.findIndex((item) => String(item.id) === String(floor.id));
+		if (floorIndex >= 0) comments.value.splice(floorIndex, 1, appendReplies(comments.value[floorIndex], data?.replies || []));
+	} catch (error) {
+		uni.showToast({ title: error?.error || "回复加载失败", icon: "none" });
+	}
+}
 async function sendComment() {
 	const content = commentText.value.trim();
 	if (!content) return;
 	try {
-		await addMarketCommentApi(commentPost.value.id, {
+		const data = await addMarketCommentApi(commentPost.value.id, {
 			content,
 			replyToCommentId: replyTarget.value?.id || null,
 		});
 		commentPost.value.commentCount++;
 		commentText.value = "";
 		replyTarget.value = null;
+		const rootCommentId = data?.comment?.rootCommentId;
 		await openComments(commentPost.value);
+		if (rootCommentId && String(rootCommentId) !== String(data?.comment?.id)) {
+			const floor = comments.value.find((item) => String(item.id) === String(rootCommentId));
+			if (floor) await expandReplies(floor);
+		}
 	} catch (error) {
 		uni.showToast({ title: error?.error || "评论发送失败", icon: "none" });
 	}
@@ -239,25 +272,75 @@ async function sendComment() {
 .comment-list {
 	flex: 1;
 	min-height: 0;
-	margin: 22rpx 0;
+	margin: 22rpx 0 10rpx;
+}
+.comment-floor {
+	padding: 24rpx 0;
+	border-bottom: 1rpx solid #f0f0f0;
 }
 .comment-row {
 	display: flex;
-	justify-content: space-between;
-	gap: 12rpx;
-	padding: 16rpx 0;
+	gap: 18rpx;
+	padding: 12rpx 0;
+}
+.comment-avatar {
+	width: 70rpx;
+	height: 70rpx;
+	flex: 0 0 70rpx;
+	border-radius: 50%;
+	background: #eee;
+}
+.comment-content {
+	min-width: 0;
+	flex: 1;
+	display: flex;
+	flex-direction: column;
+	gap: 8rpx;
 }
 .author {
-	margin-right: 12rpx;
-	font-weight: 700;
-	color: #6d5300;
+	font-size: 25rpx;
+	color: #8e8e93;
+}
+.comment-text {
+	font-size: 29rpx;
+	line-height: 1.5;
+	color: #202124;
+	word-break: break-all;
+}
+.comment-meta {
+	display: flex;
+	align-items: center;
+	gap: 34rpx;
+	font-size: 23rpx;
+	color: #9a9a9f;
 }
 .reply-link {
-	color: #8d6e24;
+	color: #73737a;
+}
+.reply-list {
+	margin: 12rpx 0 0 88rpx;
+}
+.reply-row {
+	padding: 14rpx 0;
+}
+.reply-avatar {
+	width: 54rpx;
+	height: 54rpx;
+	flex-basis: 54rpx;
+}
+.reply-prefix {
+	color: #6f6f76;
+}
+.expand-replies,
+.expanded-replies {
+	display: block;
+	margin: 18rpx 0 0 88rpx;
+	font-size: 24rpx;
+	color: #777780;
 }
 .replying {
-	padding: 10rpx;
-	color: #8d6e24;
+	padding: 12rpx 0;
+	color: #63636b;
 	font-size: 24rpx;
 }
 .replying text {
@@ -272,13 +355,15 @@ async function sendComment() {
 .input {
 	gap: 20rpx;
 	margin-top: auto;
-	padding-top: 16rpx;
+	padding: 18rpx 0 16rpx;
 	padding-bottom: env(safe-area-inset-bottom);
+	border-top: 1rpx solid #ededed;
 }
 .input input {
-	background: #f4f4f4;
+	min-height: 48rpx;
+	background: #f5f5f6;
 	flex: 1;
-	padding: 18rpx;
-	border-radius: 12rpx;
+	padding: 16rpx 20rpx;
+	border-radius: 28rpx;
 }
 </style>
