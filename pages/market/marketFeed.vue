@@ -35,12 +35,12 @@
 			></swiper-item
 		></swiper
 	>
-	<view v-if="commentPost" class="mask" @click.self="closeComments"
-		><view class="panel"
+	<view v-if="commentPost" class="mask" @tap="closeComments"
+		><view class="panel" @tap.stop
 			><view class="panel-head"
 				><text>评论 {{ commentPost.commentCount }}</text
-				><text @click="closeComments">×</text></view
-			><scroll-view
+				><text @tap="closeComments">×</text></view
+			><scroll-view @tap.stop
 				scroll-y
 				class="comment-list"
 				:scroll-into-view="commentAnchor"
@@ -60,10 +60,10 @@
 				><view v-if="!comments.length" class="empty"
 					>还没有评论，来说第一句吧</view
 				></scroll-view
-			><view v-if="replyTarget" class="replying"
+			><view v-if="replyTarget" class="replying" @tap.stop
 				>回复 @{{ replyTarget.authorName }}
 				<text @click="replyTarget = null">取消</text></view
-			><view class="input"
+			><view class="input" @tap.stop
 				><input
 					v-model="commentText"
 					:placeholder="
@@ -222,6 +222,9 @@ async function sendComment() {
 .panel {
 	width: 100%;
 	min-height: 60vh;
+	height: 60vh;
+	display: flex;
+	flex-direction: column;
 	padding: 24rpx;
 	box-sizing: border-box;
 	border-radius: 28rpx 28rpx 0 0;
@@ -234,7 +237,8 @@ async function sendComment() {
 	align-items: center;
 }
 .comment-list {
-	max-height: 48vh;
+	flex: 1;
+	min-height: 0;
 	margin: 22rpx 0;
 }
 .comment-row {
@@ -267,6 +271,9 @@ async function sendComment() {
 }
 .input {
 	gap: 20rpx;
+	margin-top: auto;
+	padding-top: 16rpx;
+	padding-bottom: env(safe-area-inset-bottom);
 }
 .input input {
 	background: #f4f4f4;
