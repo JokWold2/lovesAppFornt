@@ -15,7 +15,7 @@
 					</view>
 					<view class="actions">
 						<view class="action" @click="like(post)"><text class="action-icon">{{ post.isLiked ? '♥' : '♡' }}</text><text>{{ post.likeCount }}</text></view>
-						<view class="action" @click="openComments(post)"><text class="action-icon">◯</text><text>{{ post.commentCount }}</text></view>
+						<view class="action" @click="openComments(post)"><image class="action-icon comment-icon" src="/static/img/icon-comment.png" mode="aspectFit" /><text>{{ post.commentCount }}</text></view>
 					</view>
 				</view>
 			</swiper-item>
@@ -156,7 +156,7 @@ async function sendComment() {
 .comment { margin-left: 36rpx; }
 .actions { position: absolute; right: 24rpx; bottom: 210rpx; display: flex; flex-direction: column; gap: 32rpx; color: #fff; text-align: center; }
 .action { display: flex; flex-direction: column; align-items: center; font-size: 22rpx; text-shadow: 0 1rpx 4rpx #000; }
-.action-icon { margin-bottom: 6rpx; font-size: 62rpx; line-height: 1; }
+.action-icon { margin-bottom: 6rpx; font-size: 62rpx; line-height: 1; }.comment-icon { width: 62rpx; height: 62rpx; }
 .mask { position: fixed; z-index: 10; inset: 0; display: flex; align-items: flex-end; background: rgba(0, 0, 0, .35); }
 .panel { display: flex; width: 100%; height: 60vh; min-height: 60vh; box-sizing: border-box; flex-direction: column; padding: 24rpx; border-radius: 28rpx 28rpx 0 0; background: #fff; }
 .panel-head, .input { display: flex; align-items: center; justify-content: space-between; }

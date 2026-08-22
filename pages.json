@@ -89,7 +89,7 @@
 			"style": { "navigationBarTitleText": "内容详情", "navigationBarBackgroundColor": "#111111", "navigationBarTextStyle": "white" }
 		}
 		,
-		{ "path": "pages/chat/chatRoom", "style": { "navigationBarTitleText": "群聊" } }
+		{ "path": "pages/chat/chatRoom", "style": { "navigationBarTitleText": "群聊", "disableScroll": true } }
 
 	],
 	"globalStyle": {
