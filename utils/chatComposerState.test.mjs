@@ -1,7 +1,7 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
 
-import { appendEmoji, insertMention, makeTextMessagePayload, attachReplyMessage } from './chatComposerState.js'
+import { appendEmoji, insertMention, makeTextMessagePayload, attachReplyMessage, unwrapComponentEventPayload } from './chatComposerState.js'
 
 test('插入表情保留已有输入内容', () => {
   assert.equal(appendEmoji('你好', '😊'), '你好😊')
@@ -26,4 +26,10 @@ test('父页面的最新引用消息优先写入发送载荷', () => {
     attachReplyMessage({ content: '收到', messageType: 'text', replyToMessageId: null }, { id: 42 }),
     { content: '收到', messageType: 'text', replyToMessageId: 42 }
   )
+})
+
+test('微信小程序自定义事件使用 detail 中的真实消息', () => {
+  const message = { id: 42, sender_name: '2', content: '你好' }
+  assert.equal(unwrapComponentEventPayload({ detail: message }), message)
+  assert.equal(unwrapComponentEventPayload(message), message)
 })

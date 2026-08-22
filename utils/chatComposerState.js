@@ -24,3 +24,9 @@ export function attachReplyMessage(payload, replyMessage = null) {
       : (payload.replyToMessageId || null)
   }
 }
+
+export function unwrapComponentEventPayload(value) {
+  return value && typeof value === 'object' && value.detail && typeof value.detail === 'object'
+    ? value.detail
+    : value
+}
