@@ -14,3 +14,13 @@ export function makeTextMessagePayload(draft, mentions = [], replyMessage = null
   const visibleMentions = mentions.filter(item => content.includes(`@${item.name}`))
   return { content, messageType: 'text', mentions: visibleMentions, replyToMessageId: replyMessage?.id || null }
 }
+
+export function attachReplyMessage(payload, replyMessage = null) {
+  const replyToMessageId = Number(replyMessage?.id)
+  return {
+    ...payload,
+    replyToMessageId: Number.isInteger(replyToMessageId) && replyToMessageId > 0
+      ? replyToMessageId
+      : (payload.replyToMessageId || null)
+  }
+}

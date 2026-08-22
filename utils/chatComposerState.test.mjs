@@ -1,7 +1,7 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
 
-import { appendEmoji, insertMention, makeTextMessagePayload } from './chatComposerState.js'
+import { appendEmoji, insertMention, makeTextMessagePayload, attachReplyMessage } from './chatComposerState.js'
 
 test('插入表情保留已有输入内容', () => {
   assert.equal(appendEmoji('你好', '😊'), '你好😊')
@@ -18,5 +18,12 @@ test('发送载荷只保留实际出现在正文中的提及并带上引用 ID',
   assert.deepEqual(
     makeTextMessagePayload(' @小李 收到 ', [{ userId: 9, name: '小李' }, { userId: 3, name: '小王' }], { id: 21 }),
     { content: '@小李 收到', messageType: 'text', mentions: [{ userId: 9, name: '小李' }], replyToMessageId: 21 }
+  )
+})
+
+test('父页面的最新引用消息优先写入发送载荷', () => {
+  assert.deepEqual(
+    attachReplyMessage({ content: '收到', messageType: 'text', replyToMessageId: null }, { id: 42 }),
+    { content: '收到', messageType: 'text', replyToMessageId: 42 }
   )
 })

@@ -23,6 +23,7 @@ import ChatLongPressMenu from '@/components/chat/ChatLongPressMenu.vue'
 import ChatMessageBubble from '@/components/chat/ChatMessageBubble.vue'
 import MemberPickerSheet from '@/components/chat/MemberPickerSheet.vue'
 import { buildChatDisplayItems, shouldStickToBottom } from '@/utils/chatMessageListState.js'
+import { attachReplyMessage } from '@/utils/chatComposerState.js'
 import { refreshUnreadBadge } from '@/utils/unreadBadge.js'
 
 const groupId = ref(''); const messages = ref([]); const members = ref([]); const pickerVisible = ref(false); const isGroupAdmin = ref(false); const isGroupMember = ref(false); const scrollIntoView = ref(''); const groupName = ref(''); const replyMessage = ref(null); const menuMessage = ref(null); const sending = ref(false); const atBottom = ref(true); const loading = ref(false)
@@ -49,7 +50,7 @@ function stopPolling() { if (pollTimer) { clearInterval(pollTimer); pollTimer = 
 function openLongPressMenu(message) { menuMessage.value = message }
 function startReply(message) { replyMessage.value = message; menuMessage.value = null }
 function previewImage(url) { uni.previewImage({ urls: [url], current: url }) }
-async function sendMessage(payload) { if (sending.value) return; sending.value = true; try { await sendChatMessageApi(groupId.value, payload); replyMessage.value = null; forceScrollAfterLoad = true; await load({ silent: true }) } catch (error) { uni.showToast({ title: error?.error || '发送失败', icon: 'none' }) } finally { sending.value = false } }
+async function sendMessage(payload) { if (sending.value) return; sending.value = true; try { await sendChatMessageApi(groupId.value, attachReplyMessage(payload, replyMessage.value)); replyMessage.value = null; forceScrollAfterLoad = true; await load({ silent: true }) } catch (error) { uni.showToast({ title: error?.error || '发送失败', icon: 'none' }) } finally { sending.value = false } }
 async function sendImage({ imagePath }) { if (sending.value) return; sending.value = true; uni.showLoading({ title: '图片上传中' }); try { const uploaded = await uploadChatImageApi(groupId.value, imagePath); await sendChatMessageApi(groupId.value, { content: '', messageType: 'image', mediaUrl: uploaded.url, mentions: [], replyToMessageId: replyMessage.value?.id || null }); replyMessage.value = null; forceScrollAfterLoad = true; await load({ silent: true }) } catch (error) { uni.showToast({ title: error?.error || '图片上传失败', icon: 'none' }) } finally { uni.hideLoading(); sending.value = false } }
 async function addMembers(memberIds) { if (!memberIds.length) { pickerVisible.value = false; return } try { await Promise.all(memberIds.map(userId => addChatMemberApi(groupId.value, userId))); pickerVisible.value = false; await load({ silent: true }); uni.showToast({ title: '成员已加入', icon: 'success' }) } catch (error) { uni.showToast({ title: error?.error || '添加成员失败', icon: 'none' }) } }
 
