@@ -10,7 +10,7 @@
     </scroll-view>
     <ChatComposer v-if="isGroupMember" :members="members" :reply-message="replyMessage" :disabled="sending" @send="sendMessage" @select-image="sendImage" @close-reply="replyMessage = null" />
     <MemberPickerSheet :visible="pickerVisible" title="选择要拉入群聊的成员" @close="pickerVisible = false" @confirm="addMembers" />
-    <ChatLongPressMenu :visible="Boolean(menuMessage)" :message="menuMessage" @close="menuMessage = null" @reply="startReply" />
+    <ChatLongPressMenu :visible="Boolean(menuMessage)" :message="menuMessage" :anchor="menuAnchor" @close="closeLongPressMenu" @reply="startReply" />
   </view>
 </template>
 
@@ -26,7 +26,7 @@ import { buildChatDisplayItems, shouldStickToBottom } from '@/utils/chatMessageL
 import { attachReplyMessage, unwrapComponentEventPayload } from '@/utils/chatComposerState.js'
 import { refreshUnreadBadge } from '@/utils/unreadBadge.js'
 
-const groupId = ref(''); const messages = ref([]); const members = ref([]); const pickerVisible = ref(false); const isGroupAdmin = ref(false); const isGroupMember = ref(false); const scrollIntoView = ref(''); const groupName = ref(''); const replyMessage = ref(null); const menuMessage = ref(null); const sending = ref(false); const atBottom = ref(true); const loading = ref(false)
+const groupId = ref(''); const messages = ref([]); const members = ref([]); const pickerVisible = ref(false); const isGroupAdmin = ref(false); const isGroupMember = ref(false); const scrollIntoView = ref(''); const groupName = ref(''); const replyMessage = ref(null); const menuMessage = ref(null); const menuAnchor = ref(null); const sending = ref(false); const atBottom = ref(true); const loading = ref(false)
 const myId = Number(uni.getStorageSync('USER_INFO')?.id); const viewportHeight = Math.max(0, Number(uni.getSystemInfoSync?.().windowHeight || 700) - 150); let pollTimer = null; let forceScrollAfterLoad = true
 const displayItems = computed(() => buildChatDisplayItems(messages.value))
 
@@ -47,8 +47,9 @@ async function load({ silent = false } = {}) {
 function onMessageScroll(event) { atBottom.value = shouldStickToBottom({ scrollTop: event.detail.scrollTop, scrollHeight: event.detail.scrollHeight, viewportHeight }) }
 function startPolling() { if (!pollTimer) pollTimer = setInterval(() => load({ silent: true }), 5000) }
 function stopPolling() { if (pollTimer) { clearInterval(pollTimer); pollTimer = null } }
-function openLongPressMenu(message) { menuMessage.value = unwrapComponentEventPayload(message) }
-function startReply(message) { replyMessage.value = unwrapComponentEventPayload(message); menuMessage.value = null }
+function closeLongPressMenu() { menuMessage.value = null; menuAnchor.value = null }
+function openLongPressMenu(event) { const payload = unwrapComponentEventPayload(event); menuMessage.value = payload?.message || payload; menuAnchor.value = payload?.anchor || null }
+function startReply(message) { replyMessage.value = unwrapComponentEventPayload(message); closeLongPressMenu() }
 function previewImage(url) { uni.previewImage({ urls: [url], current: url }) }
 async function sendMessage(payload) { if (sending.value) return; sending.value = true; try { await sendChatMessageApi(groupId.value, attachReplyMessage(payload, replyMessage.value)); replyMessage.value = null; forceScrollAfterLoad = true; await load({ silent: true }) } catch (error) { uni.showToast({ title: error?.error || '发送失败', icon: 'none' }) } finally { sending.value = false } }
 async function sendImage({ imagePath }) { if (sending.value) return; sending.value = true; uni.showLoading({ title: '图片上传中' }); try { const uploaded = await uploadChatImageApi(groupId.value, imagePath); await sendChatMessageApi(groupId.value, { content: '', messageType: 'image', mediaUrl: uploaded.url, mentions: [], replyToMessageId: replyMessage.value?.id || null }); replyMessage.value = null; forceScrollAfterLoad = true; await load({ silent: true }) } catch (error) { uni.showToast({ title: error?.error || '图片上传失败', icon: 'none' }) } finally { uni.hideLoading(); sending.value = false } }

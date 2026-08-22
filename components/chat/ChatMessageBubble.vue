@@ -24,7 +24,17 @@ const textTokens = computed(() => tokenizeMentions(props.message.content, props.
 const replyPreview = computed(() => formatReplyPreview(props.message.reply))
 const receiptIcon = computed(() => getReceiptIcon(props.message.receiptStatus))
 const receiptText = computed(() => ({ clock: '◷', single: '✓', 'double-blue': '✓✓' })[receiptIcon.value])
-function onLongPress() { if (props.message.message_type !== 'image') emit('longpress', props.message) }
+function onLongPress(event) {
+  if (props.message.message_type === 'image') return
+  const detail = event?.detail || {}
+  emit('longpress', {
+    message: props.message,
+    anchor: {
+      x: Number(detail.x ?? detail.clientX ?? event?.changedTouches?.[0]?.clientX),
+      y: Number(detail.y ?? detail.clientY ?? event?.changedTouches?.[0]?.clientY)
+    }
+  })
+}
 </script>
 
 <style scoped>
