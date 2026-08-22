@@ -18,7 +18,7 @@ import { computed } from 'vue'
 import { formatReplyPreview, getReceiptIcon, tokenizeMentions } from '@/utils/chatMessagePresentation.js'
 
 const props = defineProps({ message: { type: Object, required: true }, mine: Boolean })
-const emit = defineEmits(['longpress', 'preview-image'])
+const emit = defineEmits(['message-long-press', 'preview-image'])
 const avatarLabel = computed(() => String(props.message.sender_name || '成').slice(0, 1))
 const textTokens = computed(() => tokenizeMentions(props.message.content, props.message.mentions))
 const replyPreview = computed(() => formatReplyPreview(props.message.reply))
@@ -27,7 +27,7 @@ const receiptText = computed(() => ({ clock: '◷', single: '✓', 'double-blue'
 function onLongPress(event) {
   if (props.message.message_type === 'image') return
   const detail = event?.detail || {}
-  emit('longpress', {
+  emit('message-long-press', {
     message: props.message,
     anchor: {
       x: Number(detail.x ?? detail.clientX ?? event?.changedTouches?.[0]?.clientX),

@@ -7,3 +7,12 @@ test('引用卡片位于消息正文下方并使用指定浅灰背景', async ()
   assert.ok(source.indexOf('class="message-text"') < source.indexOf('class="reply-card"'))
   assert.match(source, /\.reply-card[^}]*background:\s*#e4e4e4/)
 })
+
+test('长按使用原生事件并转发为不冲突的自定义事件', async () => {
+  const bubble = await readFile(new URL('./ChatMessageBubble.vue', import.meta.url), 'utf8')
+  const room = await readFile(new URL('../../pages/chat/chatRoom.vue', import.meta.url), 'utf8')
+  assert.match(bubble, /@longpress="onLongPress"/)
+  assert.match(bubble, /defineEmits\(\['message-long-press', 'preview-image'\]\)/)
+  assert.match(bubble, /emit\('message-long-press',/)
+  assert.match(room, /@message-long-press="openLongPressMenu"/)
+})

@@ -4,7 +4,7 @@
     <scroll-view class="messages" scroll-y :scroll-into-view="scrollIntoView" @scroll="onMessageScroll" @scrolltolower="atBottom = true">
       <template v-for="item in displayItems" :key="item.key">
         <view v-if="item.kind === 'time'" class="time-divider">{{ item.label }}</view>
-        <ChatMessageBubble v-else :id="`message-${item.message.id}`" :message="item.message" :mine="Number(item.message.sender_user_id) === myId" @longpress="openLongPressMenu" @preview-image="previewImage" />
+        <ChatMessageBubble v-else :id="`message-${item.message.id}`" :message="item.message" :mine="Number(item.message.sender_user_id) === myId" @message-long-press="openLongPressMenu" @preview-image="previewImage" />
       </template>
       <view v-if="!loading && !messages.length" class="empty">还没有消息，开始聊聊吧</view>
     </scroll-view>
