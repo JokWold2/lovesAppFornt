@@ -6,15 +6,23 @@ test('群聊输入栏使用图片表情图标且不让 textarea 自动顶起页�
   const source = await readFile(new URL('./ChatComposer.vue', import.meta.url), 'utf8')
   assert.match(source, /src="\/static\/img\/icon-emoji-dark\.png"/)
   assert.match(source, /:adjust-position="false"/)
+  assert.match(source, /:show-confirm-bar="false"/)
   assert.ok(source.indexOf('icon-emoji-dark.png') > source.indexOf('class="draft"'))
 })
 
-test('群聊输入栏保留左侧功能入口及右侧语音、表情和附加操作', async () => {
+test('群聊输入栏只保留现有的表情和图片操作', async () => {
   const source = await readFile(new URL('./ChatComposer.vue', import.meta.url), 'utf8')
-  assert.match(source, /class="apps-icon"/)
-  assert.match(source, /icon-voice-message-dark\.png/)
+  assert.doesNotMatch(source, /class="apps-icon"/)
+  assert.doesNotMatch(source, /icon-voice-message-dark\.png/)
   assert.match(source, /icon-emoji-dark\.png/)
   assert.match(source, /icon-create-post-dark\.png/)
+})
+
+test('聊天页使用键盘高度为输入栏预留空间', async () => {
+  const source = await readFile(new URL('../../pages/chat/chatRoom.vue', import.meta.url), 'utf8')
+  assert.match(source, /:keyboard-height="keyboardHeight"/)
+  assert.match(source, /@keyboard-height="setKeyboardHeight"/)
+  assert.match(source, /function setKeyboardHeight\(/)
 })
 
 test('二手市场内容详情使用拆分后的评论图标', async () => {

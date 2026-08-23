@@ -33,3 +33,7 @@ test('微信小程序自定义事件使用 detail 中的真实消息', () => {
   assert.equal(unwrapComponentEventPayload({ detail: message }), message)
   assert.equal(unwrapComponentEventPayload(message), message)
 })
+
+test('微信小程序自定义事件可读取数值型键盘高度', () => {
+  assert.equal(unwrapComponentEventPayload({ detail: 336 }), 336)
+})

@@ -8,7 +8,7 @@
       </template>
       <view v-if="!loading && !messages.length" class="empty">还没有消息，开始聊聊吧</view>
     </scroll-view>
-    <ChatComposer v-if="isGroupMember" :members="members" :reply-message="replyMessage" :disabled="sending" @send="sendMessage" @select-image="sendImage" @close-reply="replyMessage = null" />
+    <ChatComposer v-if="isGroupMember" :members="members" :reply-message="replyMessage" :disabled="sending" :keyboard-height="keyboardHeight" @send="sendMessage" @select-image="sendImage" @close-reply="replyMessage = null" @keyboard-height="setKeyboardHeight" />
     <MemberPickerSheet :visible="pickerVisible" title="选择要拉入群聊的成员" @close="pickerVisible = false" @confirm="addMembers" />
     <ChatLongPressMenu :visible="Boolean(menuMessage)" :message="menuMessage" :anchor="menuAnchor" @close="closeLongPressMenu" @reply="startReply" />
   </view>
@@ -26,7 +26,7 @@ import { buildChatDisplayItems, shouldStickToBottom } from '@/utils/chatMessageL
 import { attachReplyMessage, unwrapComponentEventPayload } from '@/utils/chatComposerState.js'
 import { refreshUnreadBadge } from '@/utils/unreadBadge.js'
 
-const groupId = ref(''); const messages = ref([]); const members = ref([]); const pickerVisible = ref(false); const isGroupAdmin = ref(false); const isGroupMember = ref(false); const scrollIntoView = ref(''); const groupName = ref(''); const replyMessage = ref(null); const menuMessage = ref(null); const menuAnchor = ref(null); const sending = ref(false); const atBottom = ref(true); const loading = ref(false)
+const groupId = ref(''); const messages = ref([]); const members = ref([]); const pickerVisible = ref(false); const isGroupAdmin = ref(false); const isGroupMember = ref(false); const scrollIntoView = ref(''); const groupName = ref(''); const replyMessage = ref(null); const menuMessage = ref(null); const menuAnchor = ref(null); const keyboardHeight = ref(0); const sending = ref(false); const atBottom = ref(true); const loading = ref(false)
 const myId = Number(uni.getStorageSync('USER_INFO')?.id); const viewportHeight = Math.max(0, Number(uni.getSystemInfoSync?.().windowHeight || 700) - 150); let pollTimer = null; let forceScrollAfterLoad = true
 const displayItems = computed(() => buildChatDisplayItems(messages.value))
 
@@ -47,6 +47,7 @@ async function load({ silent = false } = {}) {
 function onMessageScroll(event) { atBottom.value = shouldStickToBottom({ scrollTop: event.detail.scrollTop, scrollHeight: event.detail.scrollHeight, viewportHeight }) }
 function startPolling() { if (!pollTimer) pollTimer = setInterval(() => load({ silent: true }), 5000) }
 function stopPolling() { if (pollTimer) { clearInterval(pollTimer); pollTimer = null } }
+function setKeyboardHeight(event) { keyboardHeight.value = Math.max(0, Number(unwrapComponentEventPayload(event)) || 0) }
 function closeLongPressMenu() { menuMessage.value = null; menuAnchor.value = null }
 function openLongPressMenu(event) { const payload = unwrapComponentEventPayload(event); menuMessage.value = payload?.message || payload; menuAnchor.value = payload?.anchor || null }
 function startReply(message) { replyMessage.value = unwrapComponentEventPayload(message); closeLongPressMenu() }
@@ -57,7 +58,7 @@ async function addMembers(memberIds) { if (!memberIds.length) { pickerVisible.va
 
 onLoad(options => { groupId.value = options.id })
 onShow(() => { forceScrollAfterLoad = true; load(); startPolling() })
-onHide(stopPolling); onUnload(stopPolling)
+onHide(() => { keyboardHeight.value = 0; stopPolling() }); onUnload(stopPolling)
 </script>
 
 <style scoped>

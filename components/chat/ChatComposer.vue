@@ -1,11 +1,9 @@
 <template>
-  <view class="composer-wrap">
+  <view class="composer-wrap" :style="{ marginBottom: `${keyboardHeight}px` }">
     <view v-if="replyMessage" class="replying"><text>回复 {{ replyPreview.author }}：{{ replyPreview.text }}</text><text class="close-reply" @tap="$emit('close-reply')">×</text></view>
     <view class="composer">
-      <view class="apps-icon" @tap="chooseImage"><view></view><view></view><view></view><view></view></view>
-      <textarea v-model="draft" class="draft" auto-height :adjust-position="false" :cursor-spacing="20" maxlength="2000" confirm-type="send" placeholder="发消息" @input="onInput" @confirm="send" @keyboardheightchange="$emit('keyboard-height', $event.detail.height || 0)" @blur="$emit('keyboard-height', 0)" />
+      <textarea v-model="draft" class="draft" auto-height :adjust-position="false" :show-confirm-bar="false" :cursor-spacing="20" maxlength="2000" confirm-type="send" placeholder="发消息" @input="onInput" @confirm="send" @keyboardheightchange="$emit('keyboard-height', $event.detail.height || 0)" @blur="$emit('keyboard-height', 0)" />
       <view class="right-tools">
-        <image class="tool-icon" src="/static/img/icon-voice-message-dark.png" mode="aspectFit" />
         <image class="tool-icon" src="/static/img/icon-emoji-dark.png" mode="aspectFit" @tap="emojiPanelVisible = !emojiPanelVisible" />
         <image v-if="draft.trim()" class="tool-icon" src="/static/img/icon-send-dark.png" mode="aspectFit" @tap="send" />
         <image v-else class="tool-icon" src="/static/img/icon-create-post-dark.png" mode="aspectFit" @tap="chooseImage" />
@@ -21,7 +19,7 @@ import { computed, ref } from 'vue'
 import { appendEmoji, insertMention, makeTextMessagePayload } from '@/utils/chatComposerState.js'
 import { formatReplyPreview } from '@/utils/chatMessagePresentation.js'
 
-const props = defineProps({ members: { type: Array, default: () => [] }, replyMessage: { type: Object, default: null }, disabled: Boolean })
+const props = defineProps({ members: { type: Array, default: () => [] }, replyMessage: { type: Object, default: null }, disabled: Boolean, keyboardHeight: { type: Number, default: 0 } })
 const emit = defineEmits(['send', 'select-image', 'close-reply', 'keyboard-height'])
 const draft = ref(''); const mentions = ref([]); const emojiPanelVisible = ref(false); const mentionPanelVisible = ref(false)
 const emojis = ['😊', '😂', '🥰', '👍', '🙏', '❤️', '🎉', '😢', '😄', '👏']
@@ -35,5 +33,5 @@ function chooseImage() { if (props.disabled) return; uni.chooseImage({ count: 1,
 </script>
 
 <style scoped>
-.composer-wrap { flex: none; padding: 12rpx 20rpx calc(12rpx + env(safe-area-inset-bottom)); background: #f1f2f4; box-sizing: border-box; }.composer { display: flex; align-items: center; gap: 18rpx; min-height: 86rpx; padding: 14rpx 22rpx; border-radius: 24rpx; background: #fff; }.apps-icon { display: grid; width: 54rpx; height: 54rpx; grid-template-columns: repeat(2, 20rpx); grid-template-rows: repeat(2, 20rpx); gap: 8rpx; flex: none; }.apps-icon view { border: 5rpx solid #171b29; border-radius: 6rpx; box-sizing: border-box; }.draft { flex: 1; min-width: 0; min-height: 48rpx; max-height: 160rpx; padding: 0; color: #1d2230; font-size: 31rpx; line-height: 48rpx; }.right-tools { display: flex; align-items: center; gap: 20rpx; flex: none; }.tool-icon { width: 48rpx; height: 48rpx; }.replying { display: flex; justify-content: space-between; gap: 16rpx; padding: 14rpx 18rpx; border-radius: 16rpx 16rpx 0 0; color: #606772; background: #fff; font-size: 24rpx; }.close-reply { flex: none; font-size: 34rpx; line-height: 28rpx; }.emoji-panel { display: flex; flex-wrap: wrap; gap: 20rpx; margin-top: 12rpx; padding: 24rpx; border-radius: 18rpx; background: #fff; }.emoji { font-size: 42rpx; }.member-panel { max-height: 340rpx; margin-top: 12rpx; overflow-y: auto; border-radius: 18rpx; background: #fff; }.member-option { display: flex; align-items: center; gap: 16rpx; padding: 16rpx 20rpx; color: #1d2230; }.member-avatar { width: 56rpx; height: 56rpx; border-radius: 50%; }.member-fallback { display: flex; align-items: center; justify-content: center; color: #fff; background: #bbb; }
+.composer-wrap { flex: none; padding: 12rpx 20rpx calc(12rpx + env(safe-area-inset-bottom)); background: #f1f2f4; box-sizing: border-box; }.composer { display: flex; align-items: center; gap: 18rpx; min-height: 86rpx; padding: 14rpx 22rpx; border-radius: 24rpx; background: #fff; }.draft { flex: 1; min-width: 0; min-height: 48rpx; max-height: 160rpx; padding: 0; color: #1d2230; font-size: 31rpx; line-height: 48rpx; }.right-tools { display: flex; align-items: center; gap: 20rpx; flex: none; }.tool-icon { width: 48rpx; height: 48rpx; }.replying { display: flex; justify-content: space-between; gap: 16rpx; padding: 14rpx 18rpx; border-radius: 16rpx 16rpx 0 0; color: #606772; background: #fff; font-size: 24rpx; }.close-reply { flex: none; font-size: 34rpx; line-height: 28rpx; }.emoji-panel { display: flex; flex-wrap: wrap; gap: 20rpx; margin-top: 12rpx; padding: 24rpx; border-radius: 18rpx; background: #fff; }.emoji { font-size: 42rpx; }.member-panel { max-height: 340rpx; margin-top: 12rpx; overflow-y: auto; border-radius: 18rpx; background: #fff; }.member-option { display: flex; align-items: center; gap: 16rpx; padding: 16rpx 20rpx; color: #1d2230; }.member-avatar { width: 56rpx; height: 56rpx; border-radius: 50%; }.member-fallback { display: flex; align-items: center; justify-content: center; color: #fff; background: #bbb; }
 </style>
