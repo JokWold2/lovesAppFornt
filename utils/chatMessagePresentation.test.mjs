@@ -28,9 +28,9 @@ test('仅跨日或间隔超过五分钟时插入时间分隔', () => {
 
 test('群聊列表显示最后一条消息的简短时间', () => {
   const now = new Date(2026, 7, 24, 12, 7)
-  assert.equal(formatConversationTime('2026-08-24T09:03:00+08:00', now), '09:03')
-  assert.equal(formatConversationTime('2026-08-23T09:03:00+08:00', now), '昨天')
-  assert.equal(formatConversationTime('2026-08-20T09:03:00+08:00', now), '8/20')
+  assert.equal(formatConversationTime('2026-08-24T09:03:00+08:00', now), '今天 09:03')
+  assert.equal(formatConversationTime('2026-08-23T09:03:00+08:00', now), '昨天 09:03')
+  assert.equal(formatConversationTime('2026-08-20T09:03:00+08:00', now), '2026-08-20 09:03')
 })
 
 test('提及只根据已保存的成员结构高亮', () => {

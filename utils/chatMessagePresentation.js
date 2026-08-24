@@ -34,9 +34,10 @@ export function formatConversationTime(value, now = new Date()) {
   const today = toDate(now)
   const yesterday = new Date(today)
   yesterday.setDate(today.getDate() - 1)
-  if (isSameDay(date, today)) return `${pad(date.getHours())}:${pad(date.getMinutes())}`
-  if (isSameDay(date, yesterday)) return '昨天'
-  return `${date.getMonth() + 1}/${date.getDate()}`
+  const time = `${pad(date.getHours())}:${pad(date.getMinutes())}`
+  if (isSameDay(date, today)) return `今天 ${time}`
+  if (isSameDay(date, yesterday)) return `昨天 ${time}`
+  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())} ${time}`
 }
 
 export function getReceiptIcon(status) {
