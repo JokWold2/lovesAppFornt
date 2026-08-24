@@ -149,10 +149,16 @@
 
 					<!-- 帖子图片 -->
 					<view class="post-media" v-if="getMainImage(item)">
+						<view v-if="!isImageLoaded(item.profileId)" class="media-skeleton">
+							<view class="skeleton-line skeleton-line-wide"></view>
+							<view class="skeleton-line skeleton-line-short"></view>
+						</view>
 						<image
 							class="media-img"
 							:src="getMainImage(item)"
 							mode="widthFix"
+							@load="markImageLoaded(item.profileId)"
+							@error="markImageLoaded(item.profileId)"
 						></image>
 					</view>
 
@@ -336,6 +342,7 @@ onMounted(async () => {
 
 // ------- 瀑布流数据 -------
 const profiles = ref([]); // 当前展示的资料卡片列表
+const loadedImageIds = ref(new Set());
 const loading = ref(false); // 首次/下拉刷新的加载状态
 const loadingMore = ref(false); // 上滑加载更多的状态
 const hasMore = ref(true); // 是否还有更多可加载
@@ -356,6 +363,16 @@ function getMainImage(item) {
 	return "";
 }
 
+function isImageLoaded(profileId) {
+	return loadedImageIds.value.has(String(profileId));
+}
+
+function markImageLoaded(profileId) {
+	const next = new Set(loadedImageIds.value);
+	next.add(String(profileId));
+	loadedImageIds.value = next;
+}
+
 function formatLocation(item) {
 	return (
 		[item.country, item.region].filter(Boolean).join(" · ") ||
@@ -370,6 +387,7 @@ function formatLocation(item) {
 async function loadFeed({ isRefresh }) {
 	if (isRefresh) {
 		loading.value = true;
+		loadedImageIds.value = new Set();
 	} else {
 		if (loadingMore.value || !hasMore.value) return;
 		loadingMore.value = true;
@@ -752,9 +770,34 @@ $gray-bg: #f5f6f8;
 	// 媒体大图
 	.post-media {
 		width: 100%;
+		min-height: 420rpx;
 		border-radius: 20rpx;
 		overflow: hidden;
 		position: relative;
+
+		.media-skeleton {
+			position: absolute;
+			z-index: 1;
+			inset: 0;
+			display: flex;
+			flex-direction: column;
+			justify-content: flex-end;
+			gap: 16rpx;
+			padding: 30rpx;
+			box-sizing: border-box;
+			background: linear-gradient(100deg, #eeeeee 30%, #f6f6f6 50%, #eeeeee 70%);
+			background-size: 200% 100%;
+			animation: media-skeleton-shimmer 1.2s infinite;
+		}
+
+		.skeleton-line {
+			height: 22rpx;
+			border-radius: 12rpx;
+			background: rgba(255, 255, 255, 0.72);
+		}
+
+		.skeleton-line-wide { width: 58%; }
+		.skeleton-line-short { width: 32%; }
 
 		.media-img {
 			width: 100%;
@@ -860,6 +903,11 @@ $gray-bg: #f5f6f8;
 			}
 		}
 	}
+}
+
+@keyframes media-skeleton-shimmer {
+	from { background-position: 100% 0; }
+	to { background-position: -100% 0; }
 }
 
 /* --- 5. 悬浮按钮 (FAB) --- */

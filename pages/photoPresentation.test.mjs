@@ -8,18 +8,20 @@ test('首页动态大图按宽度完整展示', async () => {
   assert.doesNotMatch(source, /\.post-media\s*\{[^}]*height:\s*700rpx/)
 })
 
-test('朋友圈顶部封面展示已确认的裁切结果', async () => {
+test('朋友圈封面使用自适应图片高度而不保留裁切功能', async () => {
   const source = await readFile(new URL('./my/myLifeShow/myLifeShow.vue', import.meta.url), 'utf8')
-  assert.match(source, /<image\s+class="cover-bg"[^>]*mode="aspectFill"/)
+  assert.match(source, /:style="\{ height: `\$\{currentCoverHeight\}px` \}"/)
+  assert.match(source, /<image\s+class="cover-bg"[\s\S]*mode="widthFix"[\s\S]*@load="onCoverImageLoad\(\$event, index\)"/)
+  assert.doesNotMatch(source, /CoverCropper/)
+  assert.doesNotMatch(source, /uploadCroppedCover/)
 })
 
-test('选择封面先进入裁切层，只有裁切结果才能上传', async () => {
-  const source = await readFile(new URL('./my/myLifeShow/myLifeShow.vue', import.meta.url), 'utf8')
+test('首页图片加载前展示媒体骨架，加载后移除', async () => {
+  const source = await readFile(new URL('./index/index360.vue', import.meta.url), 'utf8')
 
-  assert.match(source, /<CoverCropper[\s\S]*@confirm="uploadCroppedCover"/)
-  assert.match(source, /cropSource\.value = res\.tempFilePaths\[0\]/)
-  assert.match(source, /uploadProfilePhotosApi\(\[tempFilePath\]\)/)
-  assert.doesNotMatch(source, /uploadProfilePhotosApi\(res\.tempFilePaths\)/)
+  assert.match(source, /v-if="!isImageLoaded\(item\.profileId\)" class="media-skeleton"/)
+  assert.match(source, /@load="markImageLoaded\(item\.profileId\)"/)
+  assert.match(source, /const loadedImageIds = ref\(new Set\(\)\)/)
 })
 
 test('展开封面暂停轮播并固定当前图片，收起后恢复轮播', async () => {

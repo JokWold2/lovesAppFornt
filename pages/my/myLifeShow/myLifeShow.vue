@@ -6,10 +6,11 @@
     </view>
 
     <!-- 1. 顶部背景与用户信息 -->
-    <view class="header">
+    <view class="header" :style="{ minHeight: `${currentCoverHeight}px` }">
       <!-- 资料照片同时是个人页封面；没有照片时显示本地默认封面。 -->
       <swiper
         class="cover-swiper"
+        :style="{ height: `${currentCoverHeight}px` }"
         :current="currentCoverIndex"
         :autoplay="coverAutoplay"
         circular
@@ -19,7 +20,7 @@
         @tap="openCoverPreview"
       >
         <swiper-item v-for="(photo, index) in profilePhotos" :key="`${photo}-${index}`">
-          <image class="cover-bg" :src="photo" mode="aspectFill"></image>
+          <image class="cover-bg" :src="photo" mode="widthFix" @load="onCoverImageLoad($event, index)"></image>
         </swiper-item>
         <swiper-item v-if="!profilePhotos.length">
           <view class="cover-default"><image class="cover-default-logo" src="/static/logo.png" mode="aspectFit"></image></view>
@@ -186,12 +187,6 @@
     <!-- 底部安全区域占位 -->
     <view class="footer-spacer"></view>
     <ProfileLikesSheet :visible="showLikesSheet" :likes="receivedLikes" :total="receivedLikeTotal" @close="showLikesSheet = false" />
-    <CoverCropper
-      :visible="showCoverCropper"
-      :source="cropSource"
-      @cancel="cancelCoverCrop"
-      @confirm="uploadCroppedCover"
-    />
     <view v-if="coverExpanded" class="cover-preview-mask" @tap="closeCoverPreview">
       <image class="cover-preview-image" :src="profilePhotos[currentCoverIndex]" mode="aspectFit" @tap.stop />
       <view class="cover-preview-change" @tap.stop="changeCover"><text>换封面</text></view>
@@ -214,7 +209,6 @@ import botton2 from '@/static/botton/botton2.vue'
 import botton3 from '@/static/botton/botton3.vue'
 import ProfileDetailSections from '@/components/profile/ProfileDetailSections.vue'
 import ProfileLikesSheet from '@/components/profile/ProfileLikesSheet.vue'
-import CoverCropper from '@/components/profile/CoverCropper.vue'
 // import loading2 from '@/static/loading/loading2.vue'
 // 状态
 const loading = ref(false)
@@ -222,9 +216,9 @@ const moments = ref([])
 const profileData = ref(null)
 const profilePhotos = ref([])
 const currentCoverIndex = ref(0)
+const currentCoverHeight = ref(250)
+const coverHeights = ref({})
 const coverExpanded = ref(false)
-const showCoverCropper = ref(false)
-const cropSource = ref('')
 const coverAutoplay = computed(() => profilePhotos.value.length > 1 && !coverExpanded.value)
 const receivedLikes = ref([])
 const receivedLikeTotal = ref(0)
@@ -577,6 +571,17 @@ function showItemActions(item) {
 
 function onCoverChange(event) {
   currentCoverIndex.value = event.detail.current
+  const cachedHeight = coverHeights.value[currentCoverIndex.value]
+  if (cachedHeight) currentCoverHeight.value = cachedHeight
+}
+
+function onCoverImageLoad(event, index) {
+  const { width, height } = event.detail || {}
+  if (!width || !height) return
+  const screenWidth = uni.getSystemInfoSync().windowWidth
+  const displayHeight = Math.round(screenWidth * height / width)
+  coverHeights.value[index] = displayHeight
+  if (index === currentCoverIndex.value) currentCoverHeight.value = displayHeight
 }
 
 function openCoverPreview() {
@@ -587,12 +592,7 @@ function closeCoverPreview() {
   coverExpanded.value = false
 }
 
-function cancelCoverCrop() {
-  showCoverCropper.value = false
-  cropSource.value = ''
-}
-
-// 选择封面：先进入裁切确认层，避免原图直接上传后产生跨端裁切差异。
+// 选择原图并直接上传；封面显示高度在图片加载后按真实比例计算。
 function changeCover() {
   const remaining = 9 - profilePhotos.value.length
   if (remaining <= 0) {
@@ -600,34 +600,26 @@ function changeCover() {
     return
   }
   uni.chooseImage({
-    count: 1,
+    count: remaining,
     sourceType: ['album'],
-    success: (res) => {
-      cropSource.value = res.tempFilePaths[0]
-      showCoverCropper.value = true
+    success: async (res) => {
+      try {
+        uni.showLoading({ title: '上传中...' })
+        const result = await uploadProfilePhotosApi(res.tempFilePaths)
+        profilePhotos.value = normalizePhotoUrls(result.photos).map(getFullImageUrl)
+        currentCoverIndex.value = Math.max(profilePhotos.value.length - 1, 0)
+        if (profileData.value) profileData.value.photos = profilePhotos.value
+        const cached = uni.getStorageSync('USER_INFO') || {}
+        uni.setStorageSync('USER_INFO', { ...cached, photos: profilePhotos.value })
+        await loadUserProfile()
+      } catch (e) {
+        console.error('封面上传失败', e)
+        uni.showToast({ title: '上传失败', icon: 'none' })
+      } finally {
+        uni.hideLoading()
+      }
     }
   })
-}
-
-async function uploadCroppedCover(tempFilePath) {
-  try {
-    showCoverCropper.value = false
-    uni.showLoading({ title: '上传中...' })
-    const result = await uploadProfilePhotosApi([tempFilePath])
-    profilePhotos.value = normalizePhotoUrls(result.photos).map(getFullImageUrl)
-    currentCoverIndex.value = Math.max(profilePhotos.value.length - 1, 0)
-    if (profileData.value) profileData.value.photos = profilePhotos.value
-    const cached = uni.getStorageSync('USER_INFO') || {}
-    uni.setStorageSync('USER_INFO', { ...cached, photos: profilePhotos.value })
-    await loadUserProfile()
-    currentCoverIndex.value = Math.max(profilePhotos.value.length - 1, 0)
-  } catch (e) {
-    console.error('封面上传失败', e)
-    uni.showToast({ title: '上传失败', icon: 'none' })
-  } finally {
-    cropSource.value = ''
-    uni.hideLoading()
-  }
 }
 
 // 修改头像
@@ -701,18 +693,17 @@ onShow(() => {
 .header {
   position: relative;
   width: 100%;
-  height: 500rpx;
   background-color: #f5f5f5;
 }
 
 .cover-bg {
   width: 100%;
-  height: 100%;
+  display: block;
 }
 
 .cover-swiper {
   width: 100%;
-  height: 100%;
+  transition: height 240ms ease;
 }
 
 .cover-change-button {
