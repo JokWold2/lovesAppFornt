@@ -1,4 +1,4 @@
-import { get, post } from '@/utils/request.js'
+import { del, get, post, request } from '@/utils/request.js'
 import { config } from '@/utils/config.js'
 
 export const createChatRequestApi = (payload) => post('/api/chat-requests', payload)
@@ -29,3 +29,22 @@ export function uploadChatImageApi(id, filePath) {
   })
 }
 export const addChatMemberApi = (id, userId) => post(`/api/chat-groups/${id}/members`, { userId })
+export const getChatGroupDetailApi = (id) => get(`/api/chat-groups/${id}/detail`)
+export const updateChatGroupApi = (id, payload) => request({ url: `/api/chat-groups/${id}`, method: 'PATCH', data: payload })
+export const removeChatGroupMemberApi = (id, userId) => del(`/api/chat-groups/${id}/members/${userId}`)
+export const dissolveChatGroupApi = (id) => post(`/api/chat-groups/${id}/dissolve`)
+export function uploadChatGroupAvatar(id, filePath) {
+  return new Promise((resolve, reject) => {
+    uni.uploadFile({
+      url: config.baseURL + `/api/chat-groups/${id}/avatar`, filePath, name: 'image',
+      header: { Authorization: `Bearer ${uni.getStorageSync('AUTH_TOKEN')}` },
+      success: result => {
+        let body = {}
+        try { body = JSON.parse(result.data || '{}') } catch (_) {}
+        if (result.statusCode >= 200 && result.statusCode < 300) return resolve(body)
+        reject(body || { error: '群头像上传失败' })
+      },
+      fail: reject
+    })
+  })
+}
