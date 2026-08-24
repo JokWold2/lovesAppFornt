@@ -13,6 +13,7 @@
 		<scroll-view
 			class="messages"
 			scroll-y
+			scroll-with-animation
 			:scroll-into-view="scrollIntoView"
 			@scroll="onMessageScroll"
 			@scrolltolower="atBottom = true"

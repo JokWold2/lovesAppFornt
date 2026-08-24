@@ -33,6 +33,7 @@ test('开始输入时聊天列表会滚动到末尾，避免键盘遮住新消�
   assert.match(room, /id="messages-end"/)
   assert.match(room, /scrollIntoView\.value = "messages-end"/)
   assert.match(room, /if \(keyboardHeight\.value\) nextTick\(scrollToLast\)/)
+  assert.match(room, /scroll-with-animation/)
 })
 
 test('二手市场内容详情使用拆分后的评论图标', async () => {
