@@ -10,6 +10,12 @@ export function buildChatDisplayItems(messages = []) {
   })
 }
 
+export function mergeChatMessages(currentMessages = [], incomingMessages = []) {
+  const messagesById = new Map(currentMessages.map(message => [Number(message.id), message]))
+  incomingMessages.forEach(message => messagesById.set(Number(message.id), message))
+  return [...messagesById.values()].sort((left, right) => Number(left.id) - Number(right.id))
+}
+
 export function shouldStickToBottom({ scrollTop = 0, scrollHeight = 0, viewportHeight = 0 }) {
   return Number(scrollTop) + Number(viewportHeight) >= Number(scrollHeight) - 80
 }

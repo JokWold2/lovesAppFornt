@@ -39,8 +39,18 @@ test('开始输入时聊天列表会滚动到末尾，避免键盘遮住新消�
   assert.match(room, /@focus="scrollToLast"/)
   assert.match(room, /id="messages-end"/)
   assert.match(room, /scrollIntoView\.value = "messages-end"/)
-  assert.match(room, /if \(keyboardHeight\.value\) nextTick\(scrollToLast\)/)
+  assert.match(room, /if \(keyboardHeight\.value\) nextTick\(\(\) => scrollToLast/)
   assert.match(room, /scroll-with-animation/)
+})
+
+test('群聊消息列表支持分页加载和回到最新按钮', async () => {
+  const room = await readFile(new URL('../../pages/chat/chatRoom.vue', import.meta.url), 'utf8')
+  assert.match(room, /@scrolltoupper="loadOlderMessages"/)
+  assert.match(room, /v-if="loadingOlder"/)
+  assert.match(room, /v-if="latestButtonVisible"/)
+  assert.match(room, /class="back-to-latest"/)
+  assert.match(room, /setTimeout\(hideLatestButton, 3000\)/)
+  assert.match(room, /scrollToLast\(\{ animated: hasLoadedInitialMessages \}\)/)
 })
 
 test('二手市场内容详情使用拆分后的评论图标', async () => {
