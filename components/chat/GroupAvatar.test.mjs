@@ -7,4 +7,5 @@ test('群头像优先使用自定义图片，否则最多拼接四位成员', as
   assert.match(source, /v-if="avatarUrl"/)
   assert.match(source, /members\.slice\(0, 4\)/)
   assert.match(source, /group-avatar-grid/)
+  assert.match(source, /border-radius: 50%/)
 })

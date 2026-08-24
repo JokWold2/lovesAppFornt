@@ -95,6 +95,7 @@ import {
 	attachReplyMessage,
 	unwrapComponentEventPayload,
 } from "@/utils/chatComposerState.js";
+import { presentGroupName } from "@/utils/chatGroupPresentation.js";
 import { refreshUnreadBadge } from "@/utils/unreadBadge.js";
 
 const groupId = ref("");
@@ -162,7 +163,7 @@ async function load({ silent = false } = {}) {
 		);
 		isGroupMember.value = Boolean(group);
 		isGroupAdmin.value = group?.role === "admin";
-		groupName.value = group?.name || "";
+		groupName.value = presentGroupName(group?.name);
 		groupAvatarUrl.value = group?.avatar_url || "";
 		groupStatus.value = group?.status || "active";
 		if (forceScrollAfterLoad || atBottom.value) {

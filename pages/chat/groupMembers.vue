@@ -23,6 +23,7 @@ import { onLoad, onShow } from '@dcloudio/uni-app'
 import { addChatMemberApi, getChatGroupDetailApi, removeChatGroupMemberApi } from '@/api/chat.js'
 import GroupAvatar from '@/components/chat/GroupAvatar.vue'
 import MemberPickerSheet from '@/components/chat/MemberPickerSheet.vue'
+import { presentGroupName } from '@/utils/chatGroupPresentation.js'
 
 const groupId = ref('')
 const group = ref(null)
@@ -31,7 +32,11 @@ const memberIds = computed(() => (group.value?.members || []).map(member => Numb
 const isActiveAdmin = computed(() => group.value?.role === 'admin' && group.value?.status === 'active')
 async function load() {
   if (!groupId.value) return
-  try { const data = await getChatGroupDetailApi(groupId.value); group.value = data?.group || null }
+  try {
+    const data = await getChatGroupDetailApi(groupId.value)
+    group.value = data?.group || null
+    if (group.value) group.value.name = presentGroupName(group.value.name)
+  }
   catch (error) { uni.showToast({ title: error?.error || '加载成员失败', icon: 'none' }) }
 }
 async function addMembers(ids) {

@@ -50,6 +50,7 @@ import { computed, ref } from 'vue'
 import { onLoad, onShow } from '@dcloudio/uni-app'
 import { dissolveChatGroupApi, getChatGroupDetailApi, updateChatGroupApi, uploadChatGroupAvatar } from '@/api/chat.js'
 import GroupAvatar from '@/components/chat/GroupAvatar.vue'
+import { presentGroupName } from '@/utils/chatGroupPresentation.js'
 
 const groupId = ref('')
 const group = ref(null)
@@ -66,6 +67,7 @@ async function load() {
   try {
     const data = await getChatGroupDetailApi(groupId.value)
     group.value = data?.group || null
+    if (group.value) group.value.name = presentGroupName(group.value.name)
     draftName.value = group.value?.name || ''
     draftAvatarUrl.value = group.value?.avatar_url || ''
   } catch (error) {

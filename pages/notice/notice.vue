@@ -3,7 +3,7 @@
     <view class="header"><text>消息</text><uni-icons type="search" size="28" color="#171822" /></view>
     <view class="row" @click="openInteractions"><view class="avatar interaction">⌁</view><view class="main"><text class="name">互动消息</text><text class="summary">{{ interactionSummary }}</text></view><view class="side"><text class="date">{{ interactionDate }}</text><text v-if="interactionUnread" class="badge">{{ badgeText(interactionUnread) }}</text></view></view>
     <view v-if="isAdmin && requests.length" class="row" @click="openRequestReviews"><view class="avatar audit">审</view><view class="main"><text class="name">待审核私聊申请</text><text class="summary">{{ requests.length }} 条申请等待处理</text></view><view class="side"><text class="badge">{{ badgeText(requests.length) }}</text></view></view>
-    <view v-for="group in chatGroups" :key="group.id" class="row" @click="openGroup(group.id)"><GroupAvatar class="group-list-avatar" :avatar-url="group.avatar_url" :members="group.members || []" :size="47" /><view class="main"><text class="name">{{ group.name }}</text><text class="summary">{{ group.status === 'dissolved' ? '该群已解散' : (group.last_message || '暂无消息') }}</text></view><view class="side"><text v-if="group.unread_count" class="badge">{{ badgeText(group.unread_count) }}</text></view></view>
+    <view v-for="group in chatGroups" :key="group.id" class="row" @click="openGroup(group.id)"><GroupAvatar class="group-list-avatar" :avatar-url="group.avatar_url" :members="group.members || []" :size="47" /><view class="main"><text class="name">{{ presentGroupName(group.name) }}</text><text class="summary">{{ group.status === 'dissolved' ? '该群已解散' : (group.last_message || '暂无消息') }}</text></view><view class="side"><text v-if="group.unread_count" class="badge">{{ badgeText(group.unread_count) }}</text></view></view>
   </view>
 </template>
 <script setup>
@@ -13,6 +13,7 @@ import { getNotificationsApi } from '@/api/notifications.js'
 import { getChatGroupsApi, getChatRequestsApi } from '@/api/chat.js'
 import { refreshUnreadBadge } from '@/utils/unreadBadge.js'
 import GroupAvatar from '@/components/chat/GroupAvatar.vue'
+import { presentGroupName } from '@/utils/chatGroupPresentation.js'
 const notifications = ref([]), chatGroups = ref([]), requests = ref([])
 const isAdmin = Number(uni.getStorageSync('USER_INFO')?.accountLevel) === 5
 const interactions = computed(() => notifications.value.filter(item => item.type !== 'chat_request'))

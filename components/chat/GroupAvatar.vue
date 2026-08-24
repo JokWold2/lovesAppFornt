@@ -20,7 +20,7 @@ defineProps({
 </script>
 
 <style scoped>
-.group-avatar { flex: none; overflow: hidden; border-radius: 18%; background: #d9dde2; }
+.group-avatar { flex: none; overflow: hidden; border-radius: 50%; background: #d9dde2; }
 .group-avatar-image { width: 100%; height: 100%; }
 .group-avatar-grid { display: grid; width: 100%; height: 100%; gap: 2px; padding: 2px; box-sizing: border-box; background: #d9dde2; }
 .group-avatar-grid--1 { grid-template-columns: 1fr; }.group-avatar-grid--2 { grid-template-columns: repeat(2, 1fr); }.group-avatar-grid--3, .group-avatar-grid--4 { grid-template-columns: repeat(2, 1fr); grid-template-rows: repeat(2, 1fr); }
