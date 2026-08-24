@@ -18,6 +18,13 @@ test('群聊输入栏只保留现有的表情和图片操作', async () => {
   assert.match(source, /icon-create-post-dark\.png/)
 })
 
+test('群聊输入栏保持紧凑并放大表情和图片图标', async () => {
+  const source = await readFile(new URL('./ChatComposer.vue', import.meta.url), 'utf8')
+  assert.match(source, /min-height: 72rpx/)
+  assert.match(source, /padding: 8rpx 20rpx/)
+  assert.match(source, /width: 68rpx; height: 68rpx/)
+})
+
 test('聊天页使用键盘高度为输入栏预留空间', async () => {
   const source = await readFile(new URL('../../pages/chat/chatRoom.vue', import.meta.url), 'utf8')
   assert.match(source, /:keyboard-height="keyboardHeight"/)
