@@ -1,17 +1,19 @@
 import { getUnreadCountApi } from '@/api/notifications.js'
+import { formatUnreadBadge, shouldUpdateTabBarBadge } from './unreadBadgeState.js'
 
 let pollingTimer = null
 
-export function formatUnreadBadge(total) {
-  const count = Number(total || 0)
-  if (count <= 0) return ''
-  return count > 99 ? '99+' : String(count)
+function isCurrentTabBarPage() {
+  if (typeof getCurrentPages !== 'function') return true
+  const pages = getCurrentPages()
+  return shouldUpdateTabBarBadge(pages[pages.length - 1]?.route)
 }
 
 export async function refreshUnreadBadge() {
   try {
     const data = await getUnreadCountApi()
     const text = formatUnreadBadge(data?.totalUnread)
+    if (!isCurrentTabBarPage()) return data
     if (text) uni.setTabBarBadge({ index: 1, text })
     else uni.removeTabBarBadge({ index: 1 })
     return data
