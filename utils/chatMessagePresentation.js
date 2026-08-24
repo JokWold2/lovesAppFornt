@@ -28,6 +28,17 @@ export function buildTimeDivider(current, previous) {
   return `${currentDate.getFullYear()}-${pad(currentDate.getMonth() + 1)}-${pad(currentDate.getDate())} ${time}`
 }
 
+export function formatConversationTime(value, now = new Date()) {
+  const date = toDate(value)
+  if (!date) return ''
+  const today = toDate(now)
+  const yesterday = new Date(today)
+  yesterday.setDate(today.getDate() - 1)
+  if (isSameDay(date, today)) return `${pad(date.getHours())}:${pad(date.getMinutes())}`
+  if (isSameDay(date, yesterday)) return '昨天'
+  return `${date.getMonth() + 1}/${date.getDate()}`
+}
+
 export function getReceiptIcon(status) {
   return ({ sending: 'clock', delivered: 'single', read: 'double-blue' })[status] || 'single'
 }
