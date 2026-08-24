@@ -10,7 +10,7 @@
       <!-- 资料照片同时是个人页封面；没有照片时显示本地默认封面。 -->
       <swiper class="cover-swiper" :autoplay="profilePhotos.length > 1" circular :interval="3500" :duration="450" @tap="changeCover">
         <swiper-item v-for="(photo, index) in profilePhotos" :key="`${photo}-${index}`">
-          <image class="cover-bg" :src="photo" mode="aspectFill"></image>
+          <image class="cover-bg" :src="photo" mode="aspectFit"></image>
         </swiper-item>
         <swiper-item v-if="!profilePhotos.length">
           <view class="cover-default"><image class="cover-default-logo" src="/static/logo.png" mode="aspectFit"></image></view>
@@ -94,11 +94,11 @@
             <!-- 图片 -->
             <template v-if="item.images && item.images.length > 0">
               <view v-if="item.images.length === 1" class="single-image" @click.stop="previewImage(item.images, 0)">
-                <image class="media-box single-img" :src="getFullImageUrl(item.images[0])" mode="widthFix"></image>
+                <image class="media-box single-img" :src="getFullImageUrl(item.images[0])" mode="aspectFill"></image>
               </view>
               <view v-else class="image-grid">
                 <image v-for="(img, imgIndex) in item.images.slice(0, 9)" :key="imgIndex" class="media-box grid-img"
-                  :src="getFullImageUrl(img)" mode="aspectFit" @click.stop="previewImage(item.images, imgIndex)">
+                  :src="getFullImageUrl(img)" mode="aspectFill" @click.stop="previewImage(item.images, imgIndex)">
                 </image>
               </view>
             </template>
@@ -849,8 +849,7 @@ onShow(() => {
 
 .single-img {
   width: 400rpx;
-  height: auto;
-  display: block;
+  height: 400rpx;
   border-radius: 8rpx;
 }
 
@@ -866,7 +865,6 @@ onShow(() => {
   width: calc((100vw - 180rpx) / 3);
   height: calc((100vw - 180rpx) / 3);
   border-radius: 4rpx;
-  background-color: #f0f0f0;
 }
 
 /* 媒体方块通用样式 */

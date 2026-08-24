@@ -5,7 +5,7 @@
         <image
           class="photo"
           :src="src"
-          mode="widthFix"
+          mode="aspectFill"
           @tap="handlePhotoTap(index)"
           @error="emit('photo-error', index)"
         />
@@ -73,8 +73,7 @@ function handlePhotoTap(index) {
 
 .photo {
   width: 100%;
-  height: auto;
-  display: block;
+  height: 400rpx;
   border-radius: 8rpx;
   background-color: #eee;
 }
