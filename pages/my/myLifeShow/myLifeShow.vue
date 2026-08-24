@@ -8,14 +8,26 @@
     <!-- 1. 顶部背景与用户信息 -->
     <view class="header">
       <!-- 资料照片同时是个人页封面；没有照片时显示本地默认封面。 -->
-      <swiper class="cover-swiper" :autoplay="profilePhotos.length > 1" circular :interval="3500" :duration="450" @tap="changeCover">
+      <swiper
+        class="cover-swiper"
+        :current="currentCoverIndex"
+        :autoplay="coverAutoplay"
+        circular
+        :interval="3500"
+        :duration="450"
+        @change="onCoverChange"
+        @tap="openCoverPreview"
+      >
         <swiper-item v-for="(photo, index) in profilePhotos" :key="`${photo}-${index}`">
-          <image class="cover-bg" :src="photo" mode="aspectFit"></image>
+          <image class="cover-bg" :src="photo" mode="aspectFill"></image>
         </swiper-item>
         <swiper-item v-if="!profilePhotos.length">
           <view class="cover-default"><image class="cover-default-logo" src="/static/logo.png" mode="aspectFit"></image></view>
         </swiper-item>
       </swiper>
+      <view class="cover-change-button" @tap.stop="changeCover">
+        <text>换封面</text>
+      </view>
 
       <!-- 用户名与头像 -->
       <view class="user-info">
@@ -174,11 +186,22 @@
     <!-- 底部安全区域占位 -->
     <view class="footer-spacer"></view>
     <ProfileLikesSheet :visible="showLikesSheet" :likes="receivedLikes" :total="receivedLikeTotal" @close="showLikesSheet = false" />
+    <CoverCropper
+      :visible="showCoverCropper"
+      :source="cropSource"
+      @cancel="cancelCoverCrop"
+      @confirm="uploadCroppedCover"
+    />
+    <view v-if="coverExpanded" class="cover-preview-mask" @tap="closeCoverPreview">
+      <image class="cover-preview-image" :src="profilePhotos[currentCoverIndex]" mode="aspectFit" @tap.stop />
+      <view class="cover-preview-change" @tap.stop="changeCover"><text>换封面</text></view>
+      <text class="cover-preview-close">×</text>
+    </view>
   </view>
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue'
+import { computed, ref } from 'vue'
 import { onShow } from '@dcloudio/uni-app'
 import {
   getMomentsApi, togglePinMomentApi, deleteMomentApi,
@@ -191,12 +214,18 @@ import botton2 from '@/static/botton/botton2.vue'
 import botton3 from '@/static/botton/botton3.vue'
 import ProfileDetailSections from '@/components/profile/ProfileDetailSections.vue'
 import ProfileLikesSheet from '@/components/profile/ProfileLikesSheet.vue'
+import CoverCropper from '@/components/profile/CoverCropper.vue'
 // import loading2 from '@/static/loading/loading2.vue'
 // 状态
 const loading = ref(false)
 const moments = ref([])
 const profileData = ref(null)
 const profilePhotos = ref([])
+const currentCoverIndex = ref(0)
+const coverExpanded = ref(false)
+const showCoverCropper = ref(false)
+const cropSource = ref('')
+const coverAutoplay = computed(() => profilePhotos.value.length > 1 && !coverExpanded.value)
 const receivedLikes = ref([])
 const receivedLikeTotal = ref(0)
 const showLikesSheet = ref(false)
@@ -546,7 +575,24 @@ function showItemActions(item) {
   })
 }
 
-// 修改封面
+function onCoverChange(event) {
+  currentCoverIndex.value = event.detail.current
+}
+
+function openCoverPreview() {
+  if (profilePhotos.value.length) coverExpanded.value = true
+}
+
+function closeCoverPreview() {
+  coverExpanded.value = false
+}
+
+function cancelCoverCrop() {
+  showCoverCropper.value = false
+  cropSource.value = ''
+}
+
+// 选择封面：先进入裁切确认层，避免原图直接上传后产生跨端裁切差异。
 function changeCover() {
   const remaining = 9 - profilePhotos.value.length
   if (remaining <= 0) {
@@ -554,27 +600,34 @@ function changeCover() {
     return
   }
   uni.chooseImage({
-    count: remaining,
+    count: 1,
     sourceType: ['album'],
-    success: async (res) => {
-      try {
-        uni.showLoading({ title: '上传中...' })
-        const result = await uploadProfilePhotosApi(res.tempFilePaths)
-        profilePhotos.value = normalizePhotoUrls(result.photos).map(getFullImageUrl)
-        if (profileData.value) profileData.value.photos = profilePhotos.value
-        // 同步更新本地缓存，避免下次进页面读到旧照片。
-        const cached = uni.getStorageSync('USER_INFO') || {}
-        uni.setStorageSync('USER_INFO', { ...cached, photos: profilePhotos.value })
-        // 以服务端最终保存的数据刷新资料区，确保轮播与下方照片展示完全一致。
-        await loadUserProfile()
-      } catch (e) {
-        console.error('封面上传失败', e)
-        uni.showToast({ title: '上传失败', icon: 'none' })
-      } finally {
-        uni.hideLoading()
-      }
+    success: (res) => {
+      cropSource.value = res.tempFilePaths[0]
+      showCoverCropper.value = true
     }
   })
+}
+
+async function uploadCroppedCover(tempFilePath) {
+  try {
+    showCoverCropper.value = false
+    uni.showLoading({ title: '上传中...' })
+    const result = await uploadProfilePhotosApi([tempFilePath])
+    profilePhotos.value = normalizePhotoUrls(result.photos).map(getFullImageUrl)
+    currentCoverIndex.value = Math.max(profilePhotos.value.length - 1, 0)
+    if (profileData.value) profileData.value.photos = profilePhotos.value
+    const cached = uni.getStorageSync('USER_INFO') || {}
+    uni.setStorageSync('USER_INFO', { ...cached, photos: profilePhotos.value })
+    await loadUserProfile()
+    currentCoverIndex.value = Math.max(profilePhotos.value.length - 1, 0)
+  } catch (e) {
+    console.error('封面上传失败', e)
+    uni.showToast({ title: '上传失败', icon: 'none' })
+  } finally {
+    cropSource.value = ''
+    uni.hideLoading()
+  }
 }
 
 // 修改头像
@@ -662,6 +715,18 @@ onShow(() => {
   height: 100%;
 }
 
+.cover-change-button {
+  position: absolute;
+  right: 26rpx;
+  bottom: 34rpx;
+  z-index: 2;
+  padding: 14rpx 22rpx;
+  border-radius: 28rpx;
+  color: #fff;
+  font-size: 24rpx;
+  background: rgba(0, 0, 0, 0.36);
+}
+
 .cover-default {
   width: 100%;
   height: 100%;
@@ -677,6 +742,46 @@ onShow(() => {
   border-radius: 50%;
   background: rgba(255, 255, 255, 0.76);
   padding: 24rpx;
+}
+
+.cover-preview-mask {
+  position: fixed;
+  z-index: 999;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: env(safe-area-inset-top) 24rpx calc(24rpx + env(safe-area-inset-bottom));
+  box-sizing: border-box;
+  background: rgba(0, 0, 0, 0.94);
+}
+
+.cover-preview-image {
+  width: 100%;
+  height: 100%;
+}
+
+.cover-preview-change {
+  position: absolute;
+  right: 34rpx;
+  bottom: calc(44rpx + env(safe-area-inset-bottom));
+  padding: 18rpx 28rpx;
+  border-radius: 40rpx;
+  color: #fff;
+  font-size: 28rpx;
+  background: rgba(0, 0, 0, 0.44);
+}
+
+.cover-preview-close {
+  position: absolute;
+  top: calc(30rpx + env(safe-area-inset-top));
+  right: 32rpx;
+  width: 64rpx;
+  height: 64rpx;
+  color: #fff;
+  font-size: 54rpx;
+  line-height: 58rpx;
+  text-align: center;
 }
 
 .user-info {
