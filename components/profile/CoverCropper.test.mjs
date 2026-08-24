@@ -19,3 +19,14 @@ test('裁切组件使用 uni-app 触摸事件完成拖动和缩放', async () =>
   assert.match(source, /@touchend="onTouchEnd"/)
   assert.doesNotMatch(source, /window\.|document\./)
 })
+
+test('竖图裁切框跟随原图宽高比，并显式设置画布内部尺寸', async () => {
+  const source = await readFile(new URL('./CoverCropper.vue', import.meta.url), 'utf8')
+
+  assert.match(source, /frameHeight\.value = Math\.round\(frameWidth \/ sourceAspect\)/)
+  assert.match(source, /exportHeight\.value = Math\.round\(exportWidth \/ sourceAspect\)/)
+  assert.match(source, /:width="exportWidth"/)
+  assert.match(source, /:height="exportHeight"/)
+  assert.doesNotMatch(source, /const frameHeight = 420/)
+  assert.doesNotMatch(source, /const exportHeight = 630/)
+})

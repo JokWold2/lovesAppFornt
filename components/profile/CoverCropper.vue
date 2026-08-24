@@ -4,6 +4,7 @@
       <text class="crop-title">调整封面</text>
       <view
         class="crop-frame"
+        :style="{ width: `${frameWidth}rpx`, height: `${frameHeight}rpx` }"
         @touchstart="onTouchStart"
         @touchmove="onTouchMove"
         @touchend="onTouchEnd"
@@ -11,6 +12,8 @@
         <canvas
           canvas-id="coverCropCanvas"
           class="crop-canvas"
+          :width="exportWidth"
+          :height="exportHeight"
           :style="{ width: `${frameWidth}rpx`, height: `${frameHeight}rpx` }"
         />
         <view class="crop-grid crop-grid-horizontal"></view>
@@ -36,9 +39,9 @@ const props = defineProps({
 const emit = defineEmits(['cancel', 'confirm'])
 const instance = getCurrentInstance()
 const frameWidth = 680
-const frameHeight = 420
+const frameHeight = ref(420)
 const exportWidth = 1020
-const exportHeight = 630
+const exportHeight = ref(630)
 const imageWidth = ref(0)
 const imageHeight = ref(0)
 const scale = ref(1)
@@ -65,10 +68,13 @@ function initializeImage() {
     success(info) {
       imageWidth.value = info.width
       imageHeight.value = info.height
-      const coverScale = Math.max(exportWidth / info.width, exportHeight / info.height)
+      const sourceAspect = info.width / info.height
+      frameHeight.value = Math.round(frameWidth / sourceAspect)
+      exportHeight.value = Math.round(exportWidth / sourceAspect)
+      const coverScale = Math.max(exportWidth / info.width, exportHeight.value / info.height)
       scale.value = coverScale
       offsetX.value = (exportWidth - info.width * coverScale) / 2
-      offsetY.value = (exportHeight - info.height * coverScale) / 2
+      offsetY.value = (exportHeight.value - info.height * coverScale) / 2
       nextTick(drawCanvas)
     },
     fail() {
@@ -82,14 +88,14 @@ function clampOffsets() {
   const drawnWidth = imageWidth.value * scale.value
   const drawnHeight = imageHeight.value * scale.value
   offsetX.value = Math.min(0, Math.max(exportWidth - drawnWidth, offsetX.value))
-  offsetY.value = Math.min(0, Math.max(exportHeight - drawnHeight, offsetY.value))
+  offsetY.value = Math.min(0, Math.max(exportHeight.value - drawnHeight, offsetY.value))
 }
 
 function drawCanvas() {
   if (!props.source || !imageWidth.value || !imageHeight.value) return
   const context = getCanvasContext()
   context.setFillStyle('#111111')
-  context.fillRect(0, 0, exportWidth, exportHeight)
+  context.fillRect(0, 0, exportWidth, exportHeight.value)
   context.drawImage(
     props.source,
     offsetX.value,
@@ -122,7 +128,7 @@ function onTouchMove(event) {
   const touches = event.touches || []
   if (touches.length >= 2 && pinchStart.value) {
     const ratio = touchDistance(touches) / pinchStart.value.distance
-    scale.value = Math.max(pinchStart.value.scale * ratio, Math.max(exportWidth / imageWidth.value, exportHeight / imageHeight.value))
+    scale.value = Math.max(pinchStart.value.scale * ratio, Math.max(exportWidth / imageWidth.value, exportHeight.value / imageHeight.value))
     clampOffsets()
     drawCanvas()
     return
@@ -145,9 +151,9 @@ function confirmCrop() {
   uni.canvasToTempFilePath({
     canvasId: 'coverCropCanvas',
     width: exportWidth,
-    height: exportHeight,
+    height: exportHeight.value,
     destWidth: exportWidth,
-    destHeight: exportHeight,
+    destHeight: exportHeight.value,
     fileType: 'jpg',
     quality: 0.92,
     success(result) {
