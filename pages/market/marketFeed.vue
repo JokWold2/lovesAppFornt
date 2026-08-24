@@ -18,7 +18,7 @@
 					/>
 					<view class="meta">
 						<text class="name">{{ post.title }}</text><text>¥ {{ post.price }}</text>
-						<view><text @click="like(post)">{{ post.isLiked ? '♥' : '♡' }} {{ post.likeCount }}</text><text class="comment" @click="openComments(post)">评论 {{ post.commentCount }}</text></view>
+						<view><view class="meta-like" @click="like(post)"><image class="meta-like-icon" :src="post.isLiked ? '/static/img/like_act.png' : '/static/img/like.png'" mode="aspectFit" /><text>{{ post.likeCount }}</text></view><text class="comment" @click="openComments(post)">评论 {{ post.commentCount }}</text></view>
 					</view>
 					<view class="actions">
 						<view class="action" @click="like(post)"><image class="action-icon like-icon" :src="post.isLiked ? '/static/img/like_act.png' : '/static/img/like.png'" mode="aspectFit" /><text>{{ post.likeCount }}</text></view>
@@ -181,6 +181,8 @@ async function sendComment() {
 .meta { display: flex; flex-direction: column; gap: 18rpx; padding: 28rpx; color: #fff; }
 .name { font-size: 38rpx; font-weight: 700; }
 .comment { margin-left: 36rpx; }
+.meta-like { display: inline-flex; align-items: center; gap: 8rpx; }
+.meta-like-icon { width: 28rpx; height: 28rpx; }
 .actions { position: absolute; right: 24rpx; bottom: 210rpx; display: flex; flex-direction: column; gap: 32rpx; color: #fff; text-align: center; }
 .action { display: flex; flex-direction: column; align-items: center; font-size: 22rpx; text-shadow: 0 1rpx 4rpx #000; }
 .action-icon { width: 62rpx; height: 62rpx; margin-bottom: 6rpx; }.comment-icon { width: 62rpx; height: 62rpx; }
