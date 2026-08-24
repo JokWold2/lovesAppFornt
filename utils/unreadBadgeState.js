@@ -10,6 +10,10 @@ export function formatUnreadBadge(total) {
   return count > 99 ? '99+' : String(count)
 }
 
+export function hasUnreadMessages(total) {
+  return Number(total || 0) > 0
+}
+
 export function shouldUpdateTabBarBadge(route) {
   return TAB_BAR_ROUTES.has(String(route || '').replace(/^\/+/, ''))
 }
