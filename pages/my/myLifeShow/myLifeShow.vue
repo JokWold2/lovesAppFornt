@@ -94,11 +94,11 @@
             <!-- 图片 -->
             <template v-if="item.images && item.images.length > 0">
               <view v-if="item.images.length === 1" class="single-image" @click.stop="previewImage(item.images, 0)">
-                <image class="media-box single-img" :src="getFullImageUrl(item.images[0])" mode="aspectFill"></image>
+                <image class="media-box single-img" :src="getFullImageUrl(item.images[0])" mode="widthFix"></image>
               </view>
               <view v-else class="image-grid">
                 <image v-for="(img, imgIndex) in item.images.slice(0, 9)" :key="imgIndex" class="media-box grid-img"
-                  :src="getFullImageUrl(img)" mode="aspectFill" @click.stop="previewImage(item.images, imgIndex)">
+                  :src="getFullImageUrl(img)" mode="aspectFit" @click.stop="previewImage(item.images, imgIndex)">
                 </image>
               </view>
             </template>
@@ -849,7 +849,8 @@ onShow(() => {
 
 .single-img {
   width: 400rpx;
-  height: 400rpx;
+  height: auto;
+  display: block;
   border-radius: 8rpx;
 }
 
@@ -865,6 +866,7 @@ onShow(() => {
   width: calc((100vw - 180rpx) / 3);
   height: calc((100vw - 180rpx) / 3);
   border-radius: 4rpx;
+  background-color: #f0f0f0;
 }
 
 /* 媒体方块通用样式 */

@@ -152,7 +152,7 @@
 						<image
 							class="media-img"
 							:src="getMainImage(item)"
-							mode="aspectFill"
+							mode="widthFix"
 						></image>
 					</view>
 
@@ -752,14 +752,14 @@ $gray-bg: #f5f6f8;
 	// 媒体大图
 	.post-media {
 		width: 100%;
-		height: 700rpx;
 		border-radius: 20rpx;
 		overflow: hidden;
 		position: relative;
 
 		.media-img {
 			width: 100%;
-			height: 100%;
+			height: auto;
+			display: block;
 			background-color: #f0f0f0;
 		}
 	}
