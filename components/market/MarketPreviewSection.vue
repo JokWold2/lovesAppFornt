@@ -1,13 +1,149 @@
 <template>
-  <view class="market-section"><view v-if="loading" class="state">加载中...</view><view v-else-if="!posts.length" class="state">暂时还没有{{ title }}内容</view><view v-else class="waterfall"><view class="column"><view v-for="post in leftPosts" :key="post.id" class="card" @click="openPost(post.id)"><image v-if="imageOf(post)" class="cover" :src="imageOf(post)" mode="widthFix"/><view v-else class="empty-cover">暂无图片</view><view class="card-body"><text class="post-title">{{ post.title }}</text><text class="price">¥ {{ post.price }}</text><view class="foot"><text>{{ post.author_name || '用户' }}</text><text>♡ {{ post.likeCount || 0 }}</text></view></view></view></view><view class="column"><view v-for="post in rightPosts" :key="post.id" class="card" @click="openPost(post.id)"><image v-if="imageOf(post)" class="cover" :src="imageOf(post)" mode="widthFix"/><view v-else class="empty-cover">暂无图片</view><view class="card-body"><text class="post-title">{{ post.title }}</text><text class="price">¥ {{ post.price }}</text><view class="foot"><text>{{ post.author_name || '用户' }}</text><text>♡ {{ post.likeCount || 0 }}</text></view></view></view></view></view></view>
+	<view class="market-section"
+		><view v-if="loading" class="state">加载中...</view
+		><view v-else-if="!posts.length" class="state"
+			>暂时还没有{{ title }}内容</view
+		><view v-else class="waterfall"
+			><view class="column"
+				><view
+					v-for="post in leftPosts"
+					:key="post.id"
+					class="card"
+					@click="openPost(post.id)"
+					><image
+						v-if="imageOf(post)"
+						class="cover"
+						:src="imageOf(post)"
+						mode="widthFix"
+					/><view v-else class="empty-cover">暂无图片</view
+					><view class="card-body"
+						><text class="post-title">{{ post.title }}</text
+						><text class="price">¥ {{ post.price }}</text
+						><view class="foot"
+							><text>{{ post.author_name || "用户" }}</text
+							><text>♡ {{ post.likeCount || 0 }}</text></view
+						></view
+					></view
+				></view
+			><view class="column"
+				><view
+					v-for="post in rightPosts"
+					:key="post.id"
+					class="card"
+					@click="openPost(post.id)"
+					><image
+						v-if="imageOf(post)"
+						class="cover"
+						:src="imageOf(post)"
+						mode="widthFix"
+					/><view v-else class="empty-cover">暂无图片</view
+					><view class="card-body"
+						><text class="post-title">{{ post.title }}</text
+						><text class="price">¥ {{ post.price }}</text
+						><view class="foot"
+							><text>{{ post.author_name || "用户" }}</text
+							><text>♡ {{ post.likeCount || 0 }}</text></view
+						></view
+					></view
+				></view
+			></view
+		></view
+	>
 </template>
 <script setup>
-import { computed, onMounted, ref } from 'vue'
-import { getMarketPostsApi } from '@/api/market.js'
-import { marketFeedRoute } from '@/utils/marketNavigation.js'
-const props=defineProps({category:{type:String,required:true},title:{type:String,required:true}});const posts=ref([]),loading=ref(true)
-const leftPosts=computed(()=>posts.value.filter((_,index)=>index%2===0)),rightPosts=computed(()=>posts.value.filter((_,index)=>index%2===1))
-function imageOf(post){return Array.isArray(post.images)?post.images.find(Boolean)||'':''}function openPost(id){uni.navigateTo({url:marketFeedRoute(props.category,id)})}
-onMounted(async()=>{try{const data=await getMarketPostsApi({category:props.category,pageSize:50});posts.value=data?.posts||[]}finally{loading.value=false}})
+import { computed, onMounted, ref } from "vue";
+import { getMarketPostsApi } from "@/api/market.js";
+import { marketFeedRoute } from "@/utils/marketNavigation.js";
+const props = defineProps({
+	category: { type: String, required: true },
+	title: { type: String, required: true },
+});
+const posts = ref([]),
+	loading = ref(true);
+const leftPosts = computed(() =>
+		posts.value.filter((_, index) => index % 2 === 0),
+	),
+	rightPosts = computed(() =>
+		posts.value.filter((_, index) => index % 2 === 1),
+	);
+function imageOf(post) {
+	return Array.isArray(post.images) ? post.images.find(Boolean) || "" : "";
+}
+function openPost(id) {
+	uni.navigateTo({ url: marketFeedRoute(props.category, id) });
+}
+onMounted(async () => {
+	try {
+		const data = await getMarketPostsApi({
+			category: props.category,
+			pageSize: 50,
+		});
+		posts.value = data?.posts || [];
+	} finally {
+		loading.value = false;
+	}
+});
 </script>
-<style scoped lang="scss">.market-section{padding:20rpx 16rpx}.state{padding:100rpx 0;text-align:center;color:#999}.waterfall{display:flex;align-items:flex-start;gap:16rpx}.column{width:calc(50% - 8rpx)}.card{overflow:hidden;margin-bottom:16rpx;border-radius:16rpx;background:#fff}.cover{display:block;width:100%;min-height:200rpx;background:#eee}.empty-cover{display:flex;height:260rpx;align-items:center;justify-content:center;background:#eee;color:#999}.card-body{padding:18rpx}.post-title{display:block;color:#222;font-size:28rpx;font-weight:600;line-height:1.4}.price{display:block;margin-top:10rpx;color:#dc5b3f;font-size:28rpx;font-weight:700}.foot{display:flex;justify-content:space-between;margin-top:14rpx;color:#999;font-size:21rpx}</style>
+<style scoped lang="scss">
+.market-section {
+	padding: 20rpx 16rpx;
+}
+.state {
+	padding: 100rpx 0;
+	text-align: center;
+	color: #999;
+}
+.waterfall {
+	display: flex;
+	align-items: flex-start;
+	gap: 16rpx;
+}
+.column {
+	width: calc(50% - 8rpx);
+}
+.card {
+	overflow: hidden;
+	margin-bottom: 16rpx;
+	border-radius: 16rpx;
+	background: #fff;
+	box-shadow: 0 2rpx 16rpx rgba(0, 0, 0, 0.05);
+}
+.cover {
+	display: block;
+	width: 100%;
+	min-height: 200rpx;
+	background: #eee;
+}
+.empty-cover {
+	display: flex;
+	height: 260rpx;
+	align-items: center;
+	justify-content: center;
+	background: #eee;
+	color: #999;
+}
+.card-body {
+	padding: 18rpx;
+}
+.post-title {
+	display: block;
+	color: #222;
+	font-size: 28rpx;
+	font-weight: 600;
+	line-height: 1.4;
+}
+.price {
+	display: block;
+	margin-top: 10rpx;
+	color: #dc5b3f;
+	font-size: 28rpx;
+	font-weight: 700;
+}
+.foot {
+	display: flex;
+	justify-content: space-between;
+	margin-top: 14rpx;
+	color: #999;
+	font-size: 21rpx;
+}
+</style>
