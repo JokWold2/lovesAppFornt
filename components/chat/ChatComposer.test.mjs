@@ -77,6 +77,13 @@ test('群管理页提供资料修改、成员管理与解散入口', async () =>
   assert.match(members, /removeChatGroupMemberApi/)
 })
 
+test('群管理页将解散操作展示为独立粉色按钮', async () => {
+  const source = await readFile(new URL('../../pages/chat/groupManage.vue', import.meta.url), 'utf8')
+  assert.match(source, /class="dissolve-button"/)
+  assert.match(source, /\.dissolve-button\{[^}]*background:#ffeef1;[^}]*color:#fe385c/)
+  assert.match(source, /\.status-on\{color:#6fba88/)
+})
+
 test('群成员页将管理员展示为粉色圆角标签，并使用指定移出颜色', async () => {
   const source = await readFile(new URL('../../pages/chat/groupMembers.vue', import.meta.url), 'utf8')
   assert.match(source, /\.admin-tag\{display:inline-flex;[^}]*border-radius:12rpx;[^}]*background:#ffeef1;[^}]*color:#fe385c/)
