@@ -99,3 +99,11 @@ test('群聊页面禁用页面滚动以让键盘只压缩消息区域', async ()
   const source = await readFile(new URL('../../pages.json', import.meta.url), 'utf8')
   assert.match(source, /"path":\s*"pages\/chat\/chatRoom"[\s\S]*?"disableScroll":\s*true/)
 })
+
+test('自己发送的消息展示已读成员头像和人数，未读时展示未读文案', async () => {
+  const source = await readFile(new URL('./ChatMessageBubble.vue', import.meta.url), 'utf8')
+  assert.match(source, /v-if="message\.readCount"/)
+  assert.match(source, /class="read-avatar"/)
+  assert.match(source, /人已读/)
+  assert.match(source, /v-else>未读<\/text>/)
+})
