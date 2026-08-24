@@ -1,13 +1,13 @@
 <template>
 	<view class="page">
 		<view class="room-head"
-			><view class="group-avatar">群</view
+			><GroupAvatar :avatar-url="groupAvatarUrl" :members="members" :size="36" />
 			><text class="group-name">{{ groupName || "群聊" }}</text
 			><text
-				v-if="isGroupAdmin"
-				class="add-member"
-				@tap="pickerVisible = true"
-				>＋ 拉成员</text
+				v-if="isGroupAdmin && groupStatus === 'active'"
+				class="group-manage"
+				@tap="openGroupManage"
+				>群管理</text
 			></view
 		>
 		<scroll-view
@@ -50,7 +50,7 @@
 			><text class="latest-chevron">⌄</text><text class="latest-chevron">⌄</text></view
 		>
 		<ChatComposer
-			v-if="isGroupMember"
+			v-if="isGroupMember && groupStatus === 'active'"
 			:members="members"
 			:reply-message="replyMessage"
 			:disabled="sending"
@@ -61,12 +61,7 @@
 			@keyboard-height="setKeyboardHeight"
 			@focus="scrollToLast"
 		/>
-		<MemberPickerSheet
-			:visible="pickerVisible"
-			title="选择要拉入群聊的成员"
-			@close="pickerVisible = false"
-			@confirm="addMembers"
-		/>
+		<view v-else-if="isGroupMember" class="dissolved-note">该群已解散，仅可查看历史消息</view>
 		<ChatLongPressMenu
 			:visible="Boolean(menuMessage)"
 			:message="menuMessage"
@@ -81,7 +76,6 @@
 import { computed, nextTick, ref } from "vue";
 import { onHide, onLoad, onShow, onUnload } from "@dcloudio/uni-app";
 import {
-	addChatMemberApi,
 	getChatGroupMembersApi,
 	getChatGroupsApi,
 	getChatMessagesApi,
@@ -91,7 +85,7 @@ import {
 import ChatComposer from "@/components/chat/ChatComposer.vue";
 import ChatLongPressMenu from "@/components/chat/ChatLongPressMenu.vue";
 import ChatMessageBubble from "@/components/chat/ChatMessageBubble.vue";
-import MemberPickerSheet from "@/components/chat/MemberPickerSheet.vue";
+import GroupAvatar from "@/components/chat/GroupAvatar.vue";
 import {
 	buildChatDisplayItems,
 	mergeChatMessages,
@@ -106,12 +100,13 @@ import { refreshUnreadBadge } from "@/utils/unreadBadge.js";
 const groupId = ref("");
 const messages = ref([]);
 const members = ref([]);
-const pickerVisible = ref(false);
 const isGroupAdmin = ref(false);
 const isGroupMember = ref(false);
 const scrollIntoView = ref("");
 const scrollWithAnimation = ref(false);
 const groupName = ref("");
+const groupAvatarUrl = ref("");
+const groupStatus = ref("active");
 const replyMessage = ref(null);
 const menuMessage = ref(null);
 const menuAnchor = ref(null);
@@ -168,6 +163,8 @@ async function load({ silent = false } = {}) {
 		isGroupMember.value = Boolean(group);
 		isGroupAdmin.value = group?.role === "admin";
 		groupName.value = group?.name || "";
+		groupAvatarUrl.value = group?.avatar_url || "";
+		groupStatus.value = group?.status || "active";
 		if (forceScrollAfterLoad || atBottom.value) {
 			scrollToLast({ animated: hasLoadedInitialMessages });
 		}
@@ -265,6 +262,9 @@ function startReply(message) {
 function previewImage(url) {
 	uni.previewImage({ urls: [url], current: url });
 }
+function openGroupManage() {
+	uni.navigateTo({ url: `/pages/chat/groupManage?id=${groupId.value}` });
+}
 async function sendMessage(payload) {
 	if (sending.value) return;
 	sending.value = true;
@@ -305,23 +305,6 @@ async function sendImage({ imagePath }) {
 		sending.value = false;
 	}
 }
-async function addMembers(memberIds) {
-	if (!memberIds.length) {
-		pickerVisible.value = false;
-		return;
-	}
-	try {
-		await Promise.all(
-			memberIds.map((userId) => addChatMemberApi(groupId.value, userId)),
-		);
-		pickerVisible.value = false;
-		await load({ silent: true });
-		uni.showToast({ title: "成员已加入", icon: "success" });
-	} catch (error) {
-		uni.showToast({ title: error?.error || "添加成员失败", icon: "none" });
-	}
-}
-
 onLoad((options) => {
 	groupId.value = options.id;
 });
@@ -358,17 +341,6 @@ onUnload(() => {
 	padding: 18rpx 24rpx;
 	background: #f6f7f8;
 }
-.group-avatar {
-	display: flex;
-	align-items: center;
-	justify-content: center;
-	width: 56rpx;
-	height: 56rpx;
-	border-radius: 50%;
-	color: #fff;
-	background: #aab0b8;
-	font-size: 22rpx;
-}
 .group-name {
 	flex: 1;
 	overflow: hidden;
@@ -378,7 +350,7 @@ onUnload(() => {
 	text-overflow: ellipsis;
 	white-space: nowrap;
 }
-.add-member {
+.group-manage {
 	padding: 10rpx 14rpx;
 	border-radius: 14rpx;
 	color: #1768ae;
@@ -442,5 +414,13 @@ onUnload(() => {
 .back-to-latest-leaving {
 	opacity: 0;
 	transform: translate(-50%, 72rpx);
+}
+.dissolved-note {
+	flex: 0 0 auto;
+	padding: 24rpx;
+	color: #7d838c;
+	background: #f7f8f9;
+	text-align: center;
+	font-size: 25rpx;
 }
 </style>
