@@ -269,7 +269,7 @@
 				</view>
 			</view>
 			<AntiqueCollection v-if="currentEntryIndex == 0" />
-			<AuctionActivity v-if="currentEntryIndex == 2" />
+			<!-- <AuctionActivity v-if="currentEntryIndex == 2" /> -->
 			<!-- 右下角悬浮发布按钮 -->
 			<view class="fab-button">
 				<uni-icons type="plusempty" size="24" color="#000"></uni-icons>
