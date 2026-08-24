@@ -62,6 +62,7 @@ test('群聊管理员使用群管理入口，已解散群隐藏输入栏', async
   assert.match(source, /v-if="isGroupMember && groupStatus === 'active'"/)
   assert.match(source, /该群已解散，仅可查看历史消息/)
   assert.match(source, /<GroupAvatar/)
+  assert.doesNotMatch(source, /room-head"\s*\n\s*>/)
 })
 
 test('群管理页提供资料修改、成员管理与解散入口', async () => {

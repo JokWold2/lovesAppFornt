@@ -1,15 +1,14 @@
 <template>
 	<view class="page">
-		<view class="room-head"
-			><GroupAvatar :avatar-url="groupAvatarUrl" :members="members" :size="36" />
-			><text class="group-name">{{ groupName || "群聊" }}</text
-			><text
+		<view class="room-head">
+			<GroupAvatar :avatar-url="groupAvatarUrl" :members="members" :size="36" />
+			<text class="group-name">{{ groupName || "群聊" }}</text>
+			<text
 				v-if="isGroupAdmin && groupStatus === 'active'"
 				class="group-manage"
 				@tap="openGroupManage"
-				>群管理</text
-			></view
-		>
+			>群管理</text>
+		</view>
 		<scroll-view
 			class="messages"
 			scroll-y
