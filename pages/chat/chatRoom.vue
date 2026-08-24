@@ -163,6 +163,8 @@ async function load({ silent = false } = {}) {
 		isGroupMember.value = Boolean(group);
 		isGroupAdmin.value = group?.role === "admin";
 		groupName.value = presentGroupName(group?.name);
+		console.log(groupName.value, "groupName.value");
+
 		groupAvatarUrl.value = group?.avatar_url || "";
 		groupStatus.value = group?.status || "active";
 		if (forceScrollAfterLoad || atBottom.value) {
@@ -353,7 +355,7 @@ onUnload(() => {
 .group-manage {
 	padding: 10rpx 14rpx;
 	border-radius: 14rpx;
-	color: #1768ae;
+	color: #73747b;
 	background: #fff;
 	font-size: 24rpx;
 }
@@ -403,8 +405,7 @@ onUnload(() => {
 }
 .latest-chevron {
 	display: block;
-	height: 24rpx;
-	font-size: 52rpx;
+	font-size: 36rpx;
 	font-weight: 600;
 	line-height: 20rpx;
 }
