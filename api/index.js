@@ -278,6 +278,11 @@ export function uploadProfilePhotosApi(filePaths) {
   })), Promise.resolve()).then(() => latestResult)
 }
 
+// 从当前用户的资料照片列表移除一张照片；OSS 原文件暂保留，避免影响历史引用。
+export function deleteProfilePhotoApi(photoUrl) {
+  return del('/api/profile/photos', { photoUrl })
+}
+
 export function getProfileApi() {
   return get('/api/profile')
 }
@@ -353,6 +358,7 @@ export default {
   uploadAvatarApi,
   uploadCoverApi,
   uploadProfilePhotosApi,
+  deleteProfilePhotoApi,
   getExploreFeedApi,
   toggleProfileLikeApi,
   getProfileLikesApi,

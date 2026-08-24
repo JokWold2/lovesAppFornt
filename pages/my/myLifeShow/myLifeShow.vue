@@ -190,6 +190,7 @@
     <view v-if="coverExpanded" class="cover-preview-mask" @tap="closeCoverPreview">
       <image class="cover-preview-image" :src="profilePhotos[currentCoverIndex]" mode="aspectFit" @tap.stop />
       <view class="cover-preview-change" @tap.stop="changeCover"><text>换封面</text></view>
+      <view class="cover-preview-delete" @tap.stop="deleteCurrentCover"><text>删除照片</text></view>
       <text class="cover-preview-close">×</text>
     </view>
   </view>
@@ -200,7 +201,7 @@ import { computed, ref } from 'vue'
 import { onShow } from '@dcloudio/uni-app'
 import {
   getMomentsApi, togglePinMomentApi, deleteMomentApi,
-  toggleLikeMomentApi, uploadAvatarApi, uploadProfilePhotosApi,
+  toggleLikeMomentApi, uploadAvatarApi, uploadProfilePhotosApi, deleteProfilePhotoApi,
   getProfileApi, getCommentsApi, addCommentApi, updateBioApi,
   getLikesApi, getProfileLikesApi
 } from '@/api/index.js'
@@ -622,6 +623,38 @@ function changeCover() {
   })
 }
 
+function deleteCurrentCover() {
+  const photo = profilePhotos.value[currentCoverIndex.value]
+  if (!photo) return
+
+  uni.showModal({
+    title: '删除照片',
+    content: '删除后将从个人相册移除，是否继续？',
+    confirmText: '删除',
+    confirmColor: '#fe385c',
+    success: async ({ confirm }) => {
+      if (!confirm) return
+      try {
+        uni.showLoading({ title: '删除中...' })
+        const result = await deleteProfilePhotoApi(photo)
+        profilePhotos.value = normalizePhotoUrls(result.photos).map(getFullImageUrl)
+        currentCoverIndex.value = Math.min(currentCoverIndex.value, Math.max(profilePhotos.value.length - 1, 0))
+        coverHeights.value = {}
+        currentCoverHeight.value = 250
+        if (profileData.value) profileData.value.photos = profilePhotos.value
+        const cached = uni.getStorageSync('USER_INFO') || {}
+        uni.setStorageSync('USER_INFO', { ...cached, photos: profilePhotos.value })
+        if (!profilePhotos.value.length) closeCoverPreview()
+      } catch (e) {
+        console.error('删除资料照片失败', e)
+        uni.showToast({ title: '删除失败，请稍后重试', icon: 'none' })
+      } finally {
+        uni.hideLoading()
+      }
+    }
+  })
+}
+
 // 修改头像
 function changeAvatar() {
   uni.chooseImage({
@@ -708,8 +741,8 @@ onShow(() => {
 
 .cover-change-button {
   position: absolute;
-  right: 26rpx;
-  bottom: 34rpx;
+  top: 24rpx;
+  right: 24rpx;
   z-index: 2;
   padding: 14rpx 22rpx;
   border-radius: 28rpx;
@@ -761,6 +794,17 @@ onShow(() => {
   color: #fff;
   font-size: 28rpx;
   background: rgba(0, 0, 0, 0.44);
+}
+
+.cover-preview-delete {
+  position: absolute;
+  right: 34rpx;
+  bottom: calc(124rpx + env(safe-area-inset-bottom));
+  padding: 18rpx 28rpx;
+  border-radius: 40rpx;
+  color: #fff;
+  font-size: 28rpx;
+  background: rgba(254, 56, 92, 0.78);
 }
 
 .cover-preview-close {

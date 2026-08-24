@@ -34,3 +34,21 @@ test('展开封面暂停轮播并固定当前图片，收起后恢复轮播', as
   assert.match(source, /@tap="closeCoverPreview"/)
   assert.match(source, /class="cover-preview-image"[\s\S]*mode="aspectFit"/)
 })
+
+test('封面外部换封面按钮位于右上角且不遮挡头像', async () => {
+  const source = await readFile(new URL('./my/myLifeShow/myLifeShow.vue', import.meta.url), 'utf8')
+
+  assert.match(source, /class="cover-change-button" @tap\.stop="changeCover"/)
+  assert.match(source, /\.cover-change-button\s*\{[\s\S]*top:\s*24rpx[\s\S]*right:\s*24rpx/)
+})
+
+test('资料照片支持从预览中删除，并在删除后刷新列表', async () => {
+  const source = await readFile(new URL('./my/myLifeShow/myLifeShow.vue', import.meta.url), 'utf8')
+  const api = await readFile(new URL('../api/index.js', import.meta.url), 'utf8')
+
+  assert.match(source, /class="cover-preview-delete" @tap\.stop="deleteCurrentCover"/)
+  assert.match(source, /await deleteProfilePhotoApi\(photo\)/)
+  assert.match(source, /profilePhotos\.value = normalizePhotoUrls\(result\.photos\)/)
+  assert.match(api, /export function deleteProfilePhotoApi\(photoUrl\)/)
+  assert.match(api, /return del\('\/api\/profile\/photos', \{ photoUrl \}\)/)
+})
