@@ -5,16 +5,23 @@
 				<view class="item">
 					<swiper class="photos" circular>
 						<swiper-item v-for="src in post.images" :key="src">
-							<image class="photo" :src="src" mode="aspectFit" @click="onPhotoTap(post)" />
+							<image class="photo" :src="src" mode="aspectFit" @tap="onPhotoTap(post, $event)" />
 						</swiper-item>
 						<swiper-item v-if="!post.images?.length"><view class="empty-photo">暂无图片</view></swiper-item>
 					</swiper>
+					<image
+						v-if="doubleLikePostId === post.id"
+						class="double-like-heart"
+						:style="{ left: `${doubleLikePosition.x}px`, top: `${doubleLikePosition.y}px` }"
+						src="/static/img/like_act.png"
+						mode="aspectFit"
+					/>
 					<view class="meta">
 						<text class="name">{{ post.title }}</text><text>¥ {{ post.price }}</text>
 						<view><text @click="like(post)">{{ post.isLiked ? '♥' : '♡' }} {{ post.likeCount }}</text><text class="comment" @click="openComments(post)">评论 {{ post.commentCount }}</text></view>
 					</view>
 					<view class="actions">
-						<view class="action" @click="like(post)"><text class="action-icon">{{ post.isLiked ? '♥' : '♡' }}</text><text>{{ post.likeCount }}</text></view>
+						<view class="action" @click="like(post)"><image class="action-icon like-icon" :src="post.isLiked ? '/static/img/like_act.png' : '/static/img/like.png'" mode="aspectFit" /><text>{{ post.likeCount }}</text></view>
 						<view class="action" @click="openComments(post)"><image class="action-icon comment-icon" src="/static/img/icon-comment.png" mode="aspectFit" /><text>{{ post.commentCount }}</text></view>
 					</view>
 				</view>
@@ -56,7 +63,7 @@
 </template>
 
 <script setup>
-import { ref } from 'vue'
+import { nextTick, ref } from 'vue'
 import { onLoad } from '@dcloudio/uni-app'
 import { addMarketCommentApi, getMarketCommentRepliesApi, getMarketCommentsApi, getMarketPostsApi, toggleMarketLikeApi } from '@/api/market.js'
 import { appendReplies, formatCommentTime } from '@/utils/marketComments.js'
@@ -69,7 +76,10 @@ const comments = ref([])
 const commentAnchor = ref('')
 const replyTarget = ref(null)
 const defaultAvatar = '/static/logo.png'
+const doubleLikePostId = ref(null)
+const doubleLikePosition = ref({ x: 0, y: 0 })
 let lastTap = 0
+let doubleLikeTimer = null
 let requestedCommentId = ''
 
 onLoad(async (options) => {
@@ -87,10 +97,27 @@ async function like(post) {
 	try { Object.assign(post, await toggleMarketLikeApi(post.id)) } catch (_) { Object.assign(post, previous) }
 }
 
-function onPhotoTap(post) {
+function onPhotoTap(post, event) {
 	const now = Date.now()
-	if (now - lastTap < 280) like(post)
+	if (now - lastTap < 280) {
+		if (!post.isLiked) like(post)
+		showDoubleLike(post, event)
+	}
 	lastTap = now
+}
+
+function showDoubleLike(post, event) {
+	const point = event?.detail || event?.touches?.[0] || event?.changedTouches?.[0] || {}
+	doubleLikePosition.value = {
+		x: Number(point.x ?? point.clientX ?? point.pageX ?? 188),
+		y: Number(point.y ?? point.clientY ?? point.pageY ?? 360)
+	}
+	doubleLikePostId.value = null
+	clearTimeout(doubleLikeTimer)
+	nextTick(() => {
+		doubleLikePostId.value = post.id
+		doubleLikeTimer = setTimeout(() => { doubleLikePostId.value = null }, 1500)
+	})
 }
 
 async function openComments(post) {
@@ -156,7 +183,9 @@ async function sendComment() {
 .comment { margin-left: 36rpx; }
 .actions { position: absolute; right: 24rpx; bottom: 210rpx; display: flex; flex-direction: column; gap: 32rpx; color: #fff; text-align: center; }
 .action { display: flex; flex-direction: column; align-items: center; font-size: 22rpx; text-shadow: 0 1rpx 4rpx #000; }
-.action-icon { margin-bottom: 6rpx; font-size: 62rpx; line-height: 1; }.comment-icon { width: 62rpx; height: 62rpx; }
+.action-icon { width: 62rpx; height: 62rpx; margin-bottom: 6rpx; }.comment-icon { width: 62rpx; height: 62rpx; }
+.double-like-heart { position: absolute; z-index: 6; width: 180rpx; height: 180rpx; margin: -90rpx 0 0 -90rpx; pointer-events: none; animation: double-like-pop 1.5s ease-out both; }
+@keyframes double-like-pop { 0% { opacity: 0; transform: scale(.35) rotate(-12deg); } 18% { opacity: 1; transform: scale(1.25) rotate(8deg); } 45% { opacity: 1; transform: scale(1); } 100% { opacity: 0; transform: scale(1.45) translateY(-42rpx); } }
 .mask { position: fixed; z-index: 10; inset: 0; display: flex; align-items: flex-end; background: rgba(0, 0, 0, .35); }
 .panel { display: flex; width: 100%; height: 60vh; min-height: 60vh; box-sizing: border-box; flex-direction: column; padding: 24rpx; border-radius: 28rpx 28rpx 0 0; background: #fff; }
 .panel-head, .input { display: flex; align-items: center; justify-content: space-between; }
