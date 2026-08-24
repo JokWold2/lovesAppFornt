@@ -35,6 +35,7 @@
 			<view v-if="!loading && !messages.length" class="empty"
 				>还没有消息，开始聊聊吧</view
 			>
+			<view id="messages-end" class="messages-end" />
 		</scroll-view>
 		<ChatComposer
 			v-if="isGroupMember"
@@ -46,6 +47,7 @@
 			@select-image="sendImage"
 			@close-reply="replyMessage = null"
 			@keyboard-height="setKeyboardHeight"
+			@focus="scrollToLast"
 		/>
 		<MemberPickerSheet
 			:visible="pickerVisible"
@@ -64,7 +66,7 @@
 </template>
 
 <script setup>
-import { computed, ref } from "vue";
+import { computed, nextTick, ref } from "vue";
 import { onHide, onLoad, onShow, onUnload } from "@dcloudio/uni-app";
 import {
 	addChatMemberApi,
@@ -113,8 +115,12 @@ let forceScrollAfterLoad = true;
 const displayItems = computed(() => buildChatDisplayItems(messages.value));
 
 function scrollToLast() {
-	const lastMessage = messages.value.at(-1);
-	if (lastMessage) scrollIntoView.value = `message-${lastMessage.id}`;
+	if (!messages.value.length) return;
+	// Reset first because setting the same target twice does not re-scroll in WeChat.
+	scrollIntoView.value = "";
+	nextTick(() => {
+		scrollIntoView.value = "messages-end";
+	});
 }
 async function load({ silent = false } = {}) {
 	if (!groupId.value || loading.value) return;
@@ -169,6 +175,7 @@ function setKeyboardHeight(event) {
 		0,
 		Number(unwrapComponentEventPayload(event)) || 0,
 	);
+	if (keyboardHeight.value) nextTick(scrollToLast);
 }
 function closeLongPressMenu() {
 	menuMessage.value = null;
@@ -317,5 +324,8 @@ onUnload(stopPolling);
 	color: #8a8f96;
 	text-align: center;
 	font-size: 28rpx;
+}
+.messages-end {
+	height: 1px;
 }
 </style>

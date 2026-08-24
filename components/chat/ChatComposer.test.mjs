@@ -25,6 +25,16 @@ test('聊天页使用键盘高度为输入栏预留空间', async () => {
   assert.match(source, /function setKeyboardHeight\(/)
 })
 
+test('开始输入时聊天列表会滚动到末尾，避免键盘遮住新消息', async () => {
+  const composer = await readFile(new URL('./ChatComposer.vue', import.meta.url), 'utf8')
+  const room = await readFile(new URL('../../pages/chat/chatRoom.vue', import.meta.url), 'utf8')
+  assert.match(composer, /@focus="\$emit\('focus'\)"/)
+  assert.match(room, /@focus="scrollToLast"/)
+  assert.match(room, /id="messages-end"/)
+  assert.match(room, /scrollIntoView\.value = "messages-end"/)
+  assert.match(room, /if \(keyboardHeight\.value\) nextTick\(scrollToLast\)/)
+})
+
 test('二手市场内容详情使用拆分后的评论图标', async () => {
   const source = await readFile(new URL('../../pages/market/marketFeed.vue', import.meta.url), 'utf8')
   assert.match(source, /src="\/static\/img\/icon-comment\.png"/)

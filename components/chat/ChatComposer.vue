@@ -2,7 +2,7 @@
   <view class="composer-wrap" :style="{ marginBottom: `${keyboardHeight}px` }">
     <view v-if="replyMessage" class="replying"><text>回复 {{ replyPreview.author }}：{{ replyPreview.text }}</text><text class="close-reply" @tap="$emit('close-reply')">×</text></view>
     <view class="composer">
-      <textarea v-model="draft" class="draft" auto-height :adjust-position="false" :show-confirm-bar="false" :cursor-spacing="20" maxlength="2000" confirm-type="send" placeholder="发消息" @input="onInput" @confirm="send" @keyboardheightchange="$emit('keyboard-height', $event.detail.height || 0)" @blur="$emit('keyboard-height', 0)" />
+      <textarea v-model="draft" class="draft" auto-height :adjust-position="false" :show-confirm-bar="false" :cursor-spacing="20" maxlength="2000" confirm-type="send" placeholder="发消息" @focus="$emit('focus')" @input="onInput" @confirm="send" @keyboardheightchange="$emit('keyboard-height', $event.detail.height || 0)" @blur="$emit('keyboard-height', 0)" />
       <view class="right-tools">
         <image class="tool-icon" src="/static/img/icon-emoji-dark.png" mode="aspectFit" @tap="emojiPanelVisible = !emojiPanelVisible" />
         <image v-if="draft.trim()" class="tool-icon" src="/static/img/icon-send-dark.png" mode="aspectFit" @tap="send" />
@@ -20,7 +20,7 @@ import { appendEmoji, insertMention, makeTextMessagePayload } from '@/utils/chat
 import { formatReplyPreview } from '@/utils/chatMessagePresentation.js'
 
 const props = defineProps({ members: { type: Array, default: () => [] }, replyMessage: { type: Object, default: null }, disabled: Boolean, keyboardHeight: { type: Number, default: 0 } })
-const emit = defineEmits(['send', 'select-image', 'close-reply', 'keyboard-height'])
+const emit = defineEmits(['send', 'select-image', 'close-reply', 'keyboard-height', 'focus'])
 const draft = ref(''); const mentions = ref([]); const emojiPanelVisible = ref(false); const mentionPanelVisible = ref(false)
 const emojis = ['😊', '😂', '🥰', '👍', '🙏', '❤️', '🎉', '😢', '😄', '👏']
 const replyPreview = computed(() => formatReplyPreview(props.replyMessage))
