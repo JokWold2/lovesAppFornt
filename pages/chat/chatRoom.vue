@@ -47,7 +47,7 @@
 			:class="{ 'back-to-latest-leaving': latestButtonLeaving }"
 			:style="{ bottom: `${keyboardHeight + 88}px` }"
 			@tap="returnToLatest"
-			>⌄</view
+			><text class="latest-chevron">⌄</text><text class="latest-chevron">⌄</text></view
 		>
 		<ChatComposer
 			v-if="isGroupMember"
@@ -414,9 +414,10 @@ onUnload(() => {
 }
 .back-to-latest {
 	position: absolute;
-	right: 34rpx;
+	left: 50%;
 	z-index: 4;
 	display: flex;
+	flex-direction: column;
 	align-items: center;
 	justify-content: center;
 	width: 76rpx;
@@ -425,13 +426,21 @@ onUnload(() => {
 	color: #1d2230;
 	background: #fff;
 	box-shadow: 0 8rpx 18rpx rgba(34, 40, 51, 0.16);
-	font-size: 56rpx;
-	font-weight: 600;
-	line-height: 62rpx;
+	transform: translateX(-50%);
 	transition: transform 260ms ease-in, opacity 260ms ease-in;
+}
+.latest-chevron {
+	display: block;
+	height: 24rpx;
+	font-size: 52rpx;
+	font-weight: 600;
+	line-height: 20rpx;
+}
+.latest-chevron + .latest-chevron {
+	margin-top: -2rpx;
 }
 .back-to-latest-leaving {
 	opacity: 0;
-	transform: translateY(72rpx);
+	transform: translate(-50%, 72rpx);
 }
 </style>

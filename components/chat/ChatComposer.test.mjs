@@ -51,6 +51,9 @@ test('群聊消息列表支持分页加载和回到最新按钮', async () => {
   assert.match(room, /class="back-to-latest"/)
   assert.match(room, /setTimeout\(hideLatestButton, 3000\)/)
   assert.match(room, /scrollToLast\(\{ animated: hasLoadedInitialMessages \}\)/)
+  assert.match(room, /class="latest-chevron"/)
+  assert.match(room, /left: 50%/)
+  assert.match(room, /translate\(-50%, 72rpx\)/)
 })
 
 test('二手市场内容详情使用拆分后的评论图标', async () => {
