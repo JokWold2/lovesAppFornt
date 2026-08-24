@@ -23,7 +23,6 @@ const avatarLabel = computed(() => String(props.message.sender_name || '成').sl
 const textTokens = computed(() => tokenizeMentions(props.message.content, props.message.mentions))
 const replyPreview = computed(() => formatReplyPreview(props.message.reply))
 function onLongPress(event) {
-  if (props.message.message_type === 'image') return
   const detail = event?.detail || {}
   emit('message-long-press', {
     message: props.message,

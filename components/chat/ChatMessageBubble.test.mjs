@@ -16,3 +16,13 @@ test('长按使用原生事件并转发为不冲突的自定义事件', async ()
   assert.match(bubble, /emit\((['"])message-long-press\1,/)
   assert.match(room, /@message-long-press="openLongPressMenu"/)
 })
+
+test('图片消息长按只显示引用回复，文字消息仍保留复制', async () => {
+  const [bubble, menu] = await Promise.all([
+    readFile(new URL('./ChatMessageBubble.vue', import.meta.url), 'utf8'),
+    readFile(new URL('./ChatLongPressMenu.vue', import.meta.url), 'utf8')
+  ])
+  assert.doesNotMatch(bubble, /message_type === ["']image["']\) return/)
+  assert.match(menu, /v-if="message\?\.message_type !== 'image'" class="menu-item" @tap="copy"/)
+  assert.match(menu, /class="menu-item" @tap="\$emit\('reply', message\)"/)
+})

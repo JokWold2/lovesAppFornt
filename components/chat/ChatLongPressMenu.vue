@@ -2,7 +2,7 @@
   <view v-if="visible" class="menu-mask" @tap="$emit('close')">
     <view class="menu" :style="menuStyle" @tap.stop>
       <view class="menu-arrow" :class="`arrow-${position.arrow}`"></view>
-      <view class="menu-item" @tap="copy"><text class="menu-icon">▣</text><text>复制</text></view>
+      <view v-if="message?.message_type !== 'image'" class="menu-item" @tap="copy"><text class="menu-icon">▣</text><text>复制</text></view>
       <view class="menu-item" @tap="$emit('reply', message)"><text class="menu-icon">↩</text><text>引用回复</text></view>
     </view>
   </view>
