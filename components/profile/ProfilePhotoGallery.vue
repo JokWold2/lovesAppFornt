@@ -15,7 +15,11 @@
 
     <!-- 组件只上报交互，不直接发请求，方便个人页和他人资料页复用。 -->
     <view v-if="enableLike" class="like-button" @tap.stop="emitToggleLike">
-      <text class="like-icon" :class="{ liked }">{{ liked ? '♥' : '♡' }}</text>
+      <image
+        class="like-icon"
+        :src="liked ? '/static/img/like_act.png' : '/static/img/like.png'"
+        mode="aspectFit"
+      />
       <text v-if="likeCount > 0" class="like-count">{{ likeCount }}</text>
     </view>
   </view>
@@ -98,12 +102,9 @@ function handlePhotoTap(index) {
 }
 
 .like-icon {
-  color: #9b9b9b;
-  font-size: 42rpx;
-  line-height: 1;
+  width: 42rpx;
+  height: 42rpx;
 }
-
-.like-icon.liked { color: #e84d5b; }
 
 .like-count {
   color: #666;
