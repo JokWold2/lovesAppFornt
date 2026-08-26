@@ -6,9 +6,9 @@ export const config = {
   // 后端 API 基础地址
   // 局域网真机测试：Android 手机需与本机连接同一个 Wi‑Fi。
   // 部署线上后恢复为正式 API 域名，不能保留局域网地址。
-//   baseURL: 'http://192.168.31.61:3000',
+  //   baseURL: 'http://192.168.31.61:3000',
   // 后端 API 基础地址
-//   baseURL: 'http://localhost:3000',
+  // baseURL: 'http://localhost:3000',
   baseURL: 'http://8.218.94.132',
 
   // 请求超时时间（毫秒）

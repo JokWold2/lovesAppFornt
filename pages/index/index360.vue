@@ -276,9 +276,9 @@
 			</view>
 			<AntiqueCollection v-if="currentEntryIndex == 0" />
 			<!-- <AuctionActivity v-if="currentEntryIndex == 2" /> -->
-			<!-- 右下角悬浮发布按钮 -->
-			<view class="fab-button">
-				<uni-icons type="plusempty" size="24" color="#000"></uni-icons>
+			<!-- 右下角悬浮按钮：改为回到顶部 -->
+			<view class="fab-button" @click="scrollToTop">
+				<uni-icons type="arrow-up" size="28" color="#000"></uni-icons>
 			</view>
 		</view>
 		<AntiqueCollection v-if="model === '教學'" />
@@ -320,8 +320,6 @@ async function handleLogout() {
 }
 
 onMounted(async () => {
-	// 兜底：进入首页时再校验一次 token，避免路由守卫漏掉的过期场景
-
 	const storedUserInfo = uni.getStorageSync("USER_INFO");
 	if (storedUserInfo) {
 		console.log("userInfo", storedUserInfo);
@@ -333,19 +331,26 @@ onMounted(async () => {
 	uni.getSystemInfo({
 		success: (res) => {
 			console.log("System Info:", res);
-			// 动态获取状态栏高度以适配刘海屏
 			statusBarHeight.value = res.statusBarHeight || 44;
 		},
 	});
 	loadFeed({ isRefresh: true });
 });
 
+// ------- 回到顶部 -------
+function scrollToTop() {
+	uni.pageScrollTo({
+		scrollTop: 0,
+		duration: 300,
+	});
+}
+
 // ------- 瀑布流数据 -------
-const profiles = ref([]); // 当前展示的资料卡片列表
+const profiles = ref([]);
 const loadedImageIds = ref(new Set());
-const loading = ref(false); // 首次/下拉刷新的加载状态
-const loadingMore = ref(false); // 上滑加载更多的状态
-const hasMore = ref(true); // 是否还有更多可加载
+const loading = ref(false);
+const loadingMore = ref(false);
+const hasMore = ref(true);
 
 function getFullImageUrl(path) {
 	if (!path) return "";
@@ -353,7 +358,6 @@ function getFullImageUrl(path) {
 	return config.baseURL + path;
 }
 
-// 优先用头像，没有就用资料照片里的第一张
 function getMainImage(item) {
 	if (item.photos && item.photos.length > 0)
 		return getFullImageUrl(
@@ -381,9 +385,6 @@ function formatLocation(item) {
 	);
 }
 
-// 拉取一批资料卡片
-// isRefresh = true：下拉刷新，重新随机抽一批（清空 excludeIds）
-// isRefresh = false：上滑加载更多，带上已经展示过的 profileId 避免重复
 async function loadFeed({ isRefresh }) {
 	if (isRefresh) {
 		loading.value = true;
@@ -424,12 +425,10 @@ async function loadFeed({ isRefresh }) {
 	}
 }
 
-// 下拉刷新（页面需要在 pages.json 里给这个页面开启 "enablePullDownRefresh": true）
 onPullDownRefresh(() => {
 	loadFeed({ isRefresh: true });
 });
 
-// 上滑触底加载更多（同样依赖 pages.json 的 onReachBottomDistance，默认 50px 即可）
 onReachBottom(() => {
 	loadFeed({ isRefresh: false });
 });
@@ -438,7 +437,6 @@ onReachBottom(() => {
 async function toggleLike(item) {
 	const prevLiked = item.isLiked;
 	const prevCount = item.likeCount || 0;
-	// 乐观更新
 	item.isLiked = !prevLiked;
 	item.likeCount = prevCount + (item.isLiked ? 1 : -1);
 
@@ -506,29 +504,16 @@ async function submitComment(item) {
 	}
 }
 
-// 将原本分散在九宫格和列表里的所有入口整合到一个数组中
 const originalEntries = ref([
 	{ name: "精选", page: "/pages/choose/index" },
 	{ name: "祝福", page: "/pages/wishes/index" },
 	{ name: "古董", page: "/pages/market/marketList?category=antique" },
 	{ name: "二手市场", page: "/pages/market/marketList?category=second_hand" },
-	// { name: "分析工具", page: "/pages/analysis/index" },
-	// { name: "通知", page: "/pages/notification/index" },
 	{ name: "搜尋候選人", page: "/pages/searchPerson/searchPerson" },
-	// { name: "關心管理", page: "/pages/care/index" },
-	// { name: "家庭交流管理", page: "/pages/family/index" },
-	// { name: "初用者", page: "/pages/my/myFile/myFile" },
-	// { name: "祝福子女政策", page: "/pages/policy/index" },
-	// { name: "註冊", page: "/pages/auth/register" },
-	// { name: "協助者手冊", page: "/pages/manual/helper" },
-	// { name: "會員手冊", page: "/pages/manual/member" },
-	// { name: "連絡", page: "/pages/contact/index" },
 ]);
 
-// 当前选中的滚动 Tab 索引
 const currentEntryIndex = ref(1);
 
-// 点击入口跳转
 const handleEntryClick = (index, url) => {
 	if (index == 4) {
 		uni.navigateTo({
@@ -561,6 +546,9 @@ $gray-bg: #f5f6f8;
 	align-items: center;
 	padding: 20rpx 30rpx;
 	background-color: $bg-color;
+	position: sticky;
+	top: 0;
+	z-index: 100;
 
 	.nav-left {
 		.avatar-circle {
@@ -613,6 +601,10 @@ $gray-bg: #f5f6f8;
 /* --- 2. 搜索栏 --- */
 .search-container {
 	padding: 10rpx 30rpx 20rpx;
+	position: sticky;
+	top: 108rpx;
+	z-index: 99;
+	background-color: $bg-color; /* 新增背景色，避免透缝 */
 
 	.search-box {
 		width: 100%;
@@ -635,13 +627,16 @@ $gray-bg: #f5f6f8;
 	display: flex;
 	align-items: center;
 	padding: 0 0 20rpx 30rpx;
+	position: sticky;
+	top: 208rpx;
+	z-index: 98;
+	background-color: $bg-color; /* 新增背景色，避免透缝 */
 
 	.scroll-tabs {
 		flex: 1;
 		overflow: hidden;
 		white-space: nowrap;
 
-		// 隐藏滚动条
 		::-webkit-scrollbar {
 			display: none;
 			width: 0;
@@ -725,7 +720,6 @@ $gray-bg: #f5f6f8;
 .post-card {
 	margin-bottom: 40rpx;
 
-	// 头部用户信息
 	.post-header {
 		display: flex;
 		align-items: center;
@@ -767,7 +761,6 @@ $gray-bg: #f5f6f8;
 		}
 	}
 
-	// 媒体大图
 	.post-media {
 		width: 100%;
 		min-height: 420rpx;
@@ -807,7 +800,6 @@ $gray-bg: #f5f6f8;
 		}
 	}
 
-	// 底部互动操作
 	.post-actions {
 		display: flex;
 		justify-content: space-between;
@@ -836,7 +828,6 @@ $gray-bg: #f5f6f8;
 		}
 	}
 
-	// 点赞/评论 灰底信息区
 	.meta-box {
 		margin-top: 16rpx;
 		padding: 16rpx 20rpx;
@@ -910,11 +901,11 @@ $gray-bg: #f5f6f8;
 	to { background-position: -100% 0; }
 }
 
-/* --- 5. 悬浮按钮 (FAB) --- */
+/* --- 5. 悬浮按钮 (FAB) — 改为回到顶部 --- */
 .fab-button {
 	position: fixed;
 	right: 40rpx;
-	bottom: 200rpx; // 避开TabBar
+	bottom: 200rpx;
 	width: 100rpx;
 	height: 100rpx;
 	background-color: $brand-yellow;
