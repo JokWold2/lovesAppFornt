@@ -22,6 +22,23 @@ export function removeToken() {
   uni.removeStorageSync(config.tokenKey)
 }
 
+export function getPresenceSessionId() {
+  try {
+    return uni.getStorageSync(config.presenceSessionKey) || ''
+  } catch (e) {
+    return ''
+  }
+}
+
+export function setPresenceSessionId(sessionId) {
+  if (!sessionId) return
+  uni.setStorageSync(config.presenceSessionKey, sessionId)
+}
+
+export function removePresenceSessionId() {
+  uni.removeStorageSync(config.presenceSessionKey)
+}
+
 export function getUserInfo() {
   try {
     return uni.getStorageSync(config.userInfoKey) || null
@@ -45,6 +62,7 @@ export function removeUserInfo() {
 export function clearAuth() {
   removeToken()
   removeUserInfo()
+  removePresenceSessionId()
   removeSavedAccount()
 }
 

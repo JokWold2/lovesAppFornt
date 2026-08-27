@@ -30,6 +30,8 @@ export const config = {
   tokenKey: 'AUTH_TOKEN',
   // 用户信息在本地存储中的 key
   userInfoKey: 'USER_INFO',
+  // 当前设备的在线会话标识；与 Token 分开保存，供在线心跳复用
+  presenceSessionKey: 'PRESENCE_SESSION_ID',
   // 记住的登录账号（用于自动登录）
   savedAccountKey: 'SAVED_LOGIN_ACCOUNT'
 }
