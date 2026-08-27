@@ -303,6 +303,7 @@ import AntiqueCollection from "./components/Antiquecollection.vue";
 import AuctionActivity from "./components/Auctionactivity.vue";
 import { clearAuth } from "@/utils/auth.js";
 import { unregisterCurrentDevice } from "@/utils/pushNotifications.js";
+import { logoutPresence } from "@/utils/presence.js";
 import MarketPreviewSection from "@/components/market/MarketPreviewSection.vue";
 
 // 状态栏高度适配
@@ -311,6 +312,7 @@ const model = ref("為您推薦");
 const userInfo = ref({});
 
 async function handleLogout() {
+	await logoutPresence();
 	await unregisterCurrentDevice();
 	clearAuth();
 	uni.showToast({ title: "已退出登录", icon: "success" });
