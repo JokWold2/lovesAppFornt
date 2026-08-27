@@ -1,9 +1,12 @@
 <script>
 	import { setupRouteGuard } from '@/utils/guard.js'
-	import { validateTokenApi } from '@/api/index.js'
+	import { validateTokenApi, heartbeatPresenceApi, offlinePresenceApi } from '@/api/index.js'
 	import { getToken, getUserInfo, removeToken, removeUserInfo, setUserInfo } from '@/utils/auth.js'
 	import { refreshUnreadBadge, startUnreadBadgePolling, stopUnreadBadgePolling } from '@/utils/unreadBadge.js'
 	import { installPushListeners, registerCurrentDevice } from '@/utils/pushNotifications.js'
+	import { configurePresenceApiMethods, pausePresence, startPresence, stopPresence } from '@/utils/presence.js'
+
+	configurePresenceApiMethods({ heartbeatPresenceApi, offlinePresenceApi })
 
 	export default {
 		globalData: {
@@ -26,6 +29,7 @@
 				uni.$emit('auth-session-ready', { restored: true })
 				registerCurrentDevice()
 				refreshUnreadBadge()
+				await startPresence()
 				uni.switchTab({ url: '/pages/index/index360' })
 			} catch (error) {
 				// 不记录 Token，只记录服务端状态，方便定位重启后会话失效的原因。
@@ -35,6 +39,7 @@
 					loginType: getUserInfo()?.loginType || null
 				})
 				const cachedUser = getUserInfo()
+				stopPresence({ clearSession: true })
 				removeToken()
 				// 邮箱账号保留原有密码缓存，让登录页继续自动登录；第三方账号没有密码缓存。
 				if (cachedUser?.loginType && cachedUser.loginType !== 'email') removeUserInfo()
@@ -45,11 +50,17 @@
 		},
 		onShow: function() {
 			console.log('App Show')
-			if (getToken()) { refreshUnreadBadge(); startUnreadBadgePolling(); registerCurrentDevice() }
+			if (getToken()) {
+				refreshUnreadBadge()
+				startUnreadBadgePolling()
+				registerCurrentDevice()
+				if (!this.globalData.restoringSession) void startPresence()
+			}
 		},
 		onHide: function() {
-				console.log('App Hide')
-				stopUnreadBadgePolling()
+			console.log('App Hide')
+			stopUnreadBadgePolling()
+			pausePresence()
 		}
 	}
 </script>

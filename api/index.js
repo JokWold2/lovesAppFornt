@@ -16,14 +16,32 @@ import { config } from '../utils/config.js'
  * @param {boolean} [opts.silent] true 则不自动 toast 错误（用于自动登录静默尝试）
  */
 export function loginApi(email, password, opts = {}) {
-  return post('/api/auth/login', { email, password }, { noAuth: true, ...opts })
+  const { clientSessionId, ...requestOpts } = opts
+  return post(
+    '/api/auth/login',
+    { email, password, ...(clientSessionId ? { clientSessionId } : {}) },
+    { noAuth: true, ...requestOpts }
+  )
 }
 
 /**
  * App 原生 Google 授权完成后，将授权结果交给后端校验并换取项目 JWT。
  */
-export function socialLoginApi(provider, authResult) {
-  return post('/api/auth/social-login', { provider, authResult }, { noAuth: true })
+export function socialLoginApi(provider, authResult, opts = {}) {
+  const { clientSessionId, ...requestOpts } = opts
+  return post(
+    '/api/auth/social-login',
+    { provider, authResult, ...(clientSessionId ? { clientSessionId } : {}) },
+    { noAuth: true, ...requestOpts }
+  )
+}
+
+export function heartbeatPresenceApi(payload) {
+  return post('/api/presence/heartbeat', payload, { silent: true })
+}
+
+export function offlinePresenceApi() {
+  return post('/api/presence/offline', {}, { silent: true })
 }
 
 /**
@@ -340,8 +358,11 @@ export function addProfileCommentApi(profileId, content, replyToUserId) {
 }
 export default {
   loginApi,
+  socialLoginApi,
   registerApi,
   validateTokenApi,
+  heartbeatPresenceApi,
+  offlinePresenceApi,
   getUserInfoApi,
   getUserListApi,
   getMyProfileApi,

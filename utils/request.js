@@ -1,5 +1,6 @@
 import { config } from './config.js'
 import { getToken, clearAuth } from './auth.js'
+import { stopPresence } from './presence.js'
 
 /**
  * 统一的 toast 提示封装，避免页面到处写 uni.showToast
@@ -17,6 +18,8 @@ let isRedirecting = false
 export function logoutAndRedirect(showTip = true) {
   if (isRedirecting) return
   isRedirecting = true
+  // The failed credential cannot authorize an explicit offline request.
+  stopPresence({ clearSession: true })
   clearAuth()
   if (showTip) showToast('登录已过期，请重新登录', 'none')
   uni.reLaunch({

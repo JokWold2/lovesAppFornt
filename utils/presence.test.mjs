@@ -1,5 +1,68 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
+import { readFile } from 'node:fs/promises'
+
+async function loadApi() {
+  const calls = []
+  globalThis.uni = {
+    getStorageSync() { return '' },
+    request(options) {
+      calls.push(options)
+      options.success({ statusCode: 200, data: { token: 'jwt' } })
+    },
+    showToast() {}
+  }
+
+  const api = await import('../api/index.js')
+  return { ...api, post: { calls } }
+}
+
+async function loadAppWithPresence({ token = 'jwt', valid = true } = {}) {
+  const storage = token ? { AUTH_TOKEN: token } : {}
+  const presence = {
+    configureCalls: [],
+    startCalls: 0,
+    pauseCalls: 0,
+    stopCalls: [],
+    configurePresenceApiMethods(methods) { this.configureCalls.push(methods) },
+    startPresence() { this.startCalls += 1; return Promise.resolve() },
+    pausePresence() { this.pauseCalls += 1 },
+    stopPresence(options) { this.stopCalls.push(options) }
+  }
+  const uni = {
+    $emit() {},
+    switchTab() {},
+    reLaunch() {}
+  }
+  const source = await readFile(new URL('../App.vue', import.meta.url), 'utf8')
+  const script = source.match(/<script>([\s\S]*?)<\/script>/)?.[1]
+  if (!script) throw new Error('App.vue script was not found')
+  const executable = script
+    .replace(/^\s*import .*$/gm, '')
+    .replace('export default', 'return')
+  const createApp = new Function(
+    'validateTokenApi', 'getToken', 'getUserInfo', 'removeToken', 'removeUserInfo', 'setUserInfo',
+    'refreshUnreadBadge', 'startUnreadBadgePolling', 'stopUnreadBadgePolling',
+    'installPushListeners', 'registerCurrentDevice', 'configurePresenceApiMethods', 'startPresence',
+    'pausePresence', 'stopPresence', 'heartbeatPresenceApi', 'offlinePresenceApi', 'uni', executable
+  )
+  const app = createApp(
+    async () => valid ? { valid: true, user: { id: 1 } } : { valid: false },
+    () => storage.AUTH_TOKEN || '',
+    () => storage.USER_INFO || null,
+    () => { delete storage.AUTH_TOKEN },
+    () => { delete storage.USER_INFO },
+    (user) => { storage.USER_INFO = user },
+    () => {}, () => {}, () => {}, () => {}, () => {},
+    presence.configurePresenceApiMethods.bind(presence),
+    presence.startPresence.bind(presence),
+    presence.pausePresence.bind(presence),
+    presence.stopPresence.bind(presence),
+    () => Promise.resolve(), () => Promise.resolve(), uni
+  )
+
+  return { app, presence, storage }
+}
 
 function createTimers() {
   const intervals = []
@@ -116,4 +179,42 @@ test('shares an in-flight heartbeat and does not start for missing tokens', asyn
   release()
   await Promise.all([first, second])
   assert.equal(heartbeat.calls.length, 1)
+})
+
+test('login API includes clientSessionId for email and Google requests', async () => {
+  const { loginApi, socialLoginApi, post } = await loadApi()
+
+  await loginApi('a@example.com', 'password', { clientSessionId: 'session-a' })
+  await socialLoginApi('google', { idToken: 'id-token' }, { clientSessionId: 'session-a' })
+
+  assert.deepEqual(post.calls[0].data, {
+    email: 'a@example.com',
+    password: 'password',
+    clientSessionId: 'session-a'
+  })
+  assert.deepEqual(post.calls[1].data, {
+    provider: 'google',
+    authResult: { idToken: 'id-token' },
+    clientSessionId: 'session-a'
+  })
+})
+
+test('a restored valid Token starts presence and hide only pauses it', async () => {
+  const { app, presence } = await loadAppWithPresence()
+
+  await app.onLaunch()
+  app.onHide()
+
+  assert.equal(presence.configureCalls.length, 1)
+  assert.equal(presence.startCalls, 1)
+  assert.equal(presence.pauseCalls, 1)
+})
+
+test('an invalid restored Token clears presence without an offline call', async () => {
+  const { app, presence, storage } = await loadAppWithPresence({ valid: false })
+
+  await app.onLaunch()
+
+  assert.deepEqual(presence.stopCalls, [{ clearSession: true }])
+  assert.equal(storage.AUTH_TOKEN, undefined)
 })

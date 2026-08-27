@@ -139,6 +139,7 @@ import { loginApi, registerApi, socialLoginApi } from '@/api/index.js';
 import { setToken, setUserInfo, getUserInfo } from '@/utils/auth.js';
 import { registerCurrentDevice } from '@/utils/pushNotifications.js';
 import { signInWithGoogle } from '@/utils/googleAuth.js';
+import { getOrCreatePresenceSessionId, startPresence } from '@/utils/presence.js';
 
 // 视图状态：true 为登入视图，false 为注册视图
 const isLoginView = ref(true);
@@ -219,9 +220,11 @@ const handleLogin = async () => {
   }
   loading.value = true;
   try {
-    const data = await loginApi(loginForm.email, loginForm.password);
+    const clientSessionId = getOrCreatePresenceSessionId();
+    const data = await loginApi(loginForm.email, loginForm.password, { clientSessionId });
     if (data && data.token) {
       setToken(data.token);
+      void startPresence();
       // 仅邮箱密码登录保存密码；第三方授权凭证不写入本地存储。
       if (data.user) setUserInfo({ ...data.user, loginType: data.user.loginType || 'email', password: loginForm.password });
       registerCurrentDevice();
@@ -254,10 +257,12 @@ const handleGoogleLogin = async () => {
   socialLoading.value = true;
   try {
     const { idToken } = await signInWithGoogle();
-    const data = await socialLoginApi('google', { idToken });
+    const clientSessionId = getOrCreatePresenceSessionId();
+    const data = await socialLoginApi('google', { idToken }, { clientSessionId });
     if (!data?.token) throw new Error('Google 登录未返回登录凭证');
 
     setToken(data.token);
+    void startPresence();
     setUserInfo({ ...data.user, loginType: 'google' });
     registerCurrentDevice();
     uni.showToast({ title: 'Google 登录成功', icon: 'success' });
