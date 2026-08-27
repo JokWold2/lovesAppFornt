@@ -25,7 +25,7 @@ Do not duplicate the authorization header in a page or lifecycle hook. `utils/re
 - Hiding/backgrounding pauses the local timer only. It does not call `/api/presence/offline` and it does not clear Token or session ID.
 - The server treats ten minutes without a successful heartbeat as offline. A terminated app or lost network may therefore remain represented as online until server expiry processing runs.
 - A heartbeat response of `200 { "started": false, "stale": true }` means a newer session owns the account. The older client stops its timer and sends no more heartbeats, but keeps the Token and local session ID. A later normal login can establish a new session.
-- Only an explicit account exit attempts `/api/presence/offline`. It is best effort: failure or timeout must not prevent local exit. The final local cleanup removes `AUTH_TOKEN`, user data, and `PRESENCE_SESSION_ID`.
+- Only an explicit account exit attempts `/api/presence/offline`. The active handler awaits `logoutPresence()` while the Token still exists, then performs device cleanup, `clearAuth()`, and redirect. The offline call is best effort: failure or timeout does not prevent the remaining local logout and cleanup.
 - Authentication expiry is different from explicit logout: stop and clear local presence without calling offline, because the credential can no longer authorize that request.
 
 ## Deployment preflight
@@ -62,4 +62,9 @@ Pass the release only when all five rows pass on all three platforms, except whe
 
 ## Current implementation check
 
-The presence manager exposes `logoutPresence()` for the best-effort offline request and local session cleanup. Before release, confirm the active exit control invokes it before `clearAuth()`. The current `pages/index/index360.vue` exit handler calls `clearAuth()` directly, so it removes local values but does not currently attempt `/api/presence/offline`; this acceptance row is expected to reveal that gap and requires a follow-up wiring change before the explicit-exit requirement can pass.
+`pages/index/index360.vue` awaits `logoutPresence()` before it unregisters the device, calls `clearAuth()`, and redirects to the login page. `logoutPresence()` attempts the authenticated offline request only while a Token exists, and always stops presence plus removes the local session ID in its `finally` path. Therefore an offline network failure does not block device cleanup, local auth cleanup, or redirect.
+
+## Verification record
+
+- Focused presence coverage: `node --test utils/presence.test.mjs utils/presence.integration.test.mjs` — 12 passed, 0 failed.
+- Full client discovery: `find utils pages components -name '*.test.mjs' -print0 | xargs -0 node --test` — 69 passed, 1 failed. The known unrelated `components/chat/ChatComposer.test.mjs` baseline expects `/static/img/icon-comment.png`, while the preserved market-feed source uses `/static/img/comment.png`.
