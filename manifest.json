@@ -44,7 +44,15 @@
                 "dSYMs" : false
             },
             "sdkConfigs" : {
-                "oauth" : {}
+                "oauth" : {
+                    "apple" : {}
+                },
+                "push" : {
+                    "unipush" : {
+                        "version" : "2",
+                        "offline" : false
+                    }
+                }
             }
         }
     },
