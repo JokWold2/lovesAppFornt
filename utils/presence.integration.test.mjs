@@ -56,7 +56,7 @@ async function loadLogin360(dependencies) {
 
 async function loadAppWithPresence() {
   const storage = { AUTH_TOKEN: 'jwt' }
-  const presence = { startCalls: 0, pauseCalls: 0 }
+  const presence = { startCalls: 0, pauseCalls: 0, resumeCalls: 0 }
   const script = (await readScript('../App.vue'))
     .replace(/^\s*import .*$/gm, '')
     .replace('export default', 'return')
@@ -64,7 +64,7 @@ async function loadAppWithPresence() {
     'validateTokenApi', 'getToken', 'getUserInfo', 'removeToken', 'removeUserInfo', 'setUserInfo',
     'refreshUnreadBadge', 'startUnreadBadgePolling', 'stopUnreadBadgePolling',
     'installPushListeners', 'registerCurrentDevice', 'configurePresenceApiMethods', 'startPresence',
-    'pausePresence', 'stopPresence', 'heartbeatPresenceApi', 'offlinePresenceApi', 'uni', script
+    'pausePresence', 'resumePresence', 'stopPresence', 'heartbeatPresenceApi', 'offlinePresenceApi', 'uni', script
   )
   const app = createApp(
     async () => ({ valid: true, user: { id: 1 } }),
@@ -77,6 +77,7 @@ async function loadAppWithPresence() {
     () => {},
     () => { presence.startCalls += 1; return Promise.resolve() },
     () => { presence.pauseCalls += 1 },
+    () => { presence.resumeCalls += 1 },
     () => {},
     () => Promise.resolve(), () => Promise.resolve(),
     { $emit() {}, reLaunch() {}, switchTab() {} }
@@ -207,6 +208,7 @@ test('App onShow restarts presence after a validated restored session', async ()
   app.onShow()
 
   assert.equal(presence.startCalls, 2)
+  assert.equal(presence.resumeCalls, 1)
 })
 
 test('a request 401 clears the active presence session without calling offline', async () => {

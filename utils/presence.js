@@ -11,6 +11,9 @@ let timer = null
 let inFlight = null
 let blocked = false
 let lifecycleVersion = 0
+let heartbeatVersion = 0
+let foreground = true
+let active = false
 
 const defaultTimers = {
   setInterval: (...args) => setInterval(...args),
@@ -43,58 +46,78 @@ export function getOrCreatePresenceSessionId() {
 }
 
 function sendHeartbeat() {
-  if (!getToken() || blocked) return Promise.resolve(null)
+  if (!getToken() || blocked || !foreground || !active) return Promise.resolve(null)
   if (inFlight) return inFlight
 
   const clientSessionId = getOrCreatePresenceSessionId()
-  inFlight = Promise.resolve()
-    .then(() => dependencies.heartbeatPresenceApi({ clientSessionId }))
+  const requestVersion = heartbeatVersion
+  const heartbeat = Promise.resolve()
+    .then(() => {
+      if (requestVersion !== heartbeatVersion || !getToken() || !foreground || !active) return null
+      return dependencies.heartbeatPresenceApi({ clientSessionId })
+    })
     .then((result) => {
-      if (result?.stale === true) {
+      if (result?.stale === true && requestVersion === heartbeatVersion) {
         blocked = true
-        pausePresence()
+        clearTimer()
       }
       return result
     })
     .catch(() => null)
     .finally(() => {
-      inFlight = null
+      if (inFlight === heartbeat) inFlight = null
     })
 
-  return inFlight
+  inFlight = heartbeat
+  return heartbeat
 }
 
 export function startPresence() {
-  if (!getToken() || blocked) return Promise.resolve(null)
+  if (!getToken() || blocked || !foreground) return Promise.resolve(null)
+  active = true
 
   const startVersion = lifecycleVersion
   return sendHeartbeat().then((result) => {
-    if (startVersion === lifecycleVersion && !timer && !blocked && getToken()) {
+    if (startVersion === lifecycleVersion && !timer && !blocked && foreground && active && getToken()) {
       timer = dependencies.timers.setInterval(() => { void sendHeartbeat() }, HEARTBEAT_INTERVAL_MS)
     }
     return result
   })
 }
 
-export function pausePresence() {
-  lifecycleVersion += 1
+function clearTimer() {
   if (timer) dependencies.timers.clearInterval(timer)
   timer = null
 }
 
+export function pausePresence() {
+  lifecycleVersion += 1
+  foreground = false
+  clearTimer()
+}
+
+export function resumePresence() {
+  foreground = true
+}
+
 export function stopPresence({ clearSession = false } = {}) {
-  pausePresence()
+  lifecycleVersion += 1
+  heartbeatVersion += 1
+  inFlight = null
+  active = false
+  clearTimer()
   blocked = false
   if (clearSession) removePresenceSessionId()
 }
 
 export async function logoutPresence() {
+  const hasToken = !!getToken()
+  stopPresence({ clearSession: true })
+
   try {
-    if (getToken()) await dependencies.offlinePresenceApi()
+    if (hasToken) await dependencies.offlinePresenceApi()
   } catch (error) {
     // Offline is best-effort. Local logout must always finish.
-  } finally {
-    stopPresence({ clearSession: true })
   }
 }
 
@@ -113,7 +136,11 @@ export function configurePresenceForTests({ heartbeatPresenceApi, offlinePresenc
 }
 
 export function resetPresenceForTests() {
-  pausePresence()
+  lifecycleVersion += 1
+  heartbeatVersion += 1
+  clearTimer()
   inFlight = null
   blocked = false
+  foreground = true
+  active = false
 }

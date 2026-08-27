@@ -139,11 +139,28 @@ test('sends immediately, schedules five minutes, pauses on hide, and restarts on
   assert.equal(timers.intervals.length, 1)
   assert.equal(timers.intervals[0].delay, 5 * 60 * 1000)
   presence.pausePresence()
-  assert.deepEqual(timers.cleared, [timers.intervals[0]])
+  assert.equal(timers.cleared.includes(timers.intervals[0]), true)
 
+  presence.resumePresence()
   await presence.startPresence()
   assert.equal(heartbeat.calls.length, 2)
   assert.equal(timers.intervals.length, 2)
+})
+
+test('does not start from a backgrounded restoration until foreground is restored', async () => {
+  const { presence, heartbeat, timers } = await loadPresence({ token: 'jwt' })
+
+  const restoring = presence.startPresence()
+  presence.pausePresence()
+  await restoring
+
+  assert.equal(heartbeat.calls.length, 0)
+  assert.equal(timers.intervals.length, 0)
+
+  presence.resumePresence()
+  await presence.startPresence()
+  assert.equal(heartbeat.calls.length, 1)
+  assert.equal(timers.intervals.length, 1)
 })
 
 test('stale stops future heartbeats but explicit logout clears session even if offline fails', async () => {
@@ -179,6 +196,46 @@ test('shares an in-flight heartbeat and does not start for missing tokens', asyn
   release()
   await Promise.all([first, second])
   assert.equal(heartbeat.calls.length, 1)
+})
+
+test('logout clears its timer before offline settles and prevents a racing interval heartbeat', async () => {
+  const { presence, heartbeat, offline, timers } = await loadPresence({ token: 'jwt' })
+  await presence.startPresence()
+  let settleOffline
+  offline.send = () => new Promise((resolve) => { settleOffline = resolve })
+  presence.configurePresenceForTests({ offlinePresenceApi: offline.send.bind(offline), timers })
+
+  const logout = presence.logoutPresence()
+  timers.intervals[0].callback()
+  await Promise.resolve()
+
+  assert.equal(timers.cleared.includes(timers.intervals[0]), true)
+  assert.equal(heartbeat.calls.length, 1)
+  settleOffline()
+  await logout
+})
+
+test('stopping invalidates an older heartbeat before a fast new presence start', async () => {
+  const { presence, heartbeat, timers } = await loadPresence({ token: 'jwt' })
+  const pending = []
+  heartbeat.send = (payload) => new Promise((resolve) => {
+    heartbeat.calls.push(payload)
+    pending.push(resolve)
+  })
+  presence.configurePresenceForTests({ heartbeatPresenceApi: heartbeat.send.bind(heartbeat), timers })
+
+  const oldStart = presence.startPresence()
+  await Promise.resolve()
+  presence.stopPresence({ clearSession: true })
+  const newStart = presence.startPresence()
+  await Promise.resolve()
+
+  assert.equal(heartbeat.calls.length, 2)
+  pending[0]({ started: false, stale: true })
+  await oldStart
+  assert.equal(presence.isPresenceBlocked(), false)
+  pending[1]({ started: true })
+  await newStart
 })
 
 test('login API includes clientSessionId for email and Google requests', async () => {

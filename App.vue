@@ -4,7 +4,7 @@
 	import { getToken, getUserInfo, removeToken, removeUserInfo, setUserInfo } from '@/utils/auth.js'
 	import { refreshUnreadBadge, startUnreadBadgePolling, stopUnreadBadgePolling } from '@/utils/unreadBadge.js'
 	import { installPushListeners, registerCurrentDevice } from '@/utils/pushNotifications.js'
-	import { configurePresenceApiMethods, pausePresence, startPresence, stopPresence } from '@/utils/presence.js'
+	import { configurePresenceApiMethods, pausePresence, resumePresence, startPresence, stopPresence } from '@/utils/presence.js'
 
 	configurePresenceApiMethods({ heartbeatPresenceApi, offlinePresenceApi })
 
@@ -50,6 +50,7 @@
 		},
 		onShow: function() {
 			console.log('App Show')
+			resumePresence()
 			if (getToken()) {
 				refreshUnreadBadge()
 				startUnreadBadgePolling()
