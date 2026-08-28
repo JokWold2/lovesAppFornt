@@ -69,7 +69,7 @@
 			@close="closeLongPressMenu"
 			@reply="startReply"
 		/>
-		<GroupMemberSheet :visible="Boolean(memberSheet)" :title="memberSheetTitle" :members="memberSheetMembers" @close="closeMemberSheet" />
+		<GroupMemberSheet :visible="Boolean(memberSheet)" :title="memberSheetTitle" :members="memberSheetMembers" :unread-members="memberSheetUnreadMembers" @close="closeMemberSheet" />
 	</view>
 </template>
 
@@ -108,6 +108,7 @@ const members = ref([]);
 const onlineMembers = ref([]);
 const memberSheet = ref(null);
 const memberSheetMembers = ref([]);
+const memberSheetUnreadMembers = ref(null);
 const isGroupAdmin = ref(false);
 const isGroupMember = ref(false);
 const scrollIntoView = ref("");
@@ -217,11 +218,13 @@ async function openOnlineMembers() {
 function openReadMembers(message) {
 	memberSheet.value = 'read';
 	memberSheetMembers.value = message?.readBy || [];
+	memberSheetUnreadMembers.value = message?.unreadBy || [];
 }
 
 function closeMemberSheet() {
 	memberSheet.value = null;
 	memberSheetMembers.value = [];
+	memberSheetUnreadMembers.value = null;
 }
 async function loadOlderMessages() {
 	if (!hasOlderMessages.value || loadingOlder.value || !messages.value.length) return;
