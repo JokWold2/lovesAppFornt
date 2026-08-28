@@ -48,8 +48,8 @@
           <view class="radio-circle" :class="{ 'active': agreePrivacy }">
             <text v-if="agreePrivacy" class="tick">✓</text>
           </view>
-          <text class="privacy-text">已阅读并同意 <text class="link-text">用户服务协议</text>、<text
-              class="link-text">隐私政策</text></text>
+          <text class="privacy-text">已阅读并同意 <text class="link-text" @click.stop="openLegalDocument('service')">用户服务协议</text>、<text
+              class="link-text" @click.stop="openLegalDocument('privacy')">隐私政策</text></text>
         </view>
 
         <!-- 更多登录方式 -->
@@ -119,8 +119,8 @@
           <view class="radio-circle" :class="{ 'active': agreePrivacy }">
             <text v-if="agreePrivacy" class="tick">✓</text>
           </view>
-          <text class="privacy-text">已阅读并同意 <text class="link-text">用户服务协议</text>、<text
-              class="link-text">隐私政策</text></text>
+          <text class="privacy-text">已阅读并同意 <text class="link-text" @click.stop="openLegalDocument('service')">用户服务协议</text>、<text
+              class="link-text" @click.stop="openLegalDocument('privacy')">隐私政策</text></text>
         </view>
 
         <!-- 切换到登录 (底部辅助返回) -->
@@ -176,6 +176,11 @@ const isRegisterValid = computed(() => {
 const toggleAgree = () => {
   agreePrivacy.value = !agreePrivacy.value;
 };
+
+function openLegalDocument(type) {
+  const url = type === 'service' ? '/pages/legal/userAgreement' : '/pages/legal/privacyPolicy';
+  uni.navigateTo({ url });
+}
 
 // 切换视图的方法
 const switchView = (isLogin) => {

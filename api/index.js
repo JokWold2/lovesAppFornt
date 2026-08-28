@@ -337,6 +337,14 @@ export function getExploreFeedApi({ limit = 15, excludeIds = [] } = {}) {
   return get('/api/explore/feed', params)
 }
 
+// 首页精选混合流：seed/cursor 仅在调用方已提供时发送。
+export function getFeaturedFeedApi({ limit = 15, seed, cursor } = {}) {
+  const params = { limit }
+  if (seed) params.seed = seed
+  if (cursor) params.cursor = cursor
+  return get('/api/explore/featured-feed', params)
+}
+
 // 资料点赞/取消点赞
 export function toggleProfileLikeApi(profileId) {
   return post(`/api/explore/profiles/${profileId}/like`)
@@ -381,6 +389,7 @@ export default {
   uploadProfilePhotosApi,
   deleteProfilePhotoApi,
   getExploreFeedApi,
+  getFeaturedFeedApi,
   toggleProfileLikeApi,
   getProfileLikesApi,
   getProfileCommentsApi,

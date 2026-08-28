@@ -85,13 +85,13 @@ async function loadAppWithPresence() {
   return { app, presence }
 }
 
-async function loadIndexLogout(dependencies) {
-  const script = await readScript('../pages/index/index360.vue')
-  const handler = script.match(/async function handleLogout\(\) \{[\s\S]*?\n\}/)?.[0]
-  if (!handler) throw new Error('index360.vue handleLogout was not found')
+async function loadAccountSessionFinish(dependencies) {
+  const script = await readScript('../pages/account/accountCenter.vue')
+  const handler = script.match(/async function finishSession\(message\) \{[\s\S]*?\n\}/)?.[0]
+  if (!handler) throw new Error('accountCenter.vue finishSession was not found')
   const createHandler = new Function(
     'logoutPresence', 'unregisterCurrentDevice', 'clearAuth', 'uni', 'setTimeout',
-    `${handler}\nreturn handleLogout`
+    `${handler}\nreturn finishSession`
   )
   return createHandler(
     dependencies.logoutPresence,
@@ -223,11 +223,11 @@ test('a request 401 clears the active presence session without calling offline',
   assert.equal(redirects.length, 1)
 })
 
-test('explicit index logout awaits presence offline before device and auth cleanup', async () => {
+test('account session exit awaits presence offline before device and auth cleanup', async () => {
   let token = 'jwt'
   let settlePresence
   const events = []
-  const handleLogout = await loadIndexLogout({
+  const finishSession = await loadAccountSessionFinish({
     logoutPresence() {
       events.push(['offline-attempt', token])
       return new Promise((resolve) => { settlePresence = resolve })
@@ -241,7 +241,7 @@ test('explicit index logout awaits presence offline before device and auth clean
     setTimeout(callback) { callback() }
   })
 
-  const logout = handleLogout()
+  const logout = finishSession('已退出登录')
   await Promise.resolve()
   assert.deepEqual(events, [['offline-attempt', 'jwt']])
   settlePresence()

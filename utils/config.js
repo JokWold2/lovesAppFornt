@@ -18,7 +18,9 @@ export const config = {
   // 同时支持精确匹配和 "/*" 前缀匹配
   whiteList: [
     '/pages/login/login',
-    '/pages/login/login360'
+    '/pages/login/login360',
+    '/pages/legal/userAgreement',
+    '/pages/legal/privacyPolicy'
   ],
 
   // 后端约定的业务状态码：成功

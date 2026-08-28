@@ -6,11 +6,20 @@
 			:style="{ height: statusBarHeight + 'px' }"
 		></view> -->
 
-		<!-- 顶部导航栏 -->
-		<view class="header-nav">
+		<view
+			v-if="recommendationHeaderFixed"
+			class="recommendation-sticky-placeholder"
+			:style="{ height: recommendationHeaderHeight + 'px' }"
+		></view>
+		<view
+			class="recommendation-sticky-header"
+			:class="{ 'is-fixed': recommendationHeaderFixed }"
+		>
+			<!-- 顶部导航栏 -->
+			<view class="header-nav">
 			<view class="nav-left">
 				<!-- 用户头像占位 -->
-				<view class="avatar-circle" @click="handleLogout">
+				<view class="avatar-circle" @click="openAccountCenter">
 					<image
 						v-if="userInfo.avatar_url"
 						class="avatar-img1"
@@ -57,8 +66,8 @@
 				<!-- 右侧消息图标 -->
 				<uni-icons type="mail" size="28" color="#333"></uni-icons>
 			</view>
-		</view>
-		<view v-if="model === '為您推薦'">
+			</view>
+			<view v-if="model === '為您推薦'">
 			<!-- 搜索栏 -->
 			<view class="search-container">
 				<view class="search-box">
@@ -94,8 +103,252 @@
 					></uni-icons>
 				</view>
 			</view>
+		</view>
+		</view>
+		<view v-if="model === '為您推薦'">
 			<MarketPreviewSection v-if="currentEntryIndex === 2" category="antique" title="古董" />
 			<MarketPreviewSection v-if="currentEntryIndex === 3" category="second_hand" title="二手市场" />
+			<!-- 精选混排信息流 -->
+			<view class="feed-container" v-if="currentEntryIndex === 0">
+				<view
+					v-if="featuredLoading && featuredItems.length === 0"
+					class="loading-container"
+				>
+					<text class="loading-text">加载中...</text>
+				</view>
+
+				<view
+					v-if="!featuredLoading && featuredItems.length === 0"
+					class="empty-state"
+				>
+					<text class="empty-text">暂无精选内容</text>
+				</view>
+
+				<view class="waterfall-grid">
+					<view
+						class="waterfall-column"
+						v-for="(columnItems, index) in featuredColumns"
+						:key="`featured-col-${index}`"
+					>
+						<view
+							class="post-card featured-card"
+							:class="{ navigable: featuredCardRoute(item) }"
+							v-for="item in columnItems"
+							:key="item.feedKey"
+							@click="openFeaturedItem(item)"
+						>
+							<view class="post-header">
+								<view class="post-avatar">
+									<image
+										v-if="item.author && item.author.avatarUrl"
+										class="avatar-img"
+										:src="getFullImageUrl(item.author.avatarUrl)"
+										mode="aspectFill"
+									></image>
+									<uni-icons
+										v-else
+										type="person-filled"
+										color="#ccc"
+										size="28"
+									></uni-icons>
+								</view>
+								<view class="post-user-info">
+									<text class="username">{{
+										item.author && item.author.name
+									}}</text>
+									<view
+										v-if="
+											item.type !== 'antique' &&
+											item.type !== 'second_hand'
+										"
+										class="location-box"
+									>
+										<text class="location">{{ item.meta }}</text>
+									</view>
+								</view>
+							</view>
+
+							<view
+								class="post-media"
+								:class="{
+									'is-image-loading': !isFeaturedImageLoaded(
+										item.feedKey,
+									),
+								}"
+								v-if="featuredItemImage(item)"
+							>
+								<view
+									v-if="!isFeaturedImageLoaded(item.feedKey)"
+									class="media-skeleton"
+								>
+									<view class="skeleton-line skeleton-line-wide"></view>
+									<view class="skeleton-line skeleton-line-short"></view>
+								</view>
+								<image
+									class="media-img"
+									:src="getFullImageUrl(featuredItemImage(item))"
+									mode="widthFix"
+									@load="markFeaturedImageLoaded(item.feedKey)"
+									@error="markFeaturedImageLoaded(item.feedKey)"
+								></image>
+							</view>
+
+							<view
+								v-if="
+									item.type === 'antique' ||
+									item.type === 'second_hand'
+								"
+								class="featured-title"
+							>
+								<text>{{ item.title }}</text>
+							</view>
+							<view
+								v-if="
+									item.type === 'antique' ||
+									item.type === 'second_hand'
+								"
+								class="featured-price"
+							>
+								<text>¥ {{ item.meta }}</text>
+							</view>
+							<view
+								v-if="item.type === 'moment' || item.summary"
+								class="featured-summary"
+							>
+								<text>{{ item.summary }}</text>
+							</view>
+
+							<view class="post-actions">
+								<view class="actions-left">
+									<view
+										class="action-btn"
+										v-if="isFeaturedLikeAvailable(item)"
+										@click.stop="toggleFeaturedLike(item)"
+									>
+										<text class="action-icon">{{
+											item.isLiked ? '❤️' : '🤍'
+										}}</text>
+										<text class="action-num">{{
+											item.likeCount || 0
+										}}</text>
+									</view>
+									<view
+										class="action-btn"
+										v-if="
+											isFeaturedCommentAvailable(item)
+										"
+										@click.stop="
+											toggleFeaturedCommentPanel(item)
+										"
+									>
+										<uni-icons
+											type="chat"
+											size="24"
+											color="#666"
+										></uni-icons>
+										<text class="action-num">{{
+											item.commentCount || 0
+										}}</text>
+									</view>
+								</view>
+							</view>
+
+							<view
+								v-if="
+									isFeaturedCommentAvailable(item) &&
+									item.showComments
+								"
+								class="meta-box"
+								@click.stop
+							>
+								<view
+									v-if="item.commentsLoading"
+									class="comment-loading"
+								>
+									<text>加载中...</text>
+								</view>
+								<template v-else>
+									<view
+										v-for="c in item.comments"
+										:key="c.id"
+										class="comment-item"
+										@click="startFeaturedReply(item, c)"
+									>
+										<text class="comment-author">{{
+											c.email
+										}}</text>
+										<text
+											v-if="c.reply_to_email"
+											class="comment-reply-arrow"
+										>
+											回复 {{ c.reply_to_email }}</text
+										>
+										<text class="comment-colon">：</text>
+										<text class="comment-content">{{
+											c.content
+										}}</text>
+									</view>
+									<view
+										v-if="
+											item.comments &&
+											item.comments.length === 0
+										"
+										class="comment-empty"
+									>
+										<text>还没有评论，来抢沙发～</text>
+									</view>
+								</template>
+
+								<view class="comment-input-row">
+									<view
+										v-if="item.replyTarget"
+										class="reply-target-tag"
+									>
+										<text>
+											回复 {{ item.replyTarget.email }}
+										</text>
+										<text
+											class="reply-cancel"
+											@click="cancelFeaturedReply(item)"
+											>×</text
+										>
+									</view>
+									<view class="comment-input-inner">
+										<input
+											class="comment-input"
+											v-model="item.commentDraft"
+											confirm-type="send"
+											:placeholder="
+												item.replyTarget
+													? `回复 ${item.replyTarget.email}`
+													: '说点什么…'
+											"
+											@confirm="submitFeaturedComment(item)"
+										/>
+										<text
+											class="comment-send-btn"
+											@click="
+												submitFeaturedComment(item)
+											"
+											>发送</text
+										>
+									</view>
+								</view>
+							</view>
+						</view>
+					</view>
+				</view>
+
+				<view v-if="featuredLoadingMore" class="load-more-tip">
+					<text>加载更多中...</text>
+				</view>
+				<view
+					v-if="!featuredHasMore && featuredItems.length > 0"
+					class="load-more-tip"
+				>
+					<text>没有更多了</text>
+				</view>
+			</view>
 
 			<!-- 帖子信息流 (随机资料卡片) -->
 			<view class="feed-container" v-if="currentEntryIndex == 1">
@@ -274,7 +527,6 @@
 					<text>没有更多了</text>
 				</view>
 			</view>
-			<AntiqueCollection v-if="currentEntryIndex == 0" />
 			<!-- <AuctionActivity v-if="currentEntryIndex == 2" /> -->
 			<!-- 右下角悬浮按钮：改为回到顶部 -->
 			<view class="fab-button" @click="scrollToTop">
@@ -289,10 +541,14 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from "vue";
-import { onPullDownRefresh, onReachBottom } from "@dcloudio/uni-app";
+import { ref, onMounted, computed, nextTick } from "vue";
+import { onPullDownRefresh, onReachBottom, onPageScroll } from "@dcloudio/uni-app";
 import {
 	getExploreFeedApi,
+	getFeaturedFeedApi,
+	getCommentsApi,
+	toggleLikeMomentApi,
+	addCommentApi,
 	toggleProfileLikeApi,
 	getProfileCommentsApi,
 	addProfileCommentApi,
@@ -301,24 +557,35 @@ import { config } from "@/utils/config.js";
 import { ensureTokenValid } from "@/utils/guard.js";
 import AntiqueCollection from "./components/Antiquecollection.vue";
 import AuctionActivity from "./components/Auctionactivity.vue";
-import { clearAuth } from "@/utils/auth.js";
-import { unregisterCurrentDevice } from "@/utils/pushNotifications.js";
-import { logoutPresence } from "@/utils/presence.js";
 import MarketPreviewSection from "@/components/market/MarketPreviewSection.vue";
+import {
+	createLatestRequestGuard,
+	featuredItemImage,
+	featuredItemRoute,
+} from "@/utils/featuredFeed.js";
 
 // 状态栏高度适配
 const statusBarHeight = ref(44);
 const model = ref("為您推薦");
 const userInfo = ref({});
+const recommendationHeaderFixed = ref(false);
+const recommendationHeaderHeight = ref(0);
 
-async function handleLogout() {
-	await logoutPresence();
-	await unregisterCurrentDevice();
-	clearAuth();
-	uni.showToast({ title: "已退出登录", icon: "success" });
-	setTimeout(() => {
-		uni.reLaunch({ url: "/pages/login/login360" });
-	}, 500);
+function measureRecommendationHeader() {
+	nextTick(() => {
+		uni.createSelectorQuery()
+			.select(".recommendation-sticky-header")
+			.boundingClientRect((rect) => {
+				if (rect && rect.height) {
+					recommendationHeaderHeight.value = rect.height;
+				}
+			})
+			.exec();
+	});
+}
+
+function openAccountCenter() {
+	uni.navigateTo({ url: "/pages/account/accountCenter" });
 }
 
 onMounted(async () => {
@@ -336,6 +603,7 @@ onMounted(async () => {
 			statusBarHeight.value = res.statusBarHeight || 44;
 		},
 	});
+	measureRecommendationHeader();
 	loadFeed({ isRefresh: true });
 });
 
@@ -347,12 +615,56 @@ function scrollToTop() {
 	});
 }
 
-// ------- 瀑布流数据 -------
+// ------- 祝福瀑布流数据 -------
 const profiles = ref([]);
 const loadedImageIds = ref(new Set());
 const loading = ref(false);
 const loadingMore = ref(false);
 const hasMore = ref(true);
+
+// ------- 精选混排瀑布流数据 -------
+const featuredItems = ref([]);
+const featuredImageKeys = ref(new Set());
+const featuredSeed = ref("");
+const featuredCursor = ref("");
+const featuredLoading = ref(false);
+const featuredLoadingMore = ref(false);
+const featuredHasMore = ref(true);
+const featuredRequestGuard = createLatestRequestGuard();
+let featuredCommittedState = {
+	seed: "",
+	cursor: "",
+	hasMore: true,
+	imageKeys: new Set(),
+};
+
+const featuredColumns = computed(() => {
+	const columns = [
+		{ items: [], height: 0 },
+		{ items: [], height: 0 },
+	];
+
+	const estimateFeaturedCardHeight = (item) => {
+		const hasImage = !!featuredItemImage(item);
+		const imageHeight = hasImage ? 420 : 180;
+		const summaryLength = String(item.summary || "").length;
+		const summaryLines = Math.min(6, Math.max(1, Math.ceil(summaryLength / 22)));
+		const summaryHeight = summaryLines * 38;
+		const titleHeight = item.type === "antique" || item.type === "second_hand" ? 60 : 0;
+		const actionHeight = 90;
+		const paddingHeight = 80;
+		return imageHeight + summaryHeight + titleHeight + actionHeight + paddingHeight;
+	};
+
+	for (const item of featuredItems.value) {
+		const targetColumn =
+			columns[0].height <= columns[1].height ? columns[0] : columns[1];
+		targetColumn.items.push(item);
+		targetColumn.height += estimateFeaturedCardHeight(item);
+	}
+
+	return [columns[0].items, columns[1].items];
+});
 
 function getFullImageUrl(path) {
 	if (!path) return "";
@@ -377,6 +689,27 @@ function markImageLoaded(profileId) {
 	const next = new Set(loadedImageIds.value);
 	next.add(String(profileId));
 	loadedImageIds.value = next;
+}
+
+function isFeaturedImageLoaded(feedKey) {
+	return featuredImageKeys.value.has(String(feedKey));
+}
+
+function markFeaturedImageLoaded(feedKey) {
+	const next = new Set(featuredImageKeys.value);
+	next.add(String(feedKey));
+	featuredImageKeys.value = next;
+}
+
+function normalizeFeaturedItem(item) {
+	return {
+		...item,
+		showComments: false,
+		commentsLoading: false,
+		comments: [],
+		replyTarget: null,
+		commentDraft: "",
+	};
 }
 
 function formatLocation(item) {
@@ -427,12 +760,101 @@ async function loadFeed({ isRefresh }) {
 	}
 }
 
+function mergeFeaturedItems(items) {
+	const seen = new Set(featuredItems.value.map((item) => item.feedKey));
+	return featuredItems.value.concat(
+		items.filter((item) => {
+			if (seen.has(item.feedKey)) return false;
+			seen.add(item.feedKey);
+			return true;
+		}),
+	);
+}
+
+async function loadFeaturedFeed({ isRefresh }) {
+	if (!isRefresh && (featuredLoading.value || featuredLoadingMore.value || !featuredHasMore.value)) {
+		return;
+	}
+
+	const requestId = featuredRequestGuard.begin();
+
+	if (isRefresh) {
+		featuredLoading.value = true;
+		featuredLoadingMore.value = false;
+		featuredSeed.value = '';
+		featuredCursor.value = '';
+		featuredHasMore.value = true;
+		featuredImageKeys.value = new Set();
+	} else {
+		featuredLoadingMore.value = true;
+	}
+
+	try {
+		const res = await getFeaturedFeedApi({
+			limit: 15,
+			seed: isRefresh ? undefined : featuredSeed.value,
+			cursor: isRefresh ? undefined : featuredCursor.value,
+		});
+		if (!featuredRequestGuard.isCurrent(requestId)) return;
+		const items = (res.items || []).map(normalizeFeaturedItem);
+
+		featuredItems.value = isRefresh ? items : mergeFeaturedItems(items);
+		featuredSeed.value = res.seed || featuredSeed.value;
+		featuredCursor.value = res.nextCursor || '';
+		featuredHasMore.value = !!res.hasMore;
+		featuredCommittedState = {
+			seed: featuredSeed.value,
+			cursor: featuredCursor.value,
+			hasMore: featuredHasMore.value,
+			imageKeys: featuredImageKeys.value,
+		};
+	} catch (e) {
+		if (!featuredRequestGuard.isCurrent(requestId)) return;
+		featuredSeed.value = featuredCommittedState.seed;
+		featuredCursor.value = featuredCommittedState.cursor;
+		featuredHasMore.value = featuredCommittedState.hasMore;
+		featuredImageKeys.value = featuredCommittedState.imageKeys;
+		console.error("加载精选失败", e);
+		uni.showToast({ title: "加载失败", icon: "none" });
+	} finally {
+		if (!featuredRequestGuard.isCurrent(requestId)) return;
+		featuredLoading.value = false;
+		featuredLoadingMore.value = false;
+		uni.stopPullDownRefresh();
+	}
+}
+
+function featuredCardRoute(item) {
+	return featuredItemRoute(item);
+}
+
+function openFeaturedItem(item) {
+	const route = featuredItemRoute(item);
+	if (!route) return;
+	uni.navigateTo({ url: route });
+}
+
 onPullDownRefresh(() => {
-	loadFeed({ isRefresh: true });
+	if (currentEntryIndex.value === 0) {
+		loadFeaturedFeed({ isRefresh: true });
+	} else if (currentEntryIndex.value === 1) {
+		loadFeed({ isRefresh: true });
+	} else {
+		uni.stopPullDownRefresh();
+	}
+});
+
+onPageScroll(({ scrollTop }) => {
+	recommendationHeaderFixed.value =
+		model.value === "為您推薦" && scrollTop > 8;
 });
 
 onReachBottom(() => {
-	loadFeed({ isRefresh: false });
+	if (currentEntryIndex.value === 0) {
+		loadFeaturedFeed({ isRefresh: false });
+	} else if (currentEntryIndex.value === 1) {
+		loadFeed({ isRefresh: false });
+	}
 });
 
 // ------- 点赞 -------
@@ -451,6 +873,111 @@ async function toggleLike(item) {
 		item.isLiked = prevLiked;
 		item.likeCount = prevCount;
 		uni.showToast({ title: "操作失败，请重试", icon: "none" });
+	}
+}
+
+function isFeaturedLikeAvailable(item) {
+	return item.type === "blessing" || item.type === "moment";
+}
+
+function isFeaturedCommentAvailable(item) {
+	return item.type === "blessing" || item.type === "moment";
+}
+
+function getFeaturedLikeApi(item) {
+	if (item.type === "moment") return toggleLikeMomentApi;
+	if (item.type === "blessing") return toggleProfileLikeApi;
+	return null;
+}
+
+function getFeaturedCommentsApi(item) {
+	if (item.type === "moment") return getCommentsApi;
+	if (item.type === "blessing") return getProfileCommentsApi;
+	return null;
+}
+
+function getFeaturedAddCommentApi(item) {
+	if (item.type === "moment") return addCommentApi;
+	if (item.type === "blessing") return addProfileCommentApi;
+	return null;
+}
+
+async function toggleFeaturedLike(item) {
+	const likeApi = getFeaturedLikeApi(item);
+	if (!likeApi) return;
+
+	const prevLiked = item.isLiked;
+	const prevCount = item.likeCount || 0;
+	item.isLiked = !prevLiked;
+	item.likeCount = prevCount + (item.isLiked ? 1 : -1);
+
+	try {
+		const res = await likeApi(item.id);
+		item.isLiked = !!res.isLiked;
+		item.likeCount = Number(res.likeCount || 0);
+	} catch (e) {
+		console.error("精选点赞失败", e);
+		item.isLiked = prevLiked;
+		item.likeCount = prevCount;
+		uni.showToast({ title: "操作失败，请重试", icon: "none" });
+	}
+}
+
+function toggleFeaturedCommentPanel(item) {
+	item.showComments = !item.showComments;
+	if (
+		item.showComments &&
+		item.comments.length === 0 &&
+		!item.commentsLoading
+	) {
+		loadFeaturedComments(item);
+	}
+}
+
+async function loadFeaturedComments(item) {
+	const loadCommentsApi = getFeaturedCommentsApi(item);
+	if (!loadCommentsApi) return;
+
+	item.commentsLoading = true;
+	try {
+		const res = await loadCommentsApi(item.id);
+		item.comments = res.comments || [];
+	} catch (e) {
+		console.error("获取精选评论失败", e);
+		uni.showToast({ title: "获取评论失败", icon: "none" });
+	} finally {
+		item.commentsLoading = false;
+	}
+}
+
+function startFeaturedReply(item, comment) {
+	item.replyTarget = { userId: comment.user_id, email: comment.email };
+}
+
+function cancelFeaturedReply(item) {
+	item.replyTarget = null;
+}
+
+async function submitFeaturedComment(item) {
+	const submitApi = getFeaturedAddCommentApi(item);
+	if (!submitApi) return;
+
+	const text = (item.commentDraft || "").trim();
+	if (!text) return;
+	try {
+		const res = await submitApi(
+			item.id,
+			text,
+			item.replyTarget?.userId,
+		);
+		item.comments.push(res.comment);
+		item.commentCount = (item.commentCount || 0) + 1;
+		item.commentDraft = "";
+		item.replyTarget = null;
+		item.showComments = false;
+	} catch (e) {
+		console.error("发表精选评论失败", e);
+		uni.showToast({ title: "评论失败", icon: "none" });
 	}
 }
 
@@ -524,6 +1051,14 @@ const handleEntryClick = (index, url) => {
 		return;
 	}
 	currentEntryIndex.value = index;
+	if (
+		index === 0 &&
+		featuredItems.value.length === 0 &&
+		!featuredSeed.value &&
+		!featuredLoading.value
+	) {
+		loadFeaturedFeed({ isRefresh: true });
+	}
 };
 </script>
 
@@ -541,6 +1076,20 @@ $gray-bg: #f5f6f8;
 	position: relative;
 }
 
+.recommendation-sticky-header {
+	background-color: $bg-color;
+
+	&.is-fixed {
+		position: fixed;
+		top: 0;
+		right: 0;
+		left: 0;
+		z-index: 100;
+		width: 100%;
+		box-sizing: border-box;
+	}
+}
+
 /* --- 1. 顶部导航栏 --- */
 .header-nav {
 	display: flex;
@@ -548,9 +1097,6 @@ $gray-bg: #f5f6f8;
 	align-items: center;
 	padding: 20rpx 30rpx;
 	background-color: $bg-color;
-	position: sticky;
-	top: 0;
-	z-index: 100;
 
 	.nav-left {
 		.avatar-circle {
@@ -603,9 +1149,6 @@ $gray-bg: #f5f6f8;
 /* --- 2. 搜索栏 --- */
 .search-container {
 	padding: 10rpx 30rpx 20rpx;
-	position: sticky;
-	top: 108rpx;
-	z-index: 99;
 	background-color: $bg-color; /* 新增背景色，避免透缝 */
 
 	.search-box {
@@ -629,9 +1172,6 @@ $gray-bg: #f5f6f8;
 	display: flex;
 	align-items: center;
 	padding: 0 0 20rpx 30rpx;
-	position: sticky;
-	top: 208rpx;
-	z-index: 98;
 	background-color: $bg-color; /* 新增背景色，避免透缝 */
 
 	.scroll-tabs {
@@ -695,6 +1235,24 @@ $gray-bg: #f5f6f8;
 /* --- 4. 帖子信息流区 --- */
 .feed-container {
 	padding: 10rpx 30rpx;
+	box-sizing: border-box;
+}
+
+.waterfall-grid {
+	display: flex;
+	align-items: flex-start;
+	gap: 20rpx;
+	width: 100%;
+	max-width: 100%;
+	box-sizing: border-box;
+}
+
+.waterfall-column {
+	flex: 1 1 0;
+	min-width: 0;
+	display: flex;
+	flex-direction: column;
+	gap: 24rpx;
 }
 
 .loading-container,
@@ -722,6 +1280,37 @@ $gray-bg: #f5f6f8;
 .post-card {
 	margin-bottom: 40rpx;
 
+	&.navigable {
+		cursor: pointer;
+	}
+
+	&.featured-card {
+		margin-bottom: 0;
+		padding: 20rpx;
+		box-sizing: border-box;
+		background-color: #ffffff;
+		border-radius: 20rpx;
+		box-shadow: 0 2rpx 16rpx rgba(0, 0, 0, 0.05);
+		overflow: hidden;
+
+		.post-media {
+			min-height: 0;
+
+			&.is-image-loading {
+				min-height: 260rpx;
+			}
+		}
+
+		.post-avatar {
+			flex: 0 0 70rpx;
+
+			.avatar-img {
+				width: 100%;
+				height: 100%;
+			}
+		}
+	}
+
 	.post-header {
 		display: flex;
 		align-items: center;
@@ -742,12 +1331,18 @@ $gray-bg: #f5f6f8;
 		.post-user-info {
 			display: flex;
 			flex-direction: column;
+			flex: 1;
+			min-width: 0;
 
 			.username {
+				display: block;
 				font-size: 32rpx;
 				font-weight: bold;
 				color: $text-main;
 				line-height: 1.2;
+				overflow: hidden;
+				text-overflow: ellipsis;
+				white-space: nowrap;
 			}
 
 			.location-box {
@@ -756,8 +1351,12 @@ $gray-bg: #f5f6f8;
 				margin-top: 4rpx;
 
 				.location {
+					display: block;
 					font-size: 24rpx;
 					color: $text-sub;
+					overflow: hidden;
+					text-overflow: ellipsis;
+					white-space: nowrap;
 				}
 			}
 		}
@@ -828,6 +1427,33 @@ $gray-bg: #f5f6f8;
 				}
 			}
 		}
+	}
+
+	.featured-title,
+	.featured-summary {
+		margin-top: 18rpx;
+		font-size: 28rpx;
+		line-height: 1.5;
+		color: $text-main;
+	}
+
+	.featured-title {
+		font-size: 30rpx;
+		font-weight: bold;
+	}
+
+	.featured-price {
+		margin-top: 10rpx;
+		font-size: 28rpx;
+		font-weight: bold;
+		color: #dc5b3f;
+	}
+
+	.featured-summary {
+		display: -webkit-box;
+		-webkit-box-orient: vertical;
+		-webkit-line-clamp: 2;
+		overflow: hidden;
 	}
 
 	.meta-box {

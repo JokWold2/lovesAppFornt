@@ -21,6 +21,24 @@
 			}
 		},
 		{
+			"path": "pages/account/accountCenter",
+			"style": {
+				"navigationBarTitleText": "个人中心"
+			}
+		},
+		{
+			"path": "pages/legal/userAgreement",
+			"style": {
+				"navigationBarTitleText": "用户服务协议"
+			}
+		},
+		{
+			"path": "pages/legal/privacyPolicy",
+			"style": {
+				"navigationBarTitleText": "隐私政策"
+			}
+		},
+		{
 			"path": "pages/notice/notice",
 			"style": {
 				"enablePullDownRefresh": true,
