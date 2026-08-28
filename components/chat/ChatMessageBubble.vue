@@ -44,7 +44,7 @@
 				/></view>
 			</view>
 			<view v-if="mine" class="receipt">
-				<view v-if="message.readCount" class="read-summary">
+				<view v-if="message.readCount" class="read-summary" @tap="emit('show-read-members', message)">
 					<view class="read-avatars">
 						<view v-for="reader in message.readBy.slice(0, 3)" :key="reader.userId" class="read-avatar-wrap">
 							<image v-if="reader.avatarUrl" class="read-avatar" :src="reader.avatarUrl" mode="aspectFill" />
@@ -67,7 +67,7 @@ const props = defineProps({
 	message: { type: Object, required: true },
 	mine: Boolean,
 });
-const emit = defineEmits(["message-long-press", "preview-image"]);
+const emit = defineEmits(["message-long-press", "preview-image", "show-read-members"]);
 const avatarLabel = computed(() =>
 	String(props.message.sender_name || "成").slice(0, 1),
 );
@@ -170,6 +170,7 @@ function onLongPress(event) {
 .read-summary {
 	display: flex;
 	align-items: center;
+	cursor: pointer;
 }
 .read-avatars {
 	display: flex;

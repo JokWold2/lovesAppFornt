@@ -2,7 +2,7 @@
 	<view class="page">
 		<view class="room-head">
 			<GroupAvatar :avatar-url="groupAvatarUrl" :members="members" :size="36" />
-			<text class="group-name">{{ groupName || "群聊" }}</text>
+			<view class="group-copy"><text class="group-name">{{ groupName || "群聊" }}</text><text class="online-count" @tap="openOnlineMembers">{{ onlineLabel }}</text></view>
 			<text
 				v-if="isGroupAdmin && groupStatus === 'active'"
 				class="group-manage"
@@ -32,6 +32,7 @@
 						:mine="Number(item.message.sender_user_id) === myId"
 						@message-long-press="openLongPressMenu"
 						@preview-image="previewImage"
+						@show-read-members="openReadMembers"
 					/>
 				</view>
 			</template>
@@ -68,6 +69,7 @@
 			@close="closeLongPressMenu"
 			@reply="startReply"
 		/>
+		<GroupMemberSheet :visible="Boolean(memberSheet)" :title="memberSheetTitle" :members="memberSheetMembers" @close="closeMemberSheet" />
 	</view>
 </template>
 
@@ -76,6 +78,7 @@ import { computed, nextTick, ref } from "vue";
 import { onHide, onLoad, onShow, onUnload } from "@dcloudio/uni-app";
 import {
 	getChatGroupMembersApi,
+	getChatGroupOnlineMembersApi,
 	getChatGroupsApi,
 	getChatMessagesApi,
 	sendChatMessageApi,
@@ -85,6 +88,7 @@ import ChatComposer from "@/components/chat/ChatComposer.vue";
 import ChatLongPressMenu from "@/components/chat/ChatLongPressMenu.vue";
 import ChatMessageBubble from "@/components/chat/ChatMessageBubble.vue";
 import GroupAvatar from "@/components/chat/GroupAvatar.vue";
+import GroupMemberSheet from "@/components/chat/GroupMemberSheet.vue";
 import {
 	buildChatDisplayItems,
 	mergeChatMessages,
@@ -96,10 +100,14 @@ import {
 } from "@/utils/chatComposerState.js";
 import { presentGroupName } from "@/utils/chatGroupPresentation.js";
 import { refreshUnreadBadge } from "@/utils/unreadBadge.js";
+import { onlineMemberLabel } from "@/utils/groupMemberSheetState.js";
 
 const groupId = ref("");
 const messages = ref([]);
 const members = ref([]);
+const onlineMembers = ref([]);
+const memberSheet = ref(null);
+const memberSheetMembers = ref([]);
 const isGroupAdmin = ref(false);
 const isGroupMember = ref(false);
 const scrollIntoView = ref("");
@@ -130,6 +138,8 @@ let forceScrollAfterLoad = true;
 let hasLoadedInitialMessages = false;
 const messagePageSize = 15;
 const displayItems = computed(() => buildChatDisplayItems(messages.value));
+const onlineLabel = computed(() => onlineMemberLabel(onlineMembers.value.length));
+const memberSheetTitle = computed(() => memberSheet.value === 'read' ? '已读成员' : '在线成员');
 
 function scrollToLast({ animated = true } = {}) {
 	if (!messages.value.length) return;
@@ -157,6 +167,7 @@ async function load({ silent = false } = {}) {
 			? hasOlderMessages.value
 			: Boolean(messageData?.hasMore);
 		members.value = memberData?.members || [];
+		void loadOnlineMembers({ silent: true });
 		const group = (groupData?.groups || []).find(
 			(item) => Number(item.id) === Number(groupId.value),
 		);
@@ -184,6 +195,33 @@ async function load({ silent = false } = {}) {
 	} finally {
 		loading.value = false;
 	}
+}
+
+async function loadOnlineMembers({ silent = false } = {}) {
+	if (!groupId.value) return;
+	try {
+		const data = await getChatGroupOnlineMembersApi(groupId.value);
+		onlineMembers.value = data?.members || [];
+		if (memberSheet.value === 'online') memberSheetMembers.value = onlineMembers.value;
+	} catch (error) {
+		if (!silent) uni.showToast({ title: error?.error || '加载在线成员失败', icon: 'none' });
+	}
+}
+
+async function openOnlineMembers() {
+	memberSheet.value = 'online';
+	memberSheetMembers.value = onlineMembers.value;
+	await loadOnlineMembers();
+}
+
+function openReadMembers(message) {
+	memberSheet.value = 'read';
+	memberSheetMembers.value = message?.readBy || [];
+}
+
+function closeMemberSheet() {
+	memberSheet.value = null;
+	memberSheetMembers.value = [];
 }
 async function loadOlderMessages() {
 	if (!hasOlderMessages.value || loadingOlder.value || !messages.value.length) return;
@@ -343,8 +381,8 @@ onUnload(() => {
 	padding: 18rpx 24rpx;
 	background: #f6f7f8;
 }
+.group-copy { display: flex; flex: 1; flex-direction: column; min-width: 0; gap: 4rpx; }
 .group-name {
-	flex: 1;
 	overflow: hidden;
 	color: #1d2230;
 	font-size: 30rpx;
@@ -352,6 +390,7 @@ onUnload(() => {
 	text-overflow: ellipsis;
 	white-space: nowrap;
 }
+.online-count { align-self: flex-start; color: #7d838c; font-size: 22rpx; }
 .group-manage {
 	padding: 10rpx 14rpx;
 	border-radius: 14rpx;

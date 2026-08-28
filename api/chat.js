@@ -11,6 +11,7 @@ export const getChatGroupsApi = () => get('/api/chat-groups')
 export const getChatMessagesApi = (id, params = {}) => get(`/api/chat-groups/${id}/messages`, params)
 export const sendChatMessageApi = (id, payload) => post(`/api/chat-groups/${id}/messages`, typeof payload === 'string' ? { content: payload } : payload)
 export const getChatGroupMembersApi = (id) => get(`/api/chat-groups/${id}/members`)
+export const getChatGroupOnlineMembersApi = (id) => get(`/api/chat-groups/${id}/online-members`)
 export function uploadChatImageApi(id, filePath) {
   return new Promise((resolve, reject) => {
     uni.uploadFile({
