@@ -2,10 +2,11 @@ import test from 'node:test'
 import assert from 'node:assert/strict'
 import { readFile } from 'node:fs/promises'
 
-async function loadApi() {
+async function loadApi(initialStorage = {}) {
   const calls = []
+  const storage = { ...initialStorage }
   globalThis.uni = {
-    getStorageSync() { return '' },
+    getStorageSync(key) { return storage[key] || '' },
     request(options) {
       calls.push(options)
       options.success({ statusCode: 200, data: { token: 'jwt' } })
@@ -14,7 +15,7 @@ async function loadApi() {
   }
 
   const api = await import('../api/index.js')
-  return { ...api, post: { calls } }
+  return { ...api, post: { calls }, storage }
 }
 
 async function loadAppWithPresence({ token = 'jwt', valid = true } = {}) {
@@ -254,6 +255,17 @@ test('login API includes clientSessionId for email and Google requests', async (
     authResult: { idToken: 'id-token' },
     clientSessionId: 'session-a'
   })
+})
+
+test('locale bootstrap correlates the current presence session without sending an empty header', async () => {
+  const { getLocaleBootstrapApi, post, storage } = await loadApi({ PRESENCE_SESSION_ID: 'session-a' })
+
+  await getLocaleBootstrapApi('ja-JP')
+  delete storage.PRESENCE_SESSION_ID
+  await getLocaleBootstrapApi('en-US')
+
+  assert.equal(post.calls[0].header['x-session-id'], 'session-a')
+  assert.equal(Object.hasOwn(post.calls[1].header, 'x-session-id'), false)
 })
 
 test('a restored valid Token starts presence and hide only pauses it', async () => {

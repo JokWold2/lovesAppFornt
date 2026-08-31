@@ -1,5 +1,6 @@
 import { post, get, put, del } from '../utils/request.js'
 import { config } from '../utils/config.js'
+import { getPresenceSessionId } from '../utils/auth.js'
 
 /**
  * API 接口统一管理
@@ -314,7 +315,12 @@ export function getCommentsApi(id, params) {
 }
 
 export function getLocaleBootstrapApi(systemLocale) {
-  return get('/api/locale/bootstrap', systemLocale ? { systemLocale } : undefined)
+  const clientSessionId = getPresenceSessionId()
+  return get(
+    '/api/locale/bootstrap',
+    systemLocale ? { systemLocale } : undefined,
+    clientSessionId ? { header: { 'x-session-id': clientSessionId } } : undefined
+  )
 }
 
 export function saveLocalePreferenceApi(payload) {
