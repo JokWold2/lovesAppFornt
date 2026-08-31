@@ -1,6 +1,6 @@
 <template>
-  <view v-if="visible" class="sheet-mask" @tap="close">
-    <view class="member-sheet" @tap.stop>
+  <view v-if="visible" class="sheet-mask app-h5-sheet-mask" @tap="close">
+    <view class="member-sheet app-h5-sheet" @tap.stop>
       <view class="sheet-header">
         <text class="sheet-title">{{ title || t('group.selectMembers') }}</text>
         <text class="sheet-close" @click="close">×</text>
@@ -10,7 +10,7 @@
         <textarea v-model="reviewMessage" class="review-message" :placeholder="t('profile.reviewReply')" @tap.stop />
       </view>
       <input v-model="keyword" class="search-input" :placeholder="t('profile.searchName')" @tap.stop @input="searchMembers" />
-      <scroll-view scroll-y class="member-list" @tap.stop @scrolltolower="loadNextPage">
+      <scroll-view scroll-y class="member-list app-h5-scroll" @tap.stop @scrolltolower="loadNextPage">
         <view v-for="member in candidates" :key="member.userId" class="member-row" @click="toggleMember(member.userId)">
           <image v-if="member.avatarUrl" class="member-avatar" :src="member.avatarUrl" mode="aspectFill" />
           <view v-else class="member-avatar member-avatar--fallback">{{ member.displayName.slice(0, 1) }}</view>
@@ -120,9 +120,9 @@ watch(() => props.visible, visible => {
 
 <style scoped lang="scss">
 .sheet-mask { position: fixed; inset: 0; z-index: 20; display: flex; align-items: flex-end; background: rgba(0, 0, 0, .45); }
-.member-sheet { display: flex; width: 100%; height: 76vh; box-sizing: border-box; flex-direction: column; padding: 28rpx; border-radius: 28rpx 28rpx 0 0; background: #fff; }
+.member-sheet { display: flex; width: 100%; min-height: 0; flex-direction: column; padding: 28rpx; border-radius: 28rpx 28rpx 0 0; background: #fff; }
 .sheet-header, .sheet-actions, .member-row { display: flex; align-items: center; }
-.sheet-header { justify-content: space-between; margin-bottom: 22rpx; }
+.sheet-header { flex: 0 0 auto; justify-content: space-between; margin-bottom: 22rpx; }
 .sheet-title { font-size: 34rpx; font-weight: 700; }
 .sheet-close { padding: 0 12rpx; font-size: 48rpx; color: #999; }
 .search-input { padding: 18rpx; border-radius: 12rpx; background: #f4f4f4; }

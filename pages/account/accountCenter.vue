@@ -29,18 +29,20 @@
 
     <view class="logout-button" @tap="logout"><text>{{ t('common.logout') }}</text></view>
 
-    <view v-if="showLanguageSheet" class="language-sheet-mask" @tap="closeLanguageSheet">
-      <view class="language-sheet" @tap.stop>
+    <view v-if="showLanguageSheet" class="language-sheet-mask app-h5-sheet-mask" @tap="closeLanguageSheet">
+      <view class="language-sheet app-h5-sheet" @tap.stop>
         <view class="language-sheet-title">{{ t('common.language') }}</view>
-        <view
-          v-for="option in localeOptionItems"
-          :key="option.code"
-          class="language-sheet-item"
-          @tap="selectLanguage(option.code)"
-        >
-          <text>{{ option.label }}</text>
-          <uni-icons v-if="isCurrentLocale(option.code)" type="checkmarkempty" size="20" color="#ffce00" />
-        </view>
+        <scroll-view scroll-y class="language-sheet-list app-h5-scroll">
+          <view
+            v-for="option in localeOptionItems"
+            :key="option.code"
+            class="language-sheet-item"
+            @tap="selectLanguage(option.code)"
+          >
+            <text>{{ option.label }}</text>
+            <uni-icons v-if="isCurrentLocale(option.code)" type="checkmarkempty" size="20" color="#ffce00" />
+          </view>
+        </scroll-view>
         <view class="language-sheet-item cancel" @tap="closeLanguageSheet">
           <text>{{ t('common.cancel') }}</text>
         </view>
@@ -149,11 +151,11 @@ watch(currentLocale, updatePageTitle)
 .divider { height: 1rpx; background: #f0f0f0; }
 .language-row { position: relative; }
 .language-sheet-mask { position: fixed; inset: 0; background: rgba(0,0,0,.35); display: flex; align-items: flex-end; z-index: 999; }
-.language-sheet { width: 100%; background: #fff; border-radius: 24rpx 24rpx 0 0; padding: 24rpx 16rpx 32rpx; box-sizing: border-box; }
-.language-sheet-title { text-align: center; font-size: 30rpx; color: #222; margin-bottom: 20rpx; }
+.language-sheet { display: flex; width: 100%; min-height: 0; flex-direction: column; background: #fff; border-radius: 24rpx 24rpx 0 0; padding: 24rpx 16rpx 32rpx; box-sizing: border-box; }
+.language-sheet-title { flex: 0 0 auto; text-align: center; font-size: 30rpx; color: #222; margin-bottom: 20rpx; }
 .language-sheet-item { min-height: 94rpx; display: flex; align-items: center; justify-content: space-between; padding: 0 24rpx; font-size: 30rpx; color: #333; border-top: 1rpx solid #f2f2f2; }
 .language-sheet-item:first-of-type { border-top: none; }
-.language-sheet-item.cancel { justify-content: center; color: #888; margin-top: 18rpx; font-weight: 500; }
+.language-sheet-item.cancel { flex: 0 0 auto; justify-content: center; color: #888; margin-top: 18rpx; font-weight: 500; }
 .danger-card { margin-top: 44rpx; }.danger { color: #e85d5d; }
 .logout-button { display: flex; align-items: center; justify-content: center; height: 96rpx; margin-top: 54rpx; border-radius: 48rpx; color: #fff; background: #ffce00; font-size: 32rpx; font-weight: 600; }
 </style>

@@ -7,7 +7,13 @@
       <view class="actions"><button class="reject" @tap="openReject(request)">{{ t('review.reject') }}</button><button class="approve" @tap="reviewRequest = request">{{ t('review.approve') }}</button></view>
     </view>
     <MemberPickerSheet v-if="reviewRequest" :visible="true" :excluded-user-ids="[reviewRequest.applicant_user_id, reviewRequest.target_user_id]" :title="t('review.pickMembers')" :show-review-fields="true" @close="reviewRequest = null" @confirm="approve" />
-    <view v-if="rejectRequest" class="mask" @tap="rejectRequest = null"><view class="reject-sheet" @tap.stop><text class="title">{{ t('review.rejectTitle') }}</text><textarea v-model="rejectReason" class="reason" maxlength="500" :placeholder="t('review.rejectPlaceholder')" /><view class="actions"><button @tap="rejectRequest = null">{{ t('common.cancel') }}</button><button class="reject-confirm" @tap="reject">{{ t('review.confirmReject') }}</button></view></view></view>
+    <view v-if="rejectRequest" class="mask app-h5-sheet-mask" @tap="rejectRequest = null">
+      <view class="reject-sheet app-h5-sheet" @tap.stop>
+        <text class="title">{{ t('review.rejectTitle') }}</text>
+        <textarea v-model="rejectReason" class="reason app-h5-scroll" maxlength="500" :placeholder="t('review.rejectPlaceholder')" />
+        <view class="actions"><button @tap="rejectRequest = null">{{ t('common.cancel') }}</button><button class="reject-confirm" @tap="reject">{{ t('review.confirmReject') }}</button></view>
+      </view>
+    </view>
   </view>
 </template>
 <script setup>
@@ -29,5 +35,5 @@ onShow(() => { uni.setNavigationBarTitle({ title: t('review.approve') }); load()
 watch(currentLocale, () => uni.setNavigationBarTitle({ title: t('review.approve') }))
 </script>
 <style scoped lang="scss">
-.page{min-height:100vh;padding:24rpx;background:#f7f7f7}.request-card{margin-bottom:20rpx;padding:24rpx;border-radius:18rpx;background:#fff}.people,.people view,.actions{display:flex;align-items:center}.people{gap:24rpx}.people view{gap:10rpx;flex:1}.avatar{width:64rpx;height:64rpx;border-radius:50%;background:#eee}.arrow{color:#999}.message,.time{display:block;margin-top:18rpx}.message{color:#333}.time{font-size:23rpx;color:#999}.actions{justify-content:flex-end;gap:18rpx;margin-top:22rpx}.actions button{margin:0;font-size:25rpx}.approve,.reject-confirm{color:#333;background:#ffce00}.reject{color:#a33;background:#fff0f0}.empty{padding-top:200rpx;text-align:center;color:#999}.mask{position:fixed;inset:0;display:flex;align-items:flex-end;background:rgba(0,0,0,.45)}.reject-sheet{width:100%;padding:30rpx;box-sizing:border-box;border-radius:28rpx 28rpx 0 0;background:#fff}.title{font-size:32rpx;font-weight:700}.reason{display:block;width:100%;min-height:180rpx;margin-top:22rpx;padding:18rpx;box-sizing:border-box;border-radius:12rpx;background:#f5f5f5}
+.page{min-height:100vh;padding:24rpx;background:#f7f7f7}.request-card{margin-bottom:20rpx;padding:24rpx;border-radius:18rpx;background:#fff}.people,.people view,.actions{display:flex;align-items:center}.people{gap:24rpx}.people view{gap:10rpx;flex:1}.avatar{width:64rpx;height:64rpx;border-radius:50%;background:#eee}.arrow{color:#999}.message,.time{display:block;margin-top:18rpx}.message{color:#333}.time{font-size:23rpx;color:#999}.actions{justify-content:flex-end;gap:18rpx;margin-top:22rpx}.actions button{margin:0;font-size:25rpx}.approve,.reject-confirm{color:#333;background:#ffce00}.reject{color:#a33;background:#fff0f0}.empty{padding-top:200rpx;text-align:center;color:#999}.mask{position:fixed;inset:0;display:flex;align-items:flex-end;background:rgba(0,0,0,.45)}.reject-sheet{display:flex;width:100%;min-height:0;flex-direction:column;padding:30rpx;box-sizing:border-box;border-radius:28rpx 28rpx 0 0;background:#fff}.reject-sheet .actions{flex:0 0 auto}.title{flex:0 0 auto;font-size:32rpx;font-weight:700}.reason{display:block;width:100%;min-height:0;margin-top:22rpx;padding:18rpx;box-sizing:border-box;border-radius:12rpx;background:#f5f5f5}
 </style>

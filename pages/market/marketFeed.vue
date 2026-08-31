@@ -77,8 +77,8 @@
 			</swiper-item>
 		</swiper>
 
-		<view v-if="commentPost" class="mask" @tap="closeComments">
-			<view class="panel" @tap.stop>
+		<view v-if="commentPost" class="mask app-h5-sheet-mask" @tap="closeComments">
+			<view class="panel app-h5-sheet" @tap.stop>
 				<view class="panel-head"
 					><text>{{ t('moment.comments', { count: commentPost.commentCount }) }}</text
 					><text class="close-button" @tap.stop="closeComments"
@@ -87,7 +87,7 @@
 				>
 				<scroll-view
 					scroll-y
-					class="comment-list"
+					class="comment-list app-h5-scroll"
 					:scroll-into-view="commentAnchor"
 					@tap.stop
 				>
@@ -503,8 +503,7 @@ async function sendComment() {
 .panel {
 	display: flex;
 	width: 100%;
-	height: 60vh;
-	min-height: 60vh;
+	min-height: 0;
 	box-sizing: border-box;
 	flex-direction: column;
 	padding: 24rpx;
@@ -516,6 +515,9 @@ async function sendComment() {
 	display: flex;
 	align-items: center;
 	justify-content: space-between;
+}
+.panel-head {
+	flex: 0 0 auto;
 }
 .close-button {
 	padding: 0 12rpx;
