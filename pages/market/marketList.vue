@@ -17,3 +17,8 @@ onLoad(options=>{if(options.category==='second_hand')category.value='second_hand
 function openFeed(id){uni.navigateTo({url:marketFeedRoute(category.value,id)})}
 </script>
 <style scoped lang="scss">.page{min-height:100vh;background:#f6f6f6;padding:20rpx 16rpx}.title{padding:12rpx 12rpx 24rpx;font-size:38rpx;font-weight:700}.state{padding:160rpx 0;text-align:center;color:#999}.waterfall{display:flex;align-items:flex-start;gap:16rpx}.column{width:calc(50% - 8rpx)}.card{overflow:hidden;margin-bottom:16rpx;border-radius:16rpx;background:#fff}.cover{display:block;width:100%;min-height:200rpx;background:#eee}.empty-cover{display:flex;height:260rpx;align-items:center;justify-content:center;background:#eee;color:#999}.card-body{padding:18rpx}.post-title{display:block;color:#222;font-size:28rpx;font-weight:600;line-height:1.4}.price{display:block;margin-top:10rpx;color:#dc5b3f;font-size:28rpx;font-weight:700}.foot{display:flex;justify-content:space-between;margin-top:14rpx;color:#999;font-size:21rpx}</style>
+<style scoped>
+/* #ifdef H5 */
+.page { min-height: initial; padding-bottom: calc(20rpx + env(safe-area-inset-bottom)); }
+/* #endif */
+</style>

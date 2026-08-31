@@ -229,7 +229,9 @@ watch(currentLocale, () => uni.setNavigationBarTitle({ title: t('navigation.mess
 </script>
 <style scoped lang="scss">
 .page {
+	/* #ifndef H5 */
 	min-height: 100vh;
+	/* #endif */
 	background: #fff;
 	color: #171822;
 }

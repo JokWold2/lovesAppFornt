@@ -1115,7 +1115,9 @@ async function onSubmit() {
 	--radius: 20px;
 	--radius-sm: 12px;
 
+	/* #ifndef H5 */
 	min-height: 100vh;
+	/* #endif */
 	display: flex;
 	flex-direction: column;
 	background: linear-gradient(180deg, #fff6df 0%, #fff6df 100%);

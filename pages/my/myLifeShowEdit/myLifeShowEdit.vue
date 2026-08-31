@@ -394,7 +394,9 @@ onUnload(() => {
 .container {
   display: flex;
   flex-direction: column;
+  /* #ifndef H5 */
   min-height: 100vh;
+  /* #endif */
   background-color: #FFFFFF;
 }
 

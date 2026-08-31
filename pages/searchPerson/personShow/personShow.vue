@@ -143,7 +143,12 @@ function goBack() {
 </script>
 
 <style scoped lang="scss">
+/* #ifndef H5 */
 .page { min-height: 100vh; background: #fff6df; }
+/* #endif */
+/* #ifdef H5 */
+.page { background: #fff6df; }
+/* #endif */
 .state-box { display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 60vh; color: #666; font-size: 28rpx; }
 .btn-back { margin-top: 30rpx; padding: 16rpx 60rpx; background: #fff6df; color: #333; border-radius: 8rpx; font-size: 28rpx; }
 .chat-request { margin: 24rpx; padding: 22rpx; border-radius: 14rpx; background: #ffce00; color: #222; text-align: center; font-weight: 700; }

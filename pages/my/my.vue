@@ -48,11 +48,16 @@ $background-color: #fff6df;
 $text-color-black: #333;
 
 .container {
+  /* #ifndef H5 */
   min-height: 100vh;
+  /* #endif */
   background-color: $background-color;
   padding-bottom: constant(safe-area-inset-bottom);
   padding-bottom: env(safe-area-inset-bottom);
 }
+/* #ifdef H5 */
+.container { padding-bottom: calc(env(safe-area-inset-bottom)); }
+/* #endif */
 
 .profile-header {
   display: flex;

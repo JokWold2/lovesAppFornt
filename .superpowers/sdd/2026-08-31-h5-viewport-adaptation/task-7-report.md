@@ -26,3 +26,10 @@
 ## 顾虑
 
 部分页面已有局部 `min-height: 100vh` 与组件级 `overflow: hidden`，本任务未调整，避免扩大范围；公共类通过 `box-sizing: border-box` 处理安全区 padding。
+
+## 修复轮次 1
+
+- RED：重写映射测试，绑定模板真实根节点与对应 scoped 根规则；旧样式未隔离时测试失败（login 根 fallback 未置于 H5 条件内）。
+- 修复：14 个根样式的 `min-height: 100vh` 改为非 H5 fallback；登录根 `overflow: hidden` 限制为非 H5；padding shorthand 页面在 H5 规则中显式合并 `env(safe-area-inset-bottom)`，保留原业务底部空间。
+- 覆盖：测试验证根类、fallback 条件、H5 覆盖及 safe-area padding，并保留 fixed-bottom/sheet 既有契约。
+- 命令：`node --test utils/h5LongPageLayout.test.mjs utils/h5ViewportLayout.test.mjs utils/h5FixedBottomPages.test.mjs utils/h5SheetLayout.test.mjs`（13/13 PASS）；`git diff --check`（PASS）。

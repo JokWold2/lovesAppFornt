@@ -1090,10 +1090,15 @@ $gray-bg: #f5f6f8;
 
 .container {
 	background-color: $bg-color;
+	/* #ifndef H5 */
 	min-height: 100vh;
+	/* #endif */
 	padding-bottom: calc(300rpx + env(safe-area-inset-bottom));
 	position: relative;
 }
+/* #ifdef H5 */
+.container { padding-bottom: calc(300rpx + env(safe-area-inset-bottom)); }
+/* #endif */
 
 .recommendation-sticky-header {
 	background-color: $bg-color;

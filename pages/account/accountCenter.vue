@@ -137,7 +137,12 @@ watch(currentLocale, updatePageTitle)
 </script>
 
 <style scoped lang="scss">
+/* #ifndef H5 */
 .page { min-height: 100vh; padding: 32rpx; background: #fff6df; box-sizing: border-box; }
+/* #endif */
+/* #ifdef H5 */
+.page { padding-bottom: calc(32rpx + env(safe-area-inset-bottom)); }
+/* #endif */
 .profile-card, .menu-card { background: #fff; border-radius: 24rpx; box-shadow: 0 2rpx 16rpx rgba(0, 0, 0, .05); }
 .profile-card { display: flex; align-items: center; padding: 36rpx 32rpx; margin-bottom: 28rpx; }
 .avatar, .avatar-placeholder { width: 112rpx; height: 112rpx; border-radius: 50%; flex: none; overflow: hidden; }

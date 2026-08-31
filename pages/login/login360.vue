@@ -372,12 +372,16 @@ $theme-color: #2b2b2b;
 $border-color: #f0f0f0;
 
 .container {
+/* #ifndef H5 */
   min-height: 100vh;
+/* #endif */
   background-color: $bg-color;
   display: flex;
   flex-direction: column;
   position: relative;
+/* #ifndef H5 */
   overflow: hidden;
+/* #endif */
 }
 
 .session-restoring-mask {

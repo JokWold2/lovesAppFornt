@@ -710,10 +710,15 @@ onShow(() => {
 
 <style lang="scss" scoped>
 .container {
+  /* #ifndef H5 */
   min-height: 100vh;
+  /* #endif */
   background-color: #f5f5f5;
   padding-bottom: calc(160rpx + env(safe-area-inset-bottom));
 }
+/* #ifdef H5 */
+.container { padding-bottom: calc(160rpx + env(safe-area-inset-bottom)); }
+/* #endif */
 
 .loading-container {
   display: flex;
