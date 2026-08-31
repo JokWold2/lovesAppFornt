@@ -102,3 +102,36 @@ export function shouldStickToBottomAfterChatLoad({
 }) {
   return !Boolean(userScrolled) && (Boolean(forceScroll) || (Boolean(requestStartedAtBottom) && Boolean(atBottom)))
 }
+
+export function planH5ChatLoadScroll({
+  requestStartedAtBottom = false,
+  liveScrollState,
+  fallbackAtBottom = false,
+  forceScroll = false,
+  userScrolled = false,
+}) {
+  const liveMetrics = readFiniteH5ScrollMetrics(liveScrollState)
+  const atBottom = liveMetrics
+    ? shouldStickToBottom({
+      scrollTop: liveMetrics.scrollTop,
+      scrollHeight: liveMetrics.scrollHeight,
+      viewportHeight: liveMetrics.clientHeight,
+    })
+    : Boolean(fallbackAtBottom)
+  const userMovedAwayDuringRequest = Boolean(requestStartedAtBottom) && !atBottom
+  const shouldAutoScroll = shouldStickToBottomAfterChatLoad({
+    forceScroll,
+    requestStartedAtBottom,
+    atBottom,
+    userScrolled: Boolean(userScrolled) || userMovedAwayDuringRequest,
+  })
+  return {
+    atBottom,
+    shouldAutoScroll,
+    scrollStateToPreserve: shouldAutoScroll ? null : liveMetrics,
+  }
+}
+
+export function shouldAutoScrollForChatInteraction({ isH5 = false, atBottom = false, userScrolled = false }) {
+  return !Boolean(isH5) || (Boolean(atBottom) && !Boolean(userScrolled))
+}

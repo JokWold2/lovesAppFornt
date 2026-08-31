@@ -248,10 +248,12 @@ function pad(value) {
 $brand-yellow: #ffce00;
 $page-bg: #f7f7f7;
 .auction-detail {
-	min-height: 100vh;
 	padding-bottom: calc(140rpx + env(safe-area-inset-bottom));
 	background: $page-bg;
 }
+/* #ifndef H5 */
+.auction-detail { min-height: 100vh; }
+/* #endif */
 .state-box {
 	display: flex;
 	justify-content: center;
@@ -405,6 +407,9 @@ $page-bg: #f7f7f7;
 	background: #fff;
 	box-shadow: 0 -4rpx 18rpx rgba(0, 0, 0, 0.08);
 }
+/* #ifndef H5 */
+.bottom-bar { bottom: 0; }
+/* #endif */
 .bottom-action {
 	display: flex;
 	width: 112rpx;

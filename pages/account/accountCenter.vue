@@ -137,8 +137,9 @@ watch(currentLocale, updatePageTitle)
 </script>
 
 <style scoped lang="scss">
+.page { padding: 32rpx; background: #fff6df; box-sizing: border-box; }
 /* #ifndef H5 */
-.page { min-height: 100vh; padding: 32rpx; background: #fff6df; box-sizing: border-box; }
+.page { min-height: 100vh; }
 /* #endif */
 /* #ifdef H5 */
 .page { padding-bottom: calc(32rpx + env(safe-area-inset-bottom)); }
@@ -166,10 +167,5 @@ watch(currentLocale, updatePageTitle)
 /* #ifdef H5 */
 .language-sheet-mask { bottom: var(--app-viewport-bottom-offset, 0px); }
 .language-sheet { padding-bottom: calc(32rpx + env(safe-area-inset-bottom)); }
-/* #endif */
-</style>
-<style scoped>
-/* #ifndef H5 */
-.page { min-height: 100vh; }
 /* #endif */
 </style>

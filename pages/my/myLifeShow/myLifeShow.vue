@@ -1221,6 +1221,9 @@ onShow(() => {
   right: 40rpx;
 //   z-index: 100;
 }
+/* #ifndef H5 */
+.fab-container { bottom: 60rpx; }
+/* #endif */
 
 .fab {
   width: 100rpx;

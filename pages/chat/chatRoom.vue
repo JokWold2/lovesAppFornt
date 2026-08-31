@@ -85,7 +85,7 @@
 			@select-image="sendImage"
 			@close-reply="replyMessage = null"
 			@keyboard-height="setKeyboardHeight"
-			@focus="scrollToLast"
+			@focus="handleComposerFocus"
 		/>
 		<view v-else-if="isGroupMember" class="dissolved-note">{{ t('inbox.dissolvedNote') }}</view>
 		<ChatLongPressMenu
@@ -118,11 +118,12 @@ import GroupMemberSheet from "@/components/chat/GroupMemberSheet.vue";
 import {
 	buildChatDisplayItems,
 	mergeChatMessages,
+	planH5ChatLoadScroll,
 	readH5MessageScrollMetrics,
+	shouldAutoScrollForChatInteraction,
 	shouldAutoScrollOnChatLoad,
 	shouldLoadOlderMessagesFromH5Scroll,
 	shouldShowChatLatestButton,
-	shouldStickToBottomAfterChatLoad,
 	shouldStickToBottom,
 } from "@/utils/chatMessageListState.js";
 import {
@@ -258,6 +259,9 @@ async function load({ silent = false } = {}) {
 			getChatGroupsApi(),
 			getChatGroupMembersApi(groupId.value),
 		]);
+		// #ifdef H5
+		const liveH5ScrollState = captureH5ScrollState();
+		// #endif
 		const incomingMessages = messageData?.messages || messageData?.data?.messages || [];
 		messages.value = hasLoadedInitialMessages
 			? mergeChatMessages(messages.value, incomingMessages)
@@ -279,17 +283,17 @@ async function load({ silent = false } = {}) {
 		groupStatus.value = group?.status || "active";
 		const shouldForceAfterSending = forceScrollAfterLoad && forceScrollReason === "send";
 		// #ifdef H5
-		const h5UserScrolled = h5UserScrolledAwayFromBottom.value;
-		const h5AtBottom = atBottom.value;
+		const h5ScrollPlan = planH5ChatLoadScroll({
+			requestStartedAtBottom: preLoadAtBottom,
+			liveScrollState: liveH5ScrollState,
+			fallbackAtBottom: atBottom.value,
+			forceScroll: forceScrollAfterLoad,
+			userScrolled: h5UserScrolledAwayFromBottom.value,
+		});
 		// #endif
 		const shouldAutoScroll = shouldForceAfterSending || (
 			// #ifdef H5
-			shouldStickToBottomAfterChatLoad({
-				forceScroll: forceScrollAfterLoad,
-				requestStartedAtBottom: preLoadAtBottom,
-				atBottom: h5AtBottom,
-				userScrolled: h5UserScrolled,
-			})
+			h5ScrollPlan.shouldAutoScroll
 			// #endif
 			// #ifndef H5
 			shouldAutoScrollOnChatLoad({
@@ -313,8 +317,8 @@ async function load({ silent = false } = {}) {
 			// #endif
 		} else {
 			// #ifdef H5
-			h5UserScrolledAwayFromBottom.value = !h5AtBottom;
-			if (!preLoadAtBottom) restoreH5ScrollState(preLoadH5ScrollState);
+			h5UserScrolledAwayFromBottom.value = !h5ScrollPlan.atBottom;
+			restoreH5ScrollState(h5ScrollPlan.scrollStateToPreserve);
 			// #endif
 		}
 		forceScrollAfterLoad = false;
@@ -463,12 +467,30 @@ function stopPolling() {
 		pollTimer = null;
 	}
 }
+function shouldFollowLatestOnComposerInteraction() {
+	// #ifdef H5
+	return shouldAutoScrollForChatInteraction({
+		isH5: true,
+		atBottom: atBottom.value,
+		userScrolled: h5UserScrolledAwayFromBottom.value,
+	});
+	// #endif
+	// #ifndef H5
+	return shouldAutoScrollForChatInteraction({ isH5: false });
+	// #endif
+}
+function handleComposerFocus() {
+	if (!shouldFollowLatestOnComposerInteraction()) return;
+	scrollToLast({ animated: true });
+}
 function setKeyboardHeight(event) {
 	keyboardHeight.value = Math.max(
 		0,
 		Number(unwrapComponentEventPayload(event)) || 0,
 	);
-	if (keyboardHeight.value) nextTick(() => scrollToLast({ animated: true }));
+	if (keyboardHeight.value && shouldFollowLatestOnComposerInteraction()) {
+		nextTick(() => scrollToLast({ animated: true }));
+	}
 }
 function closeLongPressMenu() {
 	menuMessage.value = null;

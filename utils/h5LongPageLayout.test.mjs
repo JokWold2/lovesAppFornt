@@ -9,13 +9,16 @@ const pages = [
   ['pages/notice/interactionMessages.vue', 'interaction-page', false], ['pages/account/accountCenter.vue', 'page', true],
   ['pages/notice/chatRequestReview.vue', 'page', true], ['pages/chat/groupManage.vue', 'page', true],
   ['pages/chat/groupMembers.vue', 'page', false], ['pages/market/marketList.vue', 'page', true],
-  ['pages/my/myLifeShow/myLifeShow.vue', 'container', true], ['pages/index/index360.vue', 'container', true]
+  ['pages/my/myLifeShow/myLifeShow.vue', 'container', true], ['pages/index/index360.vue', 'container', true],
+  ['pages/index/auctionDetail.vue', 'auction-detail', false]
 ]
 
 const crossPlatformRootStyles = [
-  ['pages/chat/groupManage.vue', 'page', [['padding', '26rpx'], ['box-sizing', 'border-box'], ['background', '#f4f5f7'], ['color', '#1b2230']]],
-  ['pages/notice/chatRequestReview.vue', 'page', [['padding', '24rpx'], ['background', '#f7f7f7']]],
-  ['pages/market/marketList.vue', 'page', [['background', '#f6f6f6'], ['padding', '20rpx 16rpx']]]
+  ['pages/chat/groupManage.vue', 'page', [['padding', '26rpx'], ['box-sizing', 'border-box'], ['background', '#f4f5f7'], ['color', '#1b2230']], ['padding-bottom']],
+  ['pages/notice/chatRequestReview.vue', 'page', [['padding', '24rpx'], ['background', '#f7f7f7']], ['padding-bottom']],
+  ['pages/market/marketList.vue', 'page', [['background', '#f6f6f6'], ['padding', '20rpx 16rpx']], ['padding-bottom']],
+  ['pages/account/accountCenter.vue', 'page', [['padding', '32rpx'], ['background', '#fff6df'], ['box-sizing', 'border-box']], ['padding-bottom']],
+  ['pages/chat/groupMembers.vue', 'page', [['background', '#f4f5f7'], ['color', '#1b2230']], []]
 ]
 
 function conditionalBlocks(source, directive) {
@@ -71,7 +74,7 @@ test('普通长页面根节点与 scoped H5 规则保持安全', async () => {
 })
 
 test('跨端业务根样式不能随非 H5 高度 fallback 一起被隔离', async () => {
-  for (const [file, rootClass, declarations] of crossPlatformRootStyles) {
+  for (const [file, rootClass, declarations, h5DeclarationNames] of crossPlatformRootStyles) {
     const source = await readFile(new URL(`../${file}`, import.meta.url), 'utf8')
     const rules = rulesIn(unconditionalSource(source), rootClass)
     const nonH5 = conditionalBlocks(source, 'ifndef').flatMap(block => rulesIn(block, rootClass))
@@ -81,6 +84,6 @@ test('跨端业务根样式不能随非 H5 高度 fallback 一起被隔离', asy
       assert.ok(rules.some(body => declarationPattern(property, value).test(body)), `${file} unconditional root must keep ${property}: ${value}`)
     }
     assert.deepEqual([...new Set(declarationNames(nonH5))], ['min-height'], `${file} non-H5 root must contain only the viewport fallback`)
-    assert.deepEqual([...new Set(declarationNames(h5))], ['padding-bottom'], `${file} H5 root must contain only the safe-area padding override`)
+    assert.deepEqual([...new Set(declarationNames(h5))], h5DeclarationNames, `${file} H5 root declarations must stay scoped to H5 needs`)
   }
 })

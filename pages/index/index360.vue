@@ -1591,6 +1591,9 @@ $gray-bg: #f5f6f8;
 	box-shadow: 0 8rpx 16rpx rgba(255, 206, 0, 0.4);
 	z-index: 99;
 }
+/* #ifndef H5 */
+.fab-button { bottom: 200rpx; }
+/* #endif */
 
 .safe-area-bottom {
 	height: env(safe-area-inset-bottom);

@@ -131,3 +131,81 @@ test('does not overwrite the last valid variables when a later reading is invali
   assert.equal(values['--app-viewport-height'], '500px')
   cleanup()
 })
+
+test('starts when listener APIs are missing or individual registrations throw', () => {
+  const registeredWindowEvents = []
+  const removedWindowEvents = []
+  const visualViewport = {
+    height: 500,
+    offsetTop: 20,
+    addEventListener(type) {
+      if (type === 'scroll') throw new Error('unsupported visual scroll listener')
+    },
+  }
+  const windowLike = {
+    innerHeight: 844,
+    visualViewport,
+    addEventListener(type) {
+      if (type === 'orientationchange') throw new Error('unsupported orientation listener')
+      registeredWindowEvents.push(type)
+    },
+    removeEventListener(type) { removedWindowEvents.push(type) },
+    requestAnimationFrame(callback) { callback(); return 1 },
+  }
+  const values = {}
+  const documentLike = { documentElement: { style: { setProperty(name, value) { values[name] = value } } } }
+
+  const cleanup = installH5Viewport(windowLike, documentLike)
+  assert.equal(values['--app-viewport-height'], '500px')
+  assert.deepEqual(registeredWindowEvents, ['resize', 'pageshow'])
+  assert.doesNotThrow(cleanup)
+  assert.deepEqual(removedWindowEvents, ['resize', 'pageshow'])
+})
+
+test('starts and cleans up when both targets omit listener APIs', () => {
+  const values = {}
+  const windowLike = {
+    innerHeight: 844,
+    visualViewport: { height: 500, offsetTop: 20 },
+    requestAnimationFrame(callback) { callback(); return 1 },
+  }
+  const documentLike = { documentElement: { style: { setProperty(name, value) { values[name] = value } } } }
+
+  const cleanup = installH5Viewport(windowLike, documentLike)
+  assert.equal(values['--app-viewport-height'], '500px')
+  assert.doesNotThrow(cleanup)
+})
+
+test('cleanup ignores missing or throwing removal APIs and only removes registered listeners', () => {
+  const registered = []
+  const removed = []
+  const visualViewport = {
+    height: 500,
+    offsetTop: 20,
+    addEventListener(type) {
+      if (type === 'scroll') throw new Error('scroll registration failed')
+      registered.push(`visual:${type}`)
+    },
+    removeEventListener(type) {
+      removed.push(`visual:${type}`)
+      throw new Error('visual cleanup failed')
+    },
+  }
+  const windowLike = {
+    innerHeight: 844,
+    visualViewport,
+    addEventListener(type) { registered.push(`window:${type}`) },
+    requestAnimationFrame(callback) { callback(); return 1 },
+  }
+  const documentLike = { documentElement: { style: { setProperty() {} } } }
+
+  const cleanup = installH5Viewport(windowLike, documentLike)
+  assert.doesNotThrow(cleanup)
+  assert.deepEqual(registered, [
+    'window:resize',
+    'window:orientationchange',
+    'window:pageshow',
+    'visual:resize',
+  ])
+  assert.deepEqual(removed, ['visual:resize'])
+})

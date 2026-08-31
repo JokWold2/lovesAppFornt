@@ -34,14 +34,16 @@ test('聊天页按平台向输入栏传递键盘高度', async () => {
   assert.match(source, /function setKeyboardHeight\(/)
 })
 
-test('开始输入时聊天列表会滚动到末尾，避免键盘遮住新消息', async () => {
+test('开始输入时只在允许跟随最新消息的平台状态滚动到底部', async () => {
   const composer = await readFile(new URL('./ChatComposer.vue', import.meta.url), 'utf8')
   const room = await readFile(new URL('../../pages/chat/chatRoom.vue', import.meta.url), 'utf8')
   assert.match(composer, /@focus="\$emit\('focus'\)"/)
-  assert.match(room, /@focus="scrollToLast"/)
+  assert.match(room, /@focus="handleComposerFocus"/)
+  assert.match(room, /function shouldFollowLatestOnComposerInteraction\(\)/)
+  assert.match(room, /if \(!shouldFollowLatestOnComposerInteraction\(\)\) return;/)
   assert.match(room, /id="messages-end"/)
   assert.match(room, /scrollIntoView\.value = "messages-end"/)
-  assert.match(room, /if \(keyboardHeight\.value\) nextTick\(\(\) => scrollToLast/)
+  assert.match(room, /keyboardHeight\.value && shouldFollowLatestOnComposerInteraction\(\)/)
   assert.match(room, /scroll-with-animation/)
 })
 

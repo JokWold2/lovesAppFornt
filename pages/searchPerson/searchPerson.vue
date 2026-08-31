@@ -5,7 +5,7 @@
       <text class="header-title">🔍 {{ t('search.title') }}</text>
     </view>
 
-    <scroll-view scroll-y class="content-area app-h5-scroll" style="box-sizing: border-box;">
+    <scroll-view scroll-y class="content-area app-h5-scroll" :scroll-into-view="contentScrollIntoView" scroll-with-animation style="box-sizing: border-box;">
 
       <!-- 卡片1：選擇條件 -->
       <view class="form-card">
@@ -253,7 +253,7 @@
       </view>
 
       <!-- 搜尋結果 -->
-      <view v-if="hasSearched || searching" class="form-card result-card">
+      <view v-if="hasSearched || searching" id="search-results" class="form-card result-card">
         <view class="section-title">
           {{ t('search.searchResults') }}
           <text v-if="!searching" class="result-count">{{ t('search.total', { count: total }) }}</text>
@@ -311,7 +311,7 @@
 </template>
 
 <script setup>
-import { computed, reactive, ref } from 'vue'
+import { computed, nextTick, reactive, ref } from 'vue'
 import { searchCandidatesApi } from '@/api/index.js'
 import { currentLocale, t } from '@/utils/localeRuntime.js'
 import { searchOptionLabel } from '@/utils/searchPresentation.js'
@@ -364,6 +364,7 @@ const hasSearched = ref(false)
 const results = ref([])
 const total = ref(0)
 const page = ref(1)
+const contentScrollIntoView = ref('')
 
 // ---- 方法 ----
 function toggle (list, value) {
@@ -411,7 +412,15 @@ async function doSearch (pageNum, append = false) {
     hasSearched.value = true
     if (!append) {
       // 第一次搜索完成后，让 scroll-view 滚到结果区
+      // #ifdef H5
+      contentScrollIntoView.value = ''
+      nextTick(() => {
+        contentScrollIntoView.value = 'search-results'
+      })
+      // #endif
+      // #ifndef H5
       uni.pageScrollTo({ duration: 200, scrollTop: 9999 })
+      // #endif
     }
   } catch (e) {
     console.error('search error', e)
@@ -435,6 +444,7 @@ function onReset () {
   total.value = 0
   page.value = 1
   hasSearched.value = false
+  contentScrollIntoView.value = ''
 }
 </script>
 
@@ -648,6 +658,9 @@ function onReset () {
   gap: 12px;
   z-index: 10;
 }
+/* #ifndef H5 */
+.bottom-bar { bottom: 0; }
+/* #endif */
 .btn {
   flex: 1;
   padding: 14px;

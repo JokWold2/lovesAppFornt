@@ -53,15 +53,27 @@ export function installH5Viewport(windowLike = window, documentLike = document) 
 
   const windowEvents = ['resize', 'orientationchange', 'pageshow']
   const visualEvents = ['resize', 'scroll']
-  windowEvents.forEach((type) => windowLike.addEventListener(type, sync))
-  visualEvents.forEach((type) => visualViewport?.addEventListener(type, sync))
+  const registeredListeners = []
+  const register = (target, type) => {
+    if (typeof target?.addEventListener !== 'function') return
+    try {
+      target.addEventListener(type, sync)
+      registeredListeners.push({ target, type })
+    } catch {}
+  }
+  windowEvents.forEach((type) => register(windowLike, type))
+  visualEvents.forEach((type) => register(visualViewport, type))
   syncNow()
 
   return () => {
     if (disposed) return
     disposed = true
-    windowEvents.forEach((type) => windowLike.removeEventListener(type, sync))
-    visualEvents.forEach((type) => visualViewport?.removeEventListener(type, sync))
+    registeredListeners.forEach(({ target, type }) => {
+      if (typeof target?.removeEventListener !== 'function') return
+      try {
+        target.removeEventListener(type, sync)
+      } catch {}
+    })
     if (framePending && windowLike.cancelAnimationFrame) windowLike.cancelAnimationFrame(frameId)
     framePending = false
   }

@@ -2,7 +2,7 @@ import test from 'node:test'
 import assert from 'node:assert/strict'
 import { readFileSync } from 'node:fs'
 
-import { buildChatDisplayItems, mergeChatMessages, readH5MessageScrollMetrics, shouldAutoScrollOnChatLoad, shouldLoadOlderMessagesFromH5Scroll, shouldShowChatLatestButton, shouldStickToBottom, shouldStickToBottomAfterChatLoad } from './chatMessageListState.js'
+import { buildChatDisplayItems, mergeChatMessages, planH5ChatLoadScroll, readH5MessageScrollMetrics, shouldAutoScrollForChatInteraction, shouldAutoScrollOnChatLoad, shouldLoadOlderMessagesFromH5Scroll, shouldShowChatLatestButton, shouldStickToBottom, shouldStickToBottomAfterChatLoad } from './chatMessageListState.js'
 
 test('消息列表会在跨日处插入时间分隔项', () => {
   const items = buildChatDisplayItems([
@@ -64,6 +64,77 @@ test('H5 轮询响应前用户离底时不再自动滚回底部', () => {
     atBottom: true,
     userScrolled: false,
   }), true)
+})
+
+test('H5 轮询响应保留请求期间用户移动后的实时历史位置', () => {
+  const requestStartState = { scrollTop: 120, scrollHeight: 1400, clientHeight: 500 }
+  const liveStateBeforeMutation = { scrollTop: 360, scrollHeight: 1400, clientHeight: 500 }
+  const plan = planH5ChatLoadScroll({
+    requestStartedAtBottom: shouldStickToBottom({ ...requestStartState, viewportHeight: requestStartState.clientHeight }),
+    liveScrollState: liveStateBeforeMutation,
+    fallbackAtBottom: false,
+    forceScroll: false,
+    userScrolled: true,
+  })
+
+  assert.equal(plan.shouldAutoScroll, false)
+  assert.equal(plan.atBottom, false)
+  assert.deepEqual(plan.scrollStateToPreserve, liveStateBeforeMutation)
+})
+
+test('H5 请求从底部开始但用户在响应前查看历史时不跳回底部', () => {
+  const liveStateBeforeMutation = { scrollTop: 280, scrollHeight: 1400, clientHeight: 500 }
+  const plan = planH5ChatLoadScroll({
+    requestStartedAtBottom: true,
+    liveScrollState: liveStateBeforeMutation,
+    fallbackAtBottom: true,
+    forceScroll: true,
+    userScrolled: false,
+  })
+
+  assert.equal(plan.shouldAutoScroll, false)
+  assert.deepEqual(plan.scrollStateToPreserve, liveStateBeforeMutation)
+})
+
+test('H5 输入交互只在接近底部时跟随最新，非 H5 保留原行为', () => {
+  assert.equal(shouldAutoScrollForChatInteraction({ isH5: true, atBottom: false, userScrolled: true }), false)
+  assert.equal(shouldAutoScrollForChatInteraction({ isH5: true, atBottom: true, userScrolled: false }), true)
+  assert.equal(shouldAutoScrollForChatInteraction({ isH5: false, atBottom: false, userScrolled: true }), true)
+})
+
+test('H5 加载在消息变更前读取实时位置并用该位置恢复', () => {
+  const source = readFileSync(new URL('../pages/chat/chatRoom.vue', import.meta.url), 'utf8')
+  const load = source.split('async function load({ silent = false } = {}) {')[1].split('async function loadOnlineMembers')[0]
+  const liveCaptureIndex = load.indexOf('const liveH5ScrollState = captureH5ScrollState();')
+  const mutationIndex = load.indexOf('messages.value = hasLoadedInitialMessages')
+
+  assert.ok(liveCaptureIndex >= 0 && liveCaptureIndex < mutationIndex)
+  assert.match(load, /planH5ChatLoadScroll\(\{[\s\S]*liveScrollState: liveH5ScrollState/)
+  assert.match(load, /restoreH5ScrollState\(h5ScrollPlan\.scrollStateToPreserve\)/)
+  assert.doesNotMatch(load, /restoreH5ScrollState\(preLoadH5ScrollState\)/)
+})
+
+test('H5 输入框聚焦和键盘变化不会让历史阅读者跳到最新', () => {
+  const source = readFileSync(new URL('../pages/chat/chatRoom.vue', import.meta.url), 'utf8')
+  const interactionGuard = source.split('function shouldFollowLatestOnComposerInteraction() {')[1].split('function handleComposerFocus()')[0]
+  const focus = source.split('function handleComposerFocus() {')[1].split('function setKeyboardHeight(event) {')[0]
+  const keyboard = source.split('function setKeyboardHeight(event) {')[1].split('function closeLongPressMenu()')[0]
+
+  assert.match(source, /@focus="handleComposerFocus"/)
+  assert.match(interactionGuard, /isH5:\s*true/)
+  assert.match(interactionGuard, /isH5:\s*false/)
+  assert.match(focus, /if \(!shouldFollowLatestOnComposerInteraction\(\)\) return;/)
+  assert.match(keyboard, /keyboardHeight\.value && shouldFollowLatestOnComposerInteraction\(\)/)
+})
+
+test('发送消息和显式返回最新仍会强制滚动到底部', () => {
+  const source = readFileSync(new URL('../pages/chat/chatRoom.vue', import.meta.url), 'utf8')
+  const load = source.split('async function load({ silent = false } = {}) {')[1].split('async function loadOnlineMembers')[0]
+  const returnToLatest = source.split('function returnToLatest() {')[1].split('function startPolling()')[0]
+
+  assert.match(load, /const shouldForceAfterSending = forceScrollAfterLoad && forceScrollReason === "send";/)
+  assert.match(load, /const shouldAutoScroll = shouldForceAfterSending \|\|/)
+  assert.match(returnToLatest, /scrollToLast\(\{ animated: true \}\);/)
 })
 
 test('H5 消息节点不能被原生 template 的文档片段包裹', () => {
