@@ -1,5 +1,5 @@
 <template>
-	<view class="page">
+	<view class="page app-h5-screen">
 		<view class="room-head">
 			<GroupAvatar :avatar-url="groupAvatarUrl" :members="members" :size="36" />
 			<view class="group-copy"><text class="group-name">{{ groupName || t('inbox.groupChat') }}</text><text class="online-count" @tap="openOnlineMembers">{{ onlineLabel }}</text></view>
@@ -10,7 +10,7 @@
 			>{{ t('inbox.groupManage') }}</text>
 		</view>
 		<!-- #ifdef H5 -->
-		<view ref="h5MessagesRef" class="messages messages--h5" @scroll="onH5MessageScroll">
+		<view ref="h5MessagesRef" class="messages messages--h5 app-h5-scroll" @scroll="onH5MessageScroll">
 			<view v-if="loadingOlder" class="history-loading"><text>{{ t('inbox.loading') }}</text></view>
 			<view v-for="item in displayItems" :key="item.key">
 				<view v-if="item.kind === 'time'" class="time-divider">{{
@@ -36,6 +36,7 @@
 		<scroll-view
 			class="messages"
 			scroll-y
+			:scroll-top="scrollTop"
 			:scroll-with-animation="scrollWithAnimation"
 			:scroll-into-view="scrollIntoView"
 			:upper-threshold="80"
@@ -79,7 +80,7 @@
 			:members="members"
 			:reply-message="replyMessage"
 			:disabled="sending"
-			:keyboard-height="keyboardHeight"
+			:keyboard-height="composerKeyboardHeight"
 			@send="sendMessage"
 			@select-image="sendImage"
 			@close-reply="replyMessage = null"
@@ -138,6 +139,7 @@ const memberSheetMembers = ref([]);
 const memberSheetUnreadMembers = ref(null);
 const isGroupAdmin = ref(false);
 const isGroupMember = ref(false);
+const scrollTop = ref(0);
 const scrollIntoView = ref("");
 const scrollWithAnimation = ref(false);
 const h5MessagesRef = ref(null);
@@ -162,9 +164,11 @@ const viewportHeight = Math.max(
 	Number(uni.getSystemInfoSync?.().windowHeight || 700) - 150,
 );
 // #ifdef H5
-const latestButtonBottomOffset = computed(() => Math.max(0, Number(keyboardHeight.value)) + 128);
+const composerKeyboardHeight = computed(() => 0);
+const latestButtonBottomOffset = computed(() => 128);
 // #endif
 // #ifndef H5
+const composerKeyboardHeight = computed(() => keyboardHeight.value);
 const latestButtonBottomOffset = computed(() => Number(keyboardHeight.value) + 88);
 // #endif
 let pollTimer = null;
@@ -173,10 +177,6 @@ let latestButtonLeaveTimer = null;
 let forceScrollAfterLoad = true;
 let forceScrollReason = "initial";
 let hasLoadedInitialMessages = false;
-let h5ScrollHandler = null;
-let h5ScrollListenerMounted = false;
-let isBlockingProgrammaticH5Scroll = false;
-let hasUserTriggeredH5Scroll = false;
 const messagePageSize = 15;
 const displayItems = computed(() => buildChatDisplayItems(messages.value));
 const onlineLabel = computed(() => `${onlineMembers.value.length} ${t('inbox.onlineMembers')}`);
@@ -202,7 +202,6 @@ function captureH5ScrollState() {
 
 function restoreH5ScrollState(snapshot) {
 	if (!snapshot) return;
-	isBlockingProgrammaticH5Scroll = true;
 	nextTick(() => {
 		const element = getH5MessagesElement();
 		if (!element) return;
@@ -213,15 +212,11 @@ function restoreH5ScrollState(snapshot) {
 			behavior: "auto",
 		});
 	});
-	setTimeout(() => {
-		isBlockingProgrammaticH5Scroll = false;
-	}, 300);
 }
 
 function scrollToLast({ animated = true } = {}) {
 	if (!messages.value.length) return;
 	// #ifdef H5
-	isBlockingProgrammaticH5Scroll = true;
 	nextTick(() => {
 		const element = h5MessagesRef.value?.$el || h5MessagesRef.value;
 		if (!element) return;
@@ -230,9 +225,6 @@ function scrollToLast({ animated = true } = {}) {
 			behavior: animated ? "smooth" : "auto",
 		});
 	});
-	setTimeout(() => {
-		isBlockingProgrammaticH5Scroll = false;
-	}, 450);
 	return;
 	// #endif
 	// #ifndef H5
@@ -363,6 +355,9 @@ function closeMemberSheet() {
 }
 async function loadOlderMessages() {
 	if (!hasOlderMessages.value || loadingOlder.value || !messages.value.length) return;
+	// #ifdef H5
+	const previousH5ScrollState = captureH5ScrollState();
+	// #endif
 	loadingOlder.value = true;
 	try {
 		const oldestMessage = messages.value[0];
@@ -372,6 +367,16 @@ async function loadOlderMessages() {
 		});
 		messages.value = mergeChatMessages(messages.value, data?.messages || data?.data?.messages || []);
 		hasOlderMessages.value = Boolean(data?.hasMore ?? data?.data?.hasMore);
+		// #ifdef H5
+		if (previousH5ScrollState) {
+			nextTick(() => {
+				const element = getH5MessagesElement();
+				if (!element) return;
+				element.scrollTop = previousH5ScrollState.scrollTop
+					+ Math.max(0, (Number(element.scrollHeight) || 0) - previousH5ScrollState.scrollHeight);
+			});
+		}
+		// #endif
 	} catch (error) {
 		uni.showToast({ title: error?.error || t('inbox.loadHistoryFailed'), icon: "none" });
 	} finally {
@@ -379,6 +384,7 @@ async function loadOlderMessages() {
 	}
 }
 function onMessageScroll(event) {
+	scrollTop.value = event.detail.scrollTop;
 	atBottom.value = shouldStickToBottom({
 		scrollTop: event.detail.scrollTop,
 		scrollHeight: event.detail.scrollHeight,
@@ -386,18 +392,7 @@ function onMessageScroll(event) {
 	});
 	if (!atBottom.value) showLatestButton();
 }
-function onH5MessageScroll(event) {
-	if (isBlockingProgrammaticH5Scroll) return;
-	const eventDetail = event?.detail || {};
-	if (!hasUserTriggeredH5Scroll) {
-		const isTrustedEvent = Boolean(event?.isTrusted);
-		if (!isTrustedEvent) return;
-		hasUserTriggeredH5Scroll = true;
-	}
-	const element = event?.target || event?.currentTarget || eventDetail?.target;
-	const scrollTop = Number(element?.scrollTop ?? eventDetail?.scrollTop ?? 0) || 0;
-	const scrollHeight = Number(element?.scrollHeight ?? eventDetail?.scrollHeight ?? 0) || 0;
-	const clientHeight = Number(element?.clientHeight ?? eventDetail?.clientHeight ?? 0) || 0;
+function updateMessageScrollState({ scrollTop, scrollHeight, clientHeight }) {
 	atBottom.value = shouldStickToBottom({
 		scrollTop,
 		scrollHeight,
@@ -417,36 +412,22 @@ function onH5MessageScroll(event) {
 	})) void loadOlderMessages();
 }
 
-function mountH5ScrollListener() {
-	// #ifdef H5
-	nextTick(() => {
-		const element = getH5MessagesElement();
-		if (!element || typeof element.addEventListener !== "function") return;
-		if (h5ScrollListenerMounted && h5ScrollHandler) {
-			element.removeEventListener("scroll", h5ScrollHandler);
-		}
-		h5ScrollHandler = (event) => onH5MessageScroll(event);
-		element.addEventListener("scroll", h5ScrollHandler, { passive: true });
-		h5ScrollListenerMounted = true;
+function onH5MessageScroll(event) {
+	const target = event?.currentTarget || event?.target || h5MessagesRef.value;
+	updateMessageScrollState({
+		scrollTop: Number(target?.scrollTop || 0),
+		scrollHeight: Number(target?.scrollHeight || 0),
+		clientHeight: Number(target?.clientHeight || 0),
 	});
-	// #endif
-}
-
-function unmountH5ScrollListener() {
-	// #ifdef H5
-	if (!h5ScrollListenerMounted || !h5ScrollHandler) return;
-	const element = getH5MessagesElement();
-	if (element && typeof element.removeEventListener === "function") {
-		element.removeEventListener("scroll", h5ScrollHandler);
-	}
-	h5ScrollListenerMounted = false;
-	// #endif
 }
 function showLatestButton() {
 	latestButtonVisible.value = true;
 	latestButtonLeaving.value = false;
 	clearTimeout(latestButtonTimer);
 	clearTimeout(latestButtonLeaveTimer);
+	// #ifdef H5
+	return;
+	// #endif
 	latestButtonTimer = setTimeout(hideLatestButton, 3000);
 }
 function hideLatestButton() {
@@ -549,54 +530,41 @@ onShow(() => {
 	uni.setNavigationBarTitle({ title: t('inbox.groupChat') });
 	latestButtonVisible.value = false;
 	latestButtonLeaving.value = false;
-	hasUserTriggeredH5Scroll = false;
-	isBlockingProgrammaticH5Scroll = true;
 	forceScrollAfterLoad = true;
 	forceScrollReason = "initial";
 	h5UserScrolledAwayFromBottom.value = false;
-	mountH5ScrollListener();
 	load();
 	startPolling();
-	nextTick(() => {
-		setTimeout(() => {
-			isBlockingProgrammaticH5Scroll = false;
-		}, 800);
-	});
 });
 watch(currentLocale, () => uni.setNavigationBarTitle({ title: t('inbox.groupChat') }));
 onHide(() => {
 	keyboardHeight.value = 0;
 	clearTimeout(latestButtonTimer);
 	clearTimeout(latestButtonLeaveTimer);
-	unmountH5ScrollListener();
 	stopPolling();
 });
 onUnload(() => {
 	clearTimeout(latestButtonTimer);
 	clearTimeout(latestButtonLeaveTimer);
-	unmountH5ScrollListener();
 	stopPolling();
 });
 </script>
 
 <style scoped>
 .page {
-	height: 100vh;
 	display: flex;
 	flex-direction: column;
 	overflow: hidden;
 	background: #efefef;
 }
-/* #ifdef H5 */
+/* #ifndef H5 */
 .page {
-	height: calc(100vh - var(--window-top, 44px));
-	position: relative;
+	height: 100vh;
 }
+/* #endif */
+/* #ifdef H5 */
 .messages--h5 {
 	width: 100%;
-	overflow-y: auto;
-	overscroll-behavior: contain;
-	-webkit-overflow-scrolling: touch;
 }
 /* #endif */
 .room-head {

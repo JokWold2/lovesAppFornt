@@ -25,9 +25,11 @@ test('群聊输入栏保持紧凑并放大表情和图片图标', async () => {
   assert.match(source, /width:\s*68rpx;\s*height:\s*68rpx/)
 })
 
-test('聊天页使用键盘高度为输入栏预留空间', async () => {
+test('聊天页按平台向输入栏传递键盘高度', async () => {
   const source = await readFile(new URL('../../pages/chat/chatRoom.vue', import.meta.url), 'utf8')
-  assert.match(source, /:keyboard-height="keyboardHeight"/)
+  assert.match(source, /:keyboard-height="composerKeyboardHeight"/)
+  assert.match(source, /const composerKeyboardHeight = computed\(\(\) => 0\);/)
+  assert.match(source, /const composerKeyboardHeight = computed\(\(\) => keyboardHeight\.value\);/)
   assert.match(source, /@keyboard-height="setKeyboardHeight"/)
   assert.match(source, /function setKeyboardHeight\(/)
 })

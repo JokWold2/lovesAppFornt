@@ -61,7 +61,7 @@ export function shouldStickToBottom({ scrollTop = 0, scrollHeight = 0, viewportH
 }
 
 export function shouldLoadOlderMessagesFromH5Scroll({ scrollTop = 0, hasOlderMessages = false, loadingOlder = false }) {
-  return Boolean(hasOlderMessages) && !Boolean(loadingOlder) && Number(scrollTop) <= 80
+  return Boolean(hasOlderMessages) && !Boolean(loadingOlder) && Number(scrollTop) <= 60
 }
 
 export function shouldAutoScrollOnChatLoad({ forceScroll = false, atBottom = false, userScrolled = false }) {

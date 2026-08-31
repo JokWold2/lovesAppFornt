@@ -18,8 +18,8 @@ test('只在用户接近底部时让轮询结果自动滚动', () => {
 })
 
 test('H5 消息容器只有滚动到顶部且可以加载时才请求更早消息', () => {
-  assert.equal(shouldLoadOlderMessagesFromH5Scroll({ scrollTop: 80, hasOlderMessages: true, loadingOlder: false }), true)
-  assert.equal(shouldLoadOlderMessagesFromH5Scroll({ scrollTop: 81, hasOlderMessages: true, loadingOlder: false }), false)
+  assert.equal(shouldLoadOlderMessagesFromH5Scroll({ scrollTop: 60, hasOlderMessages: true, loadingOlder: false }), true)
+  assert.equal(shouldLoadOlderMessagesFromH5Scroll({ scrollTop: 61, hasOlderMessages: true, loadingOlder: false }), false)
   assert.equal(shouldLoadOlderMessagesFromH5Scroll({ scrollTop: 0, hasOlderMessages: false, loadingOlder: false }), false)
   assert.equal(shouldLoadOlderMessagesFromH5Scroll({ scrollTop: 0, hasOlderMessages: true, loadingOlder: true }), false)
 })
@@ -36,10 +36,10 @@ test('H5 消息节点不能被原生 template 的文档片段包裹', () => {
   assert.doesNotMatch(h5Section, /<template>/)
 })
 
-test('H5 滚动回调会记录用户已离开底部', () => {
+test('H5 滚动状态机会记录用户已离开底部', () => {
   const source = readFileSync(new URL('../pages/chat/chatRoom.vue', import.meta.url), 'utf8')
-  const h5Handler = source.split('function onH5MessageScroll(event) {')[1].split('function showLatestButton()')[0]
-  assert.match(h5Handler, /h5UserScrolledAwayFromBottom\.value = !atBottom\.value/)
+  const scrollStateUpdate = source.split('function updateMessageScrollState({ scrollTop, scrollHeight, clientHeight }) {')[1].split('function onH5MessageScroll(event) {')[0]
+  assert.match(scrollStateUpdate, /h5UserScrolledAwayFromBottom\.value = !atBottom\.value/)
 })
 
 test('仅 H5 的后台刷新关闭自动滚动动画', () => {
