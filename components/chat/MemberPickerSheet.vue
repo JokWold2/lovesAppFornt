@@ -120,7 +120,7 @@ watch(() => props.visible, visible => {
 
 <style scoped lang="scss">
 .sheet-mask { position: fixed; inset: 0; z-index: 20; display: flex; align-items: flex-end; background: rgba(0, 0, 0, .45); }
-.member-sheet { display: flex; width: 100%; min-height: 0; flex-direction: column; padding: 28rpx; border-radius: 28rpx 28rpx 0 0; background: #fff; }
+.member-sheet { display: flex; width: 100%; min-height: 0; box-sizing: border-box; flex-direction: column; padding: 28rpx; border-radius: 28rpx 28rpx 0 0; background: #fff; }
 .sheet-header, .sheet-actions, .member-row { display: flex; align-items: center; }
 .sheet-header { flex: 0 0 auto; justify-content: space-between; margin-bottom: 22rpx; }
 .sheet-title { font-size: 34rpx; font-weight: 700; }
@@ -139,4 +139,11 @@ watch(() => props.visible, visible => {
 .empty { padding: 60rpx 0; text-align: center; }
 .sheet-actions { flex: 0 0 auto; justify-content: space-between; padding-top: 20rpx; }
 .confirm-button { margin: 0; color: #333; background: #ffce00; }
+/* #ifdef H5 */
+.sheet-mask { bottom: var(--app-viewport-bottom-offset, 0px); }
+.member-sheet { padding-bottom: calc(28rpx + env(safe-area-inset-bottom)); }
+/* #endif */
+/* #ifndef H5 */
+.member-sheet { height: 76vh; }
+/* #endif */
 </style>

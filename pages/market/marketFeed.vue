@@ -594,6 +594,7 @@ async function sendComment() {
 	color: #777780;
 }
 .replying {
+	flex: 0 0 auto;
 	padding: 12rpx 0;
 	font-size: 24rpx;
 	color: #63636b;
@@ -608,6 +609,7 @@ async function sendComment() {
 	color: #999;
 }
 .input {
+	flex: 0 0 auto;
 	gap: 20rpx;
 	margin-top: auto;
 	padding: 18rpx 0 16rpx;
@@ -621,4 +623,21 @@ async function sendComment() {
 	border-radius: 28rpx;
 	background: #f5f5f6;
 }
+/* #ifdef H5 */
+.mask {
+	bottom: var(--app-viewport-bottom-offset, 0px);
+}
+.panel {
+	padding-bottom: calc(24rpx + env(safe-area-inset-bottom));
+}
+.input {
+	padding-bottom: 16rpx;
+}
+/* #endif */
+/* #ifndef H5 */
+.panel {
+	height: 60vh;
+	min-height: 60vh;
+}
+/* #endif */
 </style>

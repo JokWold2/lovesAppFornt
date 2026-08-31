@@ -36,4 +36,11 @@ function formatTime(value) {
 .sheet-mask { position: fixed; z-index: 99; inset: 0; background: rgba(0, 0, 0, .45); display: flex; align-items: flex-end; }
 .sheet { display: flex; width: 100%; min-height: 0; flex-direction: column; border-radius: 28rpx 28rpx 0 0; background: #fff; }
 .sheet-head { height: 100rpx; flex: 0 0 auto; display: flex; align-items: center; justify-content: space-between; padding: 0 32rpx; border-bottom: 1rpx solid #eee; }.sheet-title { font-weight: 600; font-size: 30rpx; }.close { font-size: 50rpx; color: #999; line-height: 1; }.like-row { display: flex; align-items: center; gap: 18rpx; padding: 22rpx 32rpx; }.avatar { width: 76rpx; height: 76rpx; border-radius: 50%; background: #eee; }.like-info { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 6rpx; }.name { font-size: 28rpx; color: #222; }.email, .time { font-size: 22rpx; color: #999; }.time { white-space: nowrap; }.empty { color: #999; text-align: center; padding: 70rpx 0; font-size: 26rpx; }
+/* #ifdef H5 */
+.sheet-mask { bottom: var(--app-viewport-bottom-offset, 0px); }
+/* #endif */
+/* #ifndef H5 */
+.sheet { max-height: 70vh; padding-bottom: env(safe-area-inset-bottom); }
+.likes-list { max-height: calc(70vh - 100rpx); }
+/* #endif */
 </style>

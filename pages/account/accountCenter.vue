@@ -158,4 +158,8 @@ watch(currentLocale, updatePageTitle)
 .language-sheet-item.cancel { flex: 0 0 auto; justify-content: center; color: #888; margin-top: 18rpx; font-weight: 500; }
 .danger-card { margin-top: 44rpx; }.danger { color: #e85d5d; }
 .logout-button { display: flex; align-items: center; justify-content: center; height: 96rpx; margin-top: 54rpx; border-radius: 48rpx; color: #fff; background: #ffce00; font-size: 32rpx; font-weight: 600; }
+/* #ifdef H5 */
+.language-sheet-mask { bottom: var(--app-viewport-bottom-offset, 0px); }
+.language-sheet { padding-bottom: calc(32rpx + env(safe-area-inset-bottom)); }
+/* #endif */
 </style>
