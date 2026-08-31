@@ -33,3 +33,9 @@
 - 修复：14 个根样式的 `min-height: 100vh` 改为非 H5 fallback；登录根 `overflow: hidden` 限制为非 H5；padding shorthand 页面在 H5 规则中显式合并 `env(safe-area-inset-bottom)`，保留原业务底部空间。
 - 覆盖：测试验证根类、fallback 条件、H5 覆盖及 safe-area padding，并保留 fixed-bottom/sheet 既有契约。
 - 命令：`node --test utils/h5LongPageLayout.test.mjs utils/h5ViewportLayout.test.mjs utils/h5FixedBottomPages.test.mjs utils/h5SheetLayout.test.mjs`（13/13 PASS）；`git diff --check`（PASS）。
+
+## 修复轮次 2
+
+- RED：测试改为解析 template 后第一个真实根 view，并检查 scoped 根规则；当前 `groupManage`、`chatRequestReview`、`marketList` 的 H5 `min-height: initial` 被明确捕获。
+- GREEN：移除上述三个 H5 根级 `min-height`，仅保留必要的 safe-area `padding-bottom`；非 H5 `min-height: 100vh` fallback 保留。
+- 测试：四组目标测试共 13/13 PASS；`git diff --check` PASS。

@@ -3,50 +3,50 @@ import { readFile } from 'node:fs/promises'
 import test from 'node:test'
 
 const pages = [
-  ['pages/login/login360.vue', 'container', false],
-  ['pages/my/my.vue', 'container', true],
-  ['pages/my/myFile/myFile.vue', 'page', false],
-  ['pages/searchPerson/personShow/personShow.vue', 'page', false],
-  ['pages/my/myLifeShowEdit/myLifeShowEdit.vue', 'container', false],
-  ['pages/notice/notice.vue', 'page', false],
-  ['pages/notice/interactionMessages.vue', 'interaction-page', false],
-  ['pages/account/accountCenter.vue', 'page', true],
-  ['pages/notice/chatRequestReview.vue', 'page', true],
-  ['pages/chat/groupManage.vue', 'page', true],
-  ['pages/chat/groupMembers.vue', 'page', false],
-  ['pages/market/marketList.vue', 'page', true],
-  ['pages/my/myLifeShow/myLifeShow.vue', 'container', true],
-  ['pages/index/index360.vue', 'container', true]
+  ['pages/login/login360.vue', 'container', false], ['pages/my/my.vue', 'container', true],
+  ['pages/my/myFile/myFile.vue', 'page', false], ['pages/searchPerson/personShow/personShow.vue', 'page', false],
+  ['pages/my/myLifeShowEdit/myLifeShowEdit.vue', 'container', false], ['pages/notice/notice.vue', 'page', false],
+  ['pages/notice/interactionMessages.vue', 'interaction-page', false], ['pages/account/accountCenter.vue', 'page', true],
+  ['pages/notice/chatRequestReview.vue', 'page', true], ['pages/chat/groupManage.vue', 'page', true],
+  ['pages/chat/groupMembers.vue', 'page', false], ['pages/market/marketList.vue', 'page', true],
+  ['pages/my/myLifeShow/myLifeShow.vue', 'container', true], ['pages/index/index360.vue', 'container', true]
 ]
 
-function rootRule(source, selector) {
-  const match = source.match(new RegExp(`\\${selector}\\s*\\{([^}]*)\\}`))
-  assert.ok(match, `missing scoped root rule ${selector}`)
-  return { body: match[1], index: match.index }
+function scopedRules(source, selector) {
+  const rules = []
+  const styles = source.matchAll(/<style[^>]*scoped[^>]*>([\s\S]*?)<\/style>/g)
+  for (const style of styles) {
+    const body = style[1]
+    for (const match of body.matchAll(new RegExp(`\\.${selector}\\s*\\{([^}]*)\\}`, 'g'))) {
+      const prefix = body.slice(0, match.index)
+      const h5 = prefix.lastIndexOf('#ifdef H5') > prefix.lastIndexOf('#endif')
+      const nonH5 = prefix.lastIndexOf('#ifndef H5') > prefix.lastIndexOf('#endif')
+      rules.push({ body: match[1], h5, nonH5 })
+    }
+  }
+  return rules
 }
 
-test('普通长页面绑定真实根节点，并隔离 H5 视口规则', async () => {
+test('普通长页面根节点与 scoped H5 规则保持安全', async () => {
   for (const [file, rootClass, mergesPadding] of pages) {
     const source = await readFile(new URL(`../${file}`, import.meta.url), 'utf8')
-    const root = source.match(new RegExp(`<view[^>]*class="${rootClass} app-h5-min-screen"`))
-    assert.ok(root, `${file} template root must carry app-h5-min-screen`)
+    const template = source.slice(source.indexOf('<template>'))
+    const root = template.match(/<view\b([^>]*)>/s)
+    assert.ok(root, `${file} must have a template root view`)
+    assert.match(root[1], new RegExp(`class="[^"]*\\b${rootClass}\\b[^"]*\\bapp-h5-min-screen\\b[^"]*"`), `${file} root classes must be on the first view`)
 
-    const selector = `.${rootClass}`
-    const { body, index } = rootRule(source, selector)
-    assert.match(body, /min-height\s*:\s*100vh/, `${file} keeps non-H5 fallback min-height`)
-    const ruleWindow = source.slice(Math.max(0, index - 100), index + body.length + 100)
-    const fallbackIsScoped = ruleWindow.indexOf('#ifndef H5') !== -1 && ruleWindow.indexOf('#endif') > ruleWindow.indexOf('#ifndef H5')
-    const h5Override = source.match(new RegExp(`#ifdef H5[\\s\\S]*?\\.${rootClass}\\s*\\{([^}]*)\\}`))
-    assert.ok(fallbackIsScoped || h5Override, `${file} fallback root must be non-H5-only or neutralized by an H5 override`)
-    assert.doesNotMatch(root[0], /app-h5-screen|app-h5-scroll/)
-    if (rootClass === 'container' && file.includes('login360')) {
-      assert.match(source, /#ifndef H5[\s\S]*overflow\s*:\s*hidden[\s\S]*#endif/, `${file} login overflow fallback must be non-H5 only`)
+    const rules = scopedRules(source, rootClass)
+    assert.ok(rules.length, `${file} must define a scoped ${rootClass} rule`)
+    const fallback = rules.find(rule => !rule.h5)
+    assert.ok(fallback && /min-height\s*:\s*100vh/.test(fallback.body), `${file} must preserve non-H5 min-height fallback`)
+    for (const rule of rules.filter(rule => rule.h5)) {
+      assert.doesNotMatch(rule.body, /(?:^|[;\s])(min-height|height)\s*:/, `${file} H5 root must not set height`)
+      assert.doesNotMatch(rule.body, /overflow\s*:\s*hidden/, `${file} H5 root must not hide overflow`)
+      if (mergesPadding) assert.match(rule.body, /padding-bottom\s*:[^;}]*env\(safe-area-inset-bottom\)/, `${file} H5 root must merge safe area padding`)
     }
-
-    if (mergesPadding) {
-      const h5 = h5Override
-      assert.ok(h5, `${file} needs a post-H5 root rule to merge safe-area padding`)
-      assert.match(h5[1], /padding-bottom\s*:[^;}]*env\(safe-area-inset-bottom\)/, `${file} H5 root padding must include safe area`)
+    if (file.includes('login360')) {
+      assert.ok(rules.some(rule => /overflow\s*:\s*hidden/.test(rule.body)), 'login non-H5 root keeps overflow fallback')
+      assert.ok(rules.filter(rule => rule.h5).every(rule => !/overflow\s*:\s*hidden/.test(rule.body)), 'login H5 root allows native scrolling')
     }
   }
 })

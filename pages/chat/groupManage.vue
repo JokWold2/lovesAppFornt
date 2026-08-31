@@ -129,6 +129,6 @@ watch(currentLocale, () => uni.setNavigationBarTitle({ title: t('group.manage') 
 </style>
 <style scoped>
 /* #ifdef H5 */
-.page { min-height: initial; padding-bottom: calc(26rpx + env(safe-area-inset-bottom)); }
+.page { padding-bottom: calc(26rpx + env(safe-area-inset-bottom)); }
 /* #endif */
 </style>

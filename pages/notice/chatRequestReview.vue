@@ -39,6 +39,6 @@ watch(currentLocale, () => uni.setNavigationBarTitle({ title: t('review.approve'
 /* #ifdef H5 */
 .mask { bottom: var(--app-viewport-bottom-offset, 0px); }
 .reject-sheet { padding-bottom: calc(30rpx + env(safe-area-inset-bottom)); }
-.page { min-height: initial; padding-bottom: calc(24rpx + env(safe-area-inset-bottom)); }
+.page { padding-bottom: calc(24rpx + env(safe-area-inset-bottom)); }
 /* #endif */
 </style>
