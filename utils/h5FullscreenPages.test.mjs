@@ -16,9 +16,12 @@ test('朋友圈详情在 H5 保持评论栏固定且正文可滚动', async () =
 
 test('市场信息流在 H5 由可滚动容器承载并允许媒体收缩', async () => {
   const source = await readPage('../pages/market/marketFeed.vue')
+  const h5Layout = source.split('/* #ifdef H5 */')[1].split('/* #endif */')[0]
 
   assert.match(source, /<view class="market-feed-page app-h5-screen">/)
   assert.match(source, /class="feed app-h5-scroll"/)
+  assert.match(h5Layout, /\.market-feed-page\s*\{[^}]*display\s*:\s*flex[^}]*flex-direction\s*:\s*column/)
+  assert.match(h5Layout, /\.feed\s*\{[^}]*flex\s*:\s*1[^}]*min-height\s*:\s*0[^}]*height\s*:\s*100%/)
   assert.match(source, /\.item\s*\{[^}]*flex-direction\s*:\s*column/)
   assert.match(source, /\.item\s*\{[^}]*height\s*:\s*100%/)
   assert.match(source, /\.photos\s*\{[^}]*flex\s*:\s*1[^}]*min-height\s*:\s*0/)

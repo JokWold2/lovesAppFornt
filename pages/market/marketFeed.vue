@@ -396,6 +396,15 @@ async function sendComment() {
 }
 /* #endif */
 /* #ifdef H5 */
+.market-feed-page {
+	display: flex;
+	flex-direction: column;
+}
+.feed {
+	flex: 1;
+	min-height: 0;
+	height: 100%;
+}
 .item {
 	height: 100%;
 }
