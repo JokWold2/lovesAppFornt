@@ -1499,3 +1499,8 @@ textarea.input {
 	border: 1px solid var(--line);
 }
 </style>
+<style scoped>
+/* #ifndef H5 */
+.page { min-height: 100vh; }
+/* #endif */
+</style>

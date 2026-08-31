@@ -617,3 +617,8 @@ onUnload(() => {
   height: calc(50rpx + var(--safe-area-inset-bottom));
 }
 </style>
+<style scoped>
+/* #ifndef H5 */
+.container { min-height: 100vh; }
+/* #endif */
+</style>

@@ -382,3 +382,8 @@ watch(currentLocale, () => uni.setNavigationBarTitle({ title: t('navigation.mess
 	font-size: 27rpx;
 }
 </style>
+<style scoped>
+/* #ifndef H5 */
+.page { min-height: 100vh; }
+/* #endif */
+</style>

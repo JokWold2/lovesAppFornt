@@ -168,3 +168,8 @@ watch(currentLocale, updatePageTitle)
 .language-sheet { padding-bottom: calc(32rpx + env(safe-area-inset-bottom)); }
 /* #endif */
 </style>
+<style scoped>
+/* #ifndef H5 */
+.page { min-height: 100vh; }
+/* #endif */
+</style>

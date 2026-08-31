@@ -1596,3 +1596,8 @@ $gray-bg: #f5f6f8;
 	height: env(safe-area-inset-bottom);
 }
 </style>
+<style scoped>
+/* #ifndef H5 */
+.container { min-height: 100vh; }
+/* #endif */
+</style>

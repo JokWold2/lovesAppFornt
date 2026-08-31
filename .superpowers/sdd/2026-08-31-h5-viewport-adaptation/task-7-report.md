@@ -39,3 +39,9 @@
 - RED：测试改为解析 template 后第一个真实根 view，并检查 scoped 根规则；当前 `groupManage`、`chatRequestReview`、`marketList` 的 H5 `min-height: initial` 被明确捕获。
 - GREEN：移除上述三个 H5 根级 `min-height`，仅保留必要的 safe-area `padding-bottom`；非 H5 `min-height: 100vh` fallback 保留。
 - 测试：四组目标测试共 13/13 PASS；`git diff --check` PASS。
+
+## 修复轮次 3
+
+- RED：新条件归属测试先运行失败，首个具体失败为 `pages/login/login360.vue` 根 fallback 未在可提取的 `#ifndef H5` block 中；随后暴露三页无条件根 `min-height:100vh`。
+- GREEN：14 页均增加明确的非 H5 根 fallback block；`groupManage`、`chatRequestReview`、`marketList` 的 base 根规则移除 `min-height`，H5 规则仅保留 safe-area padding。
+- 测试命令：`node --test utils/h5LongPageLayout.test.mjs utils/h5ViewportLayout.test.mjs utils/h5FixedBottomPages.test.mjs utils/h5SheetLayout.test.mjs`，13/13 PASS；`git diff --check` PASS。

@@ -33,3 +33,8 @@ watch(currentLocale, () => uni.setNavigationBarTitle({ title: t('inbox.interacti
 /* #endif */
 .interaction-page{background:#fff}.state{padding:150rpx 0;text-align:center;color:#999}.interaction-item{display:flex;gap:22rpx;padding:28rpx 30rpx;border-bottom:1rpx solid #f0f0f0}.avatar{width:92rpx;height:92rpx;flex:0 0 92rpx;border-radius:50%;background:#eee}.placeholder{display:flex;align-items:center;justify-content:center;color:#999}.content{min-width:0;flex:1}.title{display:block;color:#1e2029;font-size:30rpx;font-weight:700}.text{display:block;margin-top:10rpx;color:#333;font-size:28rpx}.time{display:block;margin-top:10rpx;color:#aaa;font-size:22rpx}.reply{display:inline-block;margin-top:14rpx;padding:8rpx 18rpx;border-radius:24rpx;background:#f5f5f6;color:#666;font-size:22rpx}.thumbnail{width:112rpx;height:112rpx;flex:0 0 112rpx;border-radius:10rpx;background:#eee}
 </style>
+<style scoped>
+/* #ifndef H5 */
+.interaction-page { min-height: 100vh; }
+/* #endif */
+</style>

@@ -12,19 +12,12 @@ const pages = [
   ['pages/my/myLifeShow/myLifeShow.vue', 'container', true], ['pages/index/index360.vue', 'container', true]
 ]
 
-function scopedRules(source, selector) {
-  const rules = []
-  const styles = source.matchAll(/<style[^>]*scoped[^>]*>([\s\S]*?)<\/style>/g)
-  for (const style of styles) {
-    const body = style[1]
-    for (const match of body.matchAll(new RegExp(`\\.${selector}\\s*\\{([^}]*)\\}`, 'g'))) {
-      const prefix = body.slice(0, match.index)
-      const h5 = prefix.lastIndexOf('#ifdef H5') > prefix.lastIndexOf('#endif')
-      const nonH5 = prefix.lastIndexOf('#ifndef H5') > prefix.lastIndexOf('#endif')
-      rules.push({ body: match[1], h5, nonH5 })
-    }
-  }
-  return rules
+function conditionalBlocks(source, directive) {
+  return [...source.matchAll(new RegExp(`/\\* #${directive} H5 \\*/([\\s\\S]*?)/\\* #endif \\*/`, 'g'))].map(match => match[1])
+}
+
+function rulesIn(block, selector) {
+  return [...block.matchAll(new RegExp(`\\.${selector}\\s*\\{([^}]*)\\}`, 'g'))].map(match => match[1])
 }
 
 test('普通长页面根节点与 scoped H5 规则保持安全', async () => {
@@ -35,18 +28,19 @@ test('普通长页面根节点与 scoped H5 规则保持安全', async () => {
     assert.ok(root, `${file} must have a template root view`)
     assert.match(root[1], new RegExp(`class="[^"]*\\b${rootClass}\\b[^"]*\\bapp-h5-min-screen\\b[^"]*"`), `${file} root classes must be on the first view`)
 
-    const rules = scopedRules(source, rootClass)
-    assert.ok(rules.length, `${file} must define a scoped ${rootClass} rule`)
-    const fallback = rules.find(rule => !rule.h5)
-    assert.ok(fallback && /min-height\s*:\s*100vh/.test(fallback.body), `${file} must preserve non-H5 min-height fallback`)
-    for (const rule of rules.filter(rule => rule.h5)) {
-      assert.doesNotMatch(rule.body, /(?:^|[;\s])(min-height|height)\s*:/, `${file} H5 root must not set height`)
-      assert.doesNotMatch(rule.body, /overflow\s*:\s*hidden/, `${file} H5 root must not hide overflow`)
-      if (mergesPadding) assert.match(rule.body, /padding-bottom\s*:[^;}]*env\(safe-area-inset-bottom\)/, `${file} H5 root must merge safe area padding`)
+    const nonH5 = conditionalBlocks(source, 'ifndef').flatMap(block => rulesIn(block, rootClass))
+    const h5 = conditionalBlocks(source, 'ifdef').flatMap(block => rulesIn(block, rootClass))
+    assert.ok(nonH5.some(body => /min-height\s*:\s*100vh/.test(body)), `${file} non-H5 root fallback must contain min-height:100vh`)
+    const withoutNonH5 = source.replaceAll(/\/\* #ifndef H5 \*\/[\s\S]*?\/\* #endif \*\//g, '')
+    assert.doesNotMatch(withoutNonH5, new RegExp(`\\.${rootClass}\\s*\\{[^}]*min-height\\s*:\\s*100vh`), `${file} must not leave unconditional root min-height`)
+    for (const body of h5) {
+      assert.doesNotMatch(body, /(?:^|[;\s])(min-height|height)\s*:/, `${file} H5 root must not set height`)
+      assert.doesNotMatch(body, /overflow\s*:\s*hidden/, `${file} H5 root must not hide overflow`)
+      if (mergesPadding) assert.match(body, /padding-bottom\s*:[^;}]*env\(safe-area-inset-bottom\)/, `${file} H5 root must merge safe area padding`)
     }
     if (file.includes('login360')) {
-      assert.ok(rules.some(rule => /overflow\s*:\s*hidden/.test(rule.body)), 'login non-H5 root keeps overflow fallback')
-      assert.ok(rules.filter(rule => rule.h5).every(rule => !/overflow\s*:\s*hidden/.test(rule.body)), 'login H5 root allows native scrolling')
+      assert.ok(nonH5.some(body => /overflow\s*:\s*hidden/.test(body)), 'login non-H5 root keeps overflow fallback')
+      assert.doesNotMatch(withoutNonH5, /\.container\s*\{[^}]*overflow\s*:\s*hidden/, 'login H5 root allows native scrolling')
     }
   }
 })

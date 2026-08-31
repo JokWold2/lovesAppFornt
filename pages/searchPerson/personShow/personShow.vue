@@ -155,3 +155,8 @@ function goBack() {
 .chat-request--muted { background: #d9d9d9; color: #888; }
 .chat-request--approved { background: #69a978; color: #fff; }
 </style>
+<style scoped>
+/* #ifndef H5 */
+.page { min-height: 100vh; }
+/* #endif */
+</style>

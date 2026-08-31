@@ -107,3 +107,8 @@ $text-color-black: #333;
   box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
 }
 </style>
+<style scoped>
+/* #ifndef H5 */
+.container { min-height: 100vh; }
+/* #endif */
+</style>
