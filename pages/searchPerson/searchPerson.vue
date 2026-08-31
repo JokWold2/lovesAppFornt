@@ -1,11 +1,11 @@
 <template>
-  <view class="page">
+  <view class="page app-h5-screen">
 
     <view class="header">
       <text class="header-title">🔍 {{ t('search.title') }}</text>
     </view>
 
-    <scroll-view scroll-y class="content-area" style="box-sizing: border-box;">
+    <scroll-view scroll-y class="content-area app-h5-scroll" style="box-sizing: border-box;">
 
       <!-- 卡片1：選擇條件 -->
       <view class="form-card">
@@ -302,7 +302,7 @@
     </scroll-view>
 
     <!-- 底部固定按鈕 -->
-    <view class="bottom-bar">
+    <view class="bottom-bar app-h5-fixed-bottom">
       <view class="btn btn-submit" @tap="onSearch">{{ t('search.search') }}</view>
       <view class="btn btn-reset" @tap="onReset">{{ t('search.reset') }}</view>
     </view>
@@ -458,6 +458,12 @@ function onReset () {
   font-size: 14px;
 }
 
+/* #ifdef H5 */
+.page {
+  min-height: 0;
+}
+/* #endif */
+
 /* ====== 頂部 ====== */
 .header {
   padding: 24px 20px 15px;
@@ -473,7 +479,7 @@ function onReset () {
 /* ====== 內容區 ====== */
 .content-area {
   flex: 1;
-  padding: 15px 15px 100px;
+  padding: 15px 15px calc(100px + env(safe-area-inset-bottom));
 }
 
 .form-card {
@@ -635,7 +641,6 @@ function onReset () {
   position: fixed;
   left: 0;
   right: 0;
-  bottom: 0;
   padding: 12px 20px calc(env(safe-area-inset-bottom) + 12px);
   background: rgba(255, 255, 255, 0.95);
   border-top: 1px solid var(--border-color);

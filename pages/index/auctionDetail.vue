@@ -1,5 +1,5 @@
 <template>
-	<view class="auction-detail">
+	<view class="auction-detail app-h5-min-screen">
 		<view v-if="loading" class="state-box"><text>{{ t('auctionDetail.loading') }}</text></view>
 		<view v-else-if="!auction" class="state-box"
 			><text>{{ errorMessage }}</text></view
@@ -98,7 +98,7 @@
 			</view>
 		</template>
 
-		<view v-if="auction" class="bottom-bar">
+		<view v-if="auction" class="bottom-bar app-h5-fixed-bottom">
 			<view
 				class="bottom-action"
 				@click="showFeatureTip(t('auctionDetail.customerService'))"
@@ -398,7 +398,6 @@ $page-bg: #f7f7f7;
 .bottom-bar {
 	position: fixed;
 	right: 0;
-	bottom: 0;
 	left: 0;
 	display: flex;
 	align-items: center;

@@ -529,7 +529,7 @@
 			</view>
 			<!-- <AuctionActivity v-if="currentEntryIndex == 2" /> -->
 			<!-- 右下角悬浮按钮：改为回到顶部 -->
-			<view class="fab-button" @click="scrollToTop">
+			<view class="fab-button app-h5-fixed-bottom" @click="scrollToTop">
 				<uni-icons type="arrow-up" size="28" color="#000"></uni-icons>
 			</view>
 		</view>
@@ -1091,6 +1091,7 @@ $gray-bg: #f5f6f8;
 .container {
 	background-color: $bg-color;
 	min-height: 100vh;
+	padding-bottom: calc(300rpx + env(safe-area-inset-bottom));
 	position: relative;
 }
 
@@ -1574,7 +1575,7 @@ $gray-bg: #f5f6f8;
 .fab-button {
 	position: fixed;
 	right: 40rpx;
-	bottom: 200rpx;
+	--app-fixed-bottom-base: 200rpx;
 	width: 100rpx;
 	height: 100rpx;
 	background-color: $brand-yellow;

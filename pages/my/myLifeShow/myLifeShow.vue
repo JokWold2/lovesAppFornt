@@ -177,7 +177,7 @@
     </view>
 
     <!-- 底部发布按钮 -->
-    <view class="fab-container" @click="goToEdit">
+    <view class="fab-container app-h5-fixed-bottom" @click="goToEdit">
       <FloatingActionButton text="+" />
       <!-- <view class="fab" @click="goToEdit">
         <text class="fab-icon">+</text>
@@ -712,7 +712,7 @@ onShow(() => {
 .container {
   min-height: 100vh;
   background-color: #f5f5f5;
-  padding-bottom: 150rpx;
+  padding-bottom: calc(160rpx + env(safe-area-inset-bottom));
 }
 
 .loading-container {
@@ -1212,7 +1212,7 @@ onShow(() => {
 /* --- 底部发布按钮 --- */
 .fab-container {
   position: fixed;
-  bottom: 60rpx;
+  --app-fixed-bottom-base: 60rpx;
   right: 40rpx;
 //   z-index: 100;
 }
