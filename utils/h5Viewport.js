@@ -26,27 +26,36 @@ export function installH5Viewport(windowLike = window, documentLike = document) 
   let disposed = false
   let frameId
 
+  const syncNow = () => {
+    try {
+      if (!isValidNumber(windowLike.innerHeight)) return
+      const metrics = measureH5Viewport(windowLike)
+      writeH5ViewportVariables(documentLike.documentElement, metrics)
+    } catch {
+      console.warn('[h5Viewport] viewport sync failed')
+    }
+  }
+
   const sync = () => {
     if (disposed || framePending) return
     framePending = true
-    frameId = windowLike.requestAnimationFrame(() => {
+    try {
+      frameId = windowLike.requestAnimationFrame(() => {
+        framePending = false
+        if (disposed) return
+        syncNow()
+      })
+    } catch {
       framePending = false
-      if (disposed) return
-      try {
-        if (!isValidNumber(windowLike.innerHeight)) return
-        const metrics = measureH5Viewport(windowLike)
-        writeH5ViewportVariables(documentLike.documentElement, metrics)
-      } catch {
-        console.warn('[h5Viewport] viewport sync failed')
-      }
-    })
+      console.warn('[h5Viewport] viewport sync failed')
+    }
   }
 
   const windowEvents = ['resize', 'orientationchange', 'pageshow']
   const visualEvents = ['resize', 'scroll']
   windowEvents.forEach((type) => windowLike.addEventListener(type, sync))
   visualEvents.forEach((type) => visualViewport?.addEventListener(type, sync))
-  sync()
+  syncNow()
 
   return () => {
     if (disposed) return

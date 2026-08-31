@@ -78,8 +78,7 @@ test('installs, synchronizes on every viewport event, coalesces frames, and clea
   windowLike.requestAnimationFrame = (callback) => { rafCalls += 1; frameCallback = callback; return rafCalls }
 
   const cleanup = installH5Viewport(windowLike, documentLike)
-  assert.equal(rafCalls, 1)
-  frameCallback()
+  assert.equal(rafCalls, 0)
   assert.equal(values['--app-viewport-height'], '500px')
   assert.equal(values['--app-viewport-bottom-offset'], '324px')
 
@@ -101,6 +100,23 @@ test('installs, synchronizes on every viewport event, coalesces frames, and clea
   windowLike.dispatch('resize')
   visualViewport.dispatch('resize')
   assert.equal(rafCalls, beforeCleanup)
+})
+
+test('warns with a fixed message when scheduling an update fails', () => {
+  const { windowLike } = makeViewportWindow()
+  const documentLike = { documentElement: { style: { setProperty() {} } } }
+  windowLike.requestAnimationFrame = () => { throw new Error('scheduling detail') }
+  const warnings = []
+  const originalWarn = console.warn
+  console.warn = (...args) => warnings.push(args)
+  try {
+    const cleanup = installH5Viewport(windowLike, documentLike)
+    windowLike.dispatch('resize')
+    assert.deepEqual(warnings, [['[h5Viewport] viewport sync failed']])
+    cleanup()
+  } finally {
+    console.warn = originalWarn
+  }
 })
 
 test('does not overwrite the last valid variables when a later reading is invalid', () => {
