@@ -1,7 +1,7 @@
 <template>
-	<view class="market-feed-page">
+	<view class="market-feed-page app-h5-screen">
 		<swiper
-			class="feed"
+			class="feed app-h5-scroll"
 			vertical
 			:current="current"
 			@change="current = $event.detail.current"
@@ -378,18 +378,33 @@ async function sendComment() {
 <style scoped>
 .market-feed-page,
 .feed {
-	height: 100vh;
 	background: #111;
 }
 .item {
 	position: relative;
 	display: flex;
-	height: 100vh;
 	flex-direction: column;
 }
 .photos {
 	height: 76vh;
 }
+/* #ifndef H5 */
+.market-feed-page,
+.feed,
+.item {
+	height: 100vh;
+}
+/* #endif */
+/* #ifdef H5 */
+.item {
+	height: 100%;
+}
+.photos {
+	flex: 1;
+	min-height: 0;
+	height: auto;
+}
+/* #endif */
 .photo,
 .empty-photo {
 	width: 100%;
