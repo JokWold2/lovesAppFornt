@@ -64,6 +64,28 @@ export function shouldLoadOlderMessagesFromH5Scroll({ scrollTop = 0, hasOlderMes
   return Boolean(hasOlderMessages) && !Boolean(loadingOlder) && Number(scrollTop) <= 60
 }
 
+function readFiniteH5ScrollMetrics(source) {
+  const scrollTop = Number(source?.scrollTop)
+  const scrollHeight = Number(source?.scrollHeight)
+  const clientHeight = Number(source?.clientHeight)
+  if (
+    !Number.isFinite(scrollTop)
+    || !Number.isFinite(scrollHeight)
+    || !Number.isFinite(clientHeight)
+    || scrollTop < 0
+    || scrollHeight <= 0
+    || clientHeight <= 0
+  ) return null
+  return { scrollTop, scrollHeight, clientHeight }
+}
+
+export function readH5MessageScrollMetrics({ element, event } = {}) {
+  return readFiniteH5ScrollMetrics(element)
+    || readFiniteH5ScrollMetrics(event?.detail)
+    || readFiniteH5ScrollMetrics(event?.target)
+    || readFiniteH5ScrollMetrics(event?.currentTarget)
+}
+
 export function shouldAutoScrollOnChatLoad({ forceScroll = false, atBottom = false, userScrolled = false }) {
   return !Boolean(userScrolled) && (Boolean(forceScroll) || Boolean(atBottom))
 }

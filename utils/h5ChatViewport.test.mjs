@@ -10,7 +10,8 @@ test('H5 群聊只有一个可滚动的消息容器，且输入栏位于其后',
   assert.doesNotMatch(source, /addEventListener\(['"]scroll['"]/)
 
   const h5ScrollHandler = source.split('function onH5MessageScroll(event) {')[1].split('function showLatestButton()')[0]
-  assert.match(h5ScrollHandler, /event\?\.currentTarget \|\| event\?\.target \|\| h5MessagesRef\.value/)
+  assert.match(h5ScrollHandler, /readH5MessageScrollMetrics\(\{\s+element: getH5MessagesElement\(\),\s+event,\s+\}\)/)
+  assert.match(h5ScrollHandler, /if \(metrics\) updateMessageScrollState\(metrics\)/)
   assert.doesNotMatch(h5ScrollHandler, /isTrusted|hasUserTriggeredH5Scroll|isBlockingProgrammaticH5Scroll/)
 
   const scrollStateUpdate = source.split('function updateMessageScrollState({ scrollTop, scrollHeight, clientHeight }) {')[1].split('function onH5MessageScroll(event) {')[0]

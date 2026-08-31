@@ -2,7 +2,7 @@ import test from 'node:test'
 import assert from 'node:assert/strict'
 import { readFileSync } from 'node:fs'
 
-import { buildChatDisplayItems, mergeChatMessages, shouldAutoScrollOnChatLoad, shouldLoadOlderMessagesFromH5Scroll, shouldShowChatLatestButton, shouldStickToBottom, shouldStickToBottomAfterChatLoad } from './chatMessageListState.js'
+import { buildChatDisplayItems, mergeChatMessages, readH5MessageScrollMetrics, shouldAutoScrollOnChatLoad, shouldLoadOlderMessagesFromH5Scroll, shouldShowChatLatestButton, shouldStickToBottom, shouldStickToBottomAfterChatLoad } from './chatMessageListState.js'
 
 test('消息列表会在跨日处插入时间分隔项', () => {
   const items = buildChatDisplayItems([
@@ -22,6 +22,22 @@ test('H5 消息容器只有滚动到顶部且可以加载时才请求更早消�
   assert.equal(shouldLoadOlderMessagesFromH5Scroll({ scrollTop: 61, hasOlderMessages: true, loadingOlder: false }), false)
   assert.equal(shouldLoadOlderMessagesFromH5Scroll({ scrollTop: 0, hasOlderMessages: false, loadingOlder: false }), false)
   assert.equal(shouldLoadOlderMessagesFromH5Scroll({ scrollTop: 0, hasOlderMessages: true, loadingOlder: true }), false)
+})
+
+test('H5 包装滚动事件没有 metrics 时读取实际消息容器位置', () => {
+  const metrics = readH5MessageScrollMetrics({
+    element: { scrollTop: 234, scrollHeight: 1601, clientHeight: 687 },
+    event: { currentTarget: { scrollTop: 0, scrollHeight: 0, clientHeight: 0 } },
+  })
+
+  assert.deepEqual(metrics, { scrollTop: 234, scrollHeight: 1601, clientHeight: 687 })
+  assert.equal(shouldStickToBottom({ ...metrics, viewportHeight: metrics.clientHeight }), false)
+  assert.equal(
+    readH5MessageScrollMetrics({
+      event: { currentTarget: { scrollTop: 0, scrollHeight: 0, clientHeight: 0 } },
+    }),
+    null,
+  )
 })
 
 test('H5 用户手动查看历史消息后不会被首屏请求强制拉回底部', () => {

@@ -118,6 +118,7 @@ import GroupMemberSheet from "@/components/chat/GroupMemberSheet.vue";
 import {
 	buildChatDisplayItems,
 	mergeChatMessages,
+	readH5MessageScrollMetrics,
 	shouldAutoScrollOnChatLoad,
 	shouldLoadOlderMessagesFromH5Scroll,
 	shouldShowChatLatestButton,
@@ -421,12 +422,11 @@ function updateMessageScrollState({ scrollTop, scrollHeight, clientHeight }) {
 }
 
 function onH5MessageScroll(event) {
-	const target = event?.currentTarget || event?.target || h5MessagesRef.value;
-	updateMessageScrollState({
-		scrollTop: Number(target?.scrollTop || 0),
-		scrollHeight: Number(target?.scrollHeight || 0),
-		clientHeight: Number(target?.clientHeight || 0),
+	const metrics = readH5MessageScrollMetrics({
+		element: getH5MessagesElement(),
+		event,
 	});
+	if (metrics) updateMessageScrollState(metrics);
 }
 function showLatestButton() {
 	latestButtonVisible.value = true;
