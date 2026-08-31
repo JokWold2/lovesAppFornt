@@ -4,7 +4,7 @@
 		:style="{ marginBottom: `${keyboardHeight}px` }"
 	>
 		<view v-if="replyMessage" class="replying"
-			><text>回复 {{ replyPreview.author }}：{{ replyPreview.text }}</text
+			><text>{{ t('chat.replyTo', { name: replyPreview.author, text: replyPreview.text }) }}</text
 			><text class="close-reply" @tap="$emit('close-reply')"
 				>×</text
 			></view
@@ -19,7 +19,7 @@
 				:cursor-spacing="20"
 				maxlength="2000"
 				confirm-type="send"
-				placeholder="发消息"
+				:placeholder="t('chat.sendMessage')"
 				@focus="$emit('focus')"
 				@input="onInput"
 				@confirm="send"
@@ -87,6 +87,7 @@ import {
 	makeTextMessagePayload,
 } from "@/utils/chatComposerState.js";
 import { formatReplyPreview } from "@/utils/chatMessagePresentation.js";
+import { t } from '@/utils/localeRuntime.js';
 
 const props = defineProps({
 	members: { type: Array, default: () => [] },

@@ -39,6 +39,13 @@
 			}
 		},
 		{
+			"path": "pages/moments/momentDetail",
+			"style": {
+				"navigationBarTitleText": "动态详情",
+				"disableScroll": true
+			}
+		},
+		{
 			"path": "pages/notice/notice",
 			"style": {
 				"enablePullDownRefresh": true,

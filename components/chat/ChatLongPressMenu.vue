@@ -2,8 +2,8 @@
   <view v-if="visible" class="menu-mask" @tap="$emit('close')">
     <view class="menu" :style="menuStyle" @tap.stop>
       <view class="menu-arrow" :class="`arrow-${position.arrow}`"></view>
-      <view v-if="message?.message_type !== 'image'" class="menu-item" @tap="copy"><text class="menu-icon">▣</text><text>复制</text></view>
-      <view class="menu-item" @tap="$emit('reply', message)"><text class="menu-icon">↩</text><text>引用回复</text></view>
+      <view v-if="message?.message_type !== 'image'" class="menu-item" @tap="copy"><text class="menu-icon">▣</text><text>{{ t('chat.copy') }}</text></view>
+      <view class="menu-item" @tap="$emit('reply', message)"><text class="menu-icon">↩</text><text>{{ t('chat.quoteReply') }}</text></view>
     </view>
   </view>
 </template>
@@ -11,10 +11,11 @@
 <script setup>
 import { computed } from 'vue'
 import { getLongPressMenuPosition } from '@/utils/chatLongPressMenuPosition.js'
+import { t } from '@/utils/localeRuntime.js'
 
 const props = defineProps({ visible: Boolean, message: { type: Object, default: null }, anchor: { type: Object, default: null } })
 const emit = defineEmits(['close', 'reply'])
-function copy() { if (!props.message?.content) return; uni.setClipboardData({ data: props.message.content, success: () => uni.showToast({ title: '已复制', icon: 'success' }) }); emit('close') }
+function copy() { if (!props.message?.content) return; uni.setClipboardData({ data: props.message.content, success: () => uni.showToast({ title: t('chat.copied'), icon: 'success' }) }); emit('close') }
 const viewport = computed(() => {
   const info = uni.getSystemInfoSync?.() || {}
   return { width: Number(info.windowWidth) || 390, height: Number(info.windowHeight) || 760 }

@@ -2,13 +2,37 @@
 	<view class="page">
 		<view class="room-head">
 			<GroupAvatar :avatar-url="groupAvatarUrl" :members="members" :size="36" />
-			<view class="group-copy"><text class="group-name">{{ groupName || "群聊" }}</text><text class="online-count" @tap="openOnlineMembers">{{ onlineLabel }}</text></view>
+			<view class="group-copy"><text class="group-name">{{ groupName || t('inbox.groupChat') }}</text><text class="online-count" @tap="openOnlineMembers">{{ onlineLabel }}</text></view>
 			<text
 				v-if="isGroupAdmin && groupStatus === 'active'"
 				class="group-manage"
 				@tap="openGroupManage"
-			>群管理</text>
+			>{{ t('inbox.groupManage') }}</text>
 		</view>
+		<!-- #ifdef H5 -->
+		<view ref="h5MessagesRef" class="messages messages--h5" @scroll="onH5MessageScroll">
+			<view v-if="loadingOlder" class="history-loading"><text>{{ t('inbox.loading') }}</text></view>
+			<view v-for="item in displayItems" :key="item.key">
+				<view v-if="item.kind === 'time'" class="time-divider">{{
+					item.label
+				}}</view>
+				<ChatMessageBubble
+					v-else
+					:id="`message-${item.message.id}`"
+					:message="item.message"
+					:mine="Number(item.message.sender_user_id) === myId"
+					@message-long-press="openLongPressMenu"
+					@preview-image="previewImage"
+					@show-read-members="openReadMembers"
+				/>
+			</view>
+			<view v-if="!loading && !messages.length" class="empty"
+				>{{ t('inbox.emptyChat') }}</view
+			>
+			<view class="messages-end" />
+		</view>
+		<!-- #endif -->
+		<!-- #ifndef H5 -->
 		<scroll-view
 			class="messages"
 			scroll-y
@@ -19,7 +43,7 @@
 			@scrolltoupper="loadOlderMessages"
 			@scrolltolower="atBottom = true"
 		>
-			<view v-if="loadingOlder" class="history-loading"><text>加载中…</text></view>
+			<view v-if="loadingOlder" class="history-loading"><text>{{ t('inbox.loading') }}</text></view>
 			<template>
 				<view v-for="item in displayItems" :key="item.key">
 					<view v-if="item.kind === 'time'" class="time-divider">{{
@@ -37,15 +61,16 @@
 				</view>
 			</template>
 			<view v-if="!loading && !messages.length" class="empty"
-				>还没有消息，开始聊聊吧</view
+				>{{ t('inbox.emptyChat') }}</view
 			>
 			<view id="messages-end" class="messages-end" />
 		</scroll-view>
+		<!-- #endif -->
 		<view
 			v-if="latestButtonVisible"
 			class="back-to-latest"
 			:class="{ 'back-to-latest-leaving': latestButtonLeaving }"
-			:style="{ bottom: `${keyboardHeight + 88}px` }"
+			:style="{ bottom: `${latestButtonBottomOffset}px` }"
 			@tap="returnToLatest"
 			><text class="latest-chevron">⌄</text><text class="latest-chevron">⌄</text></view
 		>
@@ -61,7 +86,7 @@
 			@keyboard-height="setKeyboardHeight"
 			@focus="scrollToLast"
 		/>
-		<view v-else-if="isGroupMember" class="dissolved-note">该群已解散，仅可查看历史消息</view>
+		<view v-else-if="isGroupMember" class="dissolved-note">{{ t('inbox.dissolvedNote') }}</view>
 		<ChatLongPressMenu
 			:visible="Boolean(menuMessage)"
 			:message="menuMessage"
@@ -74,7 +99,7 @@
 </template>
 
 <script setup>
-import { computed, nextTick, ref } from "vue";
+import { computed, nextTick, ref, watch } from "vue";
 import { onHide, onLoad, onShow, onUnload } from "@dcloudio/uni-app";
 import {
 	getChatGroupMembersApi,
@@ -92,6 +117,8 @@ import GroupMemberSheet from "@/components/chat/GroupMemberSheet.vue";
 import {
 	buildChatDisplayItems,
 	mergeChatMessages,
+	shouldAutoScrollOnChatLoad,
+	shouldLoadOlderMessagesFromH5Scroll,
 	shouldStickToBottom,
 } from "@/utils/chatMessageListState.js";
 import {
@@ -100,7 +127,7 @@ import {
 } from "@/utils/chatComposerState.js";
 import { presentGroupName } from "@/utils/chatGroupPresentation.js";
 import { refreshUnreadBadge } from "@/utils/unreadBadge.js";
-import { onlineMemberLabel } from "@/utils/groupMemberSheetState.js";
+import { currentLocale, t } from '@/utils/localeRuntime.js';
 
 const groupId = ref("");
 const messages = ref([]);
@@ -113,6 +140,7 @@ const isGroupAdmin = ref(false);
 const isGroupMember = ref(false);
 const scrollIntoView = ref("");
 const scrollWithAnimation = ref(false);
+const h5MessagesRef = ref(null);
 const groupName = ref("");
 const groupAvatarUrl = ref("");
 const groupStatus = ref("active");
@@ -127,32 +155,107 @@ const loadingOlder = ref(false);
 const hasOlderMessages = ref(true);
 const latestButtonVisible = ref(false);
 const latestButtonLeaving = ref(false);
+const h5UserScrolledAwayFromBottom = ref(false);
 const myId = Number(uni.getStorageSync("USER_INFO")?.id);
 const viewportHeight = Math.max(
 	0,
 	Number(uni.getSystemInfoSync?.().windowHeight || 700) - 150,
 );
+// #ifdef H5
+const latestButtonBottomOffset = computed(() => Math.max(0, Number(keyboardHeight.value)) + 128);
+// #endif
+// #ifndef H5
+const latestButtonBottomOffset = computed(() => Number(keyboardHeight.value) + 88);
+// #endif
 let pollTimer = null;
 let latestButtonTimer = null;
 let latestButtonLeaveTimer = null;
 let forceScrollAfterLoad = true;
+let forceScrollReason = "initial";
 let hasLoadedInitialMessages = false;
+let h5ScrollHandler = null;
+let h5ScrollListenerMounted = false;
+let isBlockingProgrammaticH5Scroll = false;
+let hasUserTriggeredH5Scroll = false;
 const messagePageSize = 15;
 const displayItems = computed(() => buildChatDisplayItems(messages.value));
-const onlineLabel = computed(() => onlineMemberLabel(onlineMembers.value.length));
-const memberSheetTitle = computed(() => memberSheet.value === 'read' ? '已读成员' : '在线成员');
+const onlineLabel = computed(() => `${onlineMembers.value.length} ${t('inbox.onlineMembers')}`);
+const memberSheetTitle = computed(() => memberSheet.value === 'read' ? t('inbox.readMembers') : t('inbox.onlineMembers'));
+
+function getH5MessagesElement() {
+	let element = h5MessagesRef.value?.$el || h5MessagesRef.value;
+	if (!element && typeof document !== "undefined") {
+		element = document.querySelector(".messages--h5");
+	}
+	return element || null;
+}
+
+function captureH5ScrollState() {
+	const element = getH5MessagesElement();
+	if (!element) return null;
+	return {
+		scrollTop: Number(element.scrollTop) || 0,
+		scrollHeight: Number(element.scrollHeight) || 0,
+		clientHeight: Number(element.clientHeight) || 0,
+	};
+}
+
+function restoreH5ScrollState(snapshot) {
+	if (!snapshot) return;
+	isBlockingProgrammaticH5Scroll = true;
+	nextTick(() => {
+		const element = getH5MessagesElement();
+		if (!element) return;
+		const maxScrollTop = Math.max(0, (Number(element.scrollHeight) || 0) - (Number(element.clientHeight) || 0));
+		const nextScrollTop = Number(snapshot.scrollTop) || 0;
+		element.scrollTo({
+			top: Math.min(maxScrollTop, Math.max(0, nextScrollTop)),
+			behavior: "auto",
+		});
+	});
+	setTimeout(() => {
+		isBlockingProgrammaticH5Scroll = false;
+	}, 300);
+}
 
 function scrollToLast({ animated = true } = {}) {
 	if (!messages.value.length) return;
+	// #ifdef H5
+	isBlockingProgrammaticH5Scroll = true;
+	nextTick(() => {
+		const element = h5MessagesRef.value?.$el || h5MessagesRef.value;
+		if (!element) return;
+		element.scrollTo({
+			top: element.scrollHeight,
+			behavior: animated ? "smooth" : "auto",
+		});
+	});
+	setTimeout(() => {
+		isBlockingProgrammaticH5Scroll = false;
+	}, 450);
+	return;
+	// #endif
+	// #ifndef H5
 	// Reset first because setting the same target twice does not re-scroll in WeChat.
 	scrollWithAnimation.value = animated;
 	scrollIntoView.value = "";
 	nextTick(() => {
 		scrollIntoView.value = "messages-end";
 	});
+	// #endif
 }
 async function load({ silent = false } = {}) {
 	if (!groupId.value || loading.value) return;
+	// #ifdef H5
+	const preLoadH5ScrollState = captureH5ScrollState();
+	const preLoadAtBottom = preLoadH5ScrollState
+		? shouldStickToBottom({
+			scrollTop: preLoadH5ScrollState.scrollTop,
+			scrollHeight: preLoadH5ScrollState.scrollHeight,
+			viewportHeight: preLoadH5ScrollState.clientHeight,
+		})
+		: true;
+	// #endif
 	loading.value = true;
 	try {
 		const [messageData, groupData, memberData] = await Promise.all([
@@ -160,13 +263,13 @@ async function load({ silent = false } = {}) {
 			getChatGroupsApi(),
 			getChatGroupMembersApi(groupId.value),
 		]);
-		const incomingMessages = messageData?.messages || [];
+		const incomingMessages = messageData?.messages || messageData?.data?.messages || [];
 		messages.value = hasLoadedInitialMessages
 			? mergeChatMessages(messages.value, incomingMessages)
-			: incomingMessages;
+			: mergeChatMessages([], incomingMessages);
 		hasOlderMessages.value = hasLoadedInitialMessages
 			? hasOlderMessages.value
-			: Boolean(messageData?.hasMore);
+			: Boolean(messageData?.hasMore ?? messageData?.data?.hasMore);
 		members.value = memberData?.members || [];
 		void loadOnlineMembers({ silent: true });
 		const group = (groupData?.groups || []).find(
@@ -179,10 +282,42 @@ async function load({ silent = false } = {}) {
 
 		groupAvatarUrl.value = group?.avatar_url || "";
 		groupStatus.value = group?.status || "active";
-		if (forceScrollAfterLoad || atBottom.value) {
+		const shouldForceAfterSending = forceScrollAfterLoad && forceScrollReason === "send";
+		// #ifdef H5
+		const h5UserScrolled = preLoadH5ScrollState ? !preLoadAtBottom : h5UserScrolledAwayFromBottom.value;
+		const h5AtBottom = preLoadH5ScrollState ? preLoadAtBottom : atBottom.value;
+		// #endif
+		const shouldAutoScroll = shouldForceAfterSending || shouldAutoScrollOnChatLoad({
+			forceScroll: forceScrollAfterLoad,
+			// #ifdef H5
+			atBottom: h5AtBottom,
+			userScrolled: h5UserScrolled,
+			// #endif
+			// #ifndef H5
+			atBottom: atBottom.value,
+			userScrolled: h5UserScrolledAwayFromBottom.value,
+			// #endif
+		});
+		if (shouldAutoScroll) {
+			// H5 background refresh must not keep a smooth-scroll animation alive
+			// while the user is reading older messages.
+			// #ifdef H5
+			scrollToLast({ animated: false });
+			// #endif
+			// #ifndef H5
 			scrollToLast({ animated: hasLoadedInitialMessages });
+			// #endif
+			// #ifdef H5
+			h5UserScrolledAwayFromBottom.value = false;
+			// #endif
+		} else {
+			// #ifdef H5
+			h5UserScrolledAwayFromBottom.value = !preLoadAtBottom;
+			if (!preLoadAtBottom) restoreH5ScrollState(preLoadH5ScrollState);
+			// #endif
 		}
 		forceScrollAfterLoad = false;
+		forceScrollReason = null;
 		hasLoadedInitialMessages = true;
 		refreshUnreadBadge().catch((error) =>
 			console.warn("刷新未读角标失败", error),
@@ -190,7 +325,7 @@ async function load({ silent = false } = {}) {
 	} catch (error) {
 		if (!silent)
 			uni.showToast({
-				title: error?.error || "加载群聊失败",
+				title: error?.error || t('inbox.loadChatFailed'),
 				icon: "none",
 			});
 	} finally {
@@ -205,7 +340,7 @@ async function loadOnlineMembers({ silent = false } = {}) {
 		onlineMembers.value = data?.members || [];
 		if (memberSheet.value === 'online') memberSheetMembers.value = onlineMembers.value;
 	} catch (error) {
-		if (!silent) uni.showToast({ title: error?.error || '加载在线成员失败', icon: 'none' });
+		if (!silent) uni.showToast({ title: error?.error || t('inbox.loadOnlineFailed'), icon: 'none' });
 	}
 }
 
@@ -235,10 +370,10 @@ async function loadOlderMessages() {
 			limit: messagePageSize,
 			beforeId: oldestMessage.id,
 		});
-		messages.value = mergeChatMessages(messages.value, data?.messages || []);
-		hasOlderMessages.value = Boolean(data?.hasMore);
+		messages.value = mergeChatMessages(messages.value, data?.messages || data?.data?.messages || []);
+		hasOlderMessages.value = Boolean(data?.hasMore ?? data?.data?.hasMore);
 	} catch (error) {
-		uni.showToast({ title: error?.error || "加载历史消息失败", icon: "none" });
+		uni.showToast({ title: error?.error || t('inbox.loadHistoryFailed'), icon: "none" });
 	} finally {
 		loadingOlder.value = false;
 	}
@@ -250,6 +385,62 @@ function onMessageScroll(event) {
 		viewportHeight: Math.max(0, viewportHeight - keyboardHeight.value),
 	});
 	if (!atBottom.value) showLatestButton();
+}
+function onH5MessageScroll(event) {
+	if (isBlockingProgrammaticH5Scroll) return;
+	const eventDetail = event?.detail || {};
+	if (!hasUserTriggeredH5Scroll) {
+		const isTrustedEvent = Boolean(event?.isTrusted);
+		if (!isTrustedEvent) return;
+		hasUserTriggeredH5Scroll = true;
+	}
+	const element = event?.target || event?.currentTarget || eventDetail?.target;
+	const scrollTop = Number(element?.scrollTop ?? eventDetail?.scrollTop ?? 0) || 0;
+	const scrollHeight = Number(element?.scrollHeight ?? eventDetail?.scrollHeight ?? 0) || 0;
+	const clientHeight = Number(element?.clientHeight ?? eventDetail?.clientHeight ?? 0) || 0;
+	atBottom.value = shouldStickToBottom({
+		scrollTop,
+		scrollHeight,
+		viewportHeight: clientHeight,
+	});
+	h5UserScrolledAwayFromBottom.value = !atBottom.value;
+	if (!atBottom.value || scrollTop > 120) {
+		showLatestButton();
+	} else {
+		latestButtonVisible.value = false;
+		latestButtonLeaving.value = false;
+	}
+	if (shouldLoadOlderMessagesFromH5Scroll({
+		scrollTop,
+		hasOlderMessages: hasOlderMessages.value,
+		loadingOlder: loadingOlder.value,
+	})) void loadOlderMessages();
+}
+
+function mountH5ScrollListener() {
+	// #ifdef H5
+	nextTick(() => {
+		const element = getH5MessagesElement();
+		if (!element || typeof element.addEventListener !== "function") return;
+		if (h5ScrollListenerMounted && h5ScrollHandler) {
+			element.removeEventListener("scroll", h5ScrollHandler);
+		}
+		h5ScrollHandler = (event) => onH5MessageScroll(event);
+		element.addEventListener("scroll", h5ScrollHandler, { passive: true });
+		h5ScrollListenerMounted = true;
+	});
+	// #endif
+}
+
+function unmountH5ScrollListener() {
+	// #ifdef H5
+	if (!h5ScrollListenerMounted || !h5ScrollHandler) return;
+	const element = getH5MessagesElement();
+	if (element && typeof element.removeEventListener === "function") {
+		element.removeEventListener("scroll", h5ScrollHandler);
+	}
+	h5ScrollListenerMounted = false;
+	// #endif
 }
 function showLatestButton() {
 	latestButtonVisible.value = true;
@@ -267,6 +458,7 @@ function hideLatestButton() {
 }
 function returnToLatest() {
 	atBottom.value = true;
+	h5UserScrolledAwayFromBottom.value = false;
 	clearTimeout(latestButtonTimer);
 	clearTimeout(latestButtonLeaveTimer);
 	latestButtonVisible.value = false;
@@ -318,9 +510,10 @@ async function sendMessage(payload) {
 		);
 		replyMessage.value = null;
 		forceScrollAfterLoad = true;
+		forceScrollReason = "send";
 		await load({ silent: true });
 	} catch (error) {
-		uni.showToast({ title: error?.error || "发送失败", icon: "none" });
+		uni.showToast({ title: error?.error || t('inbox.sendFailed'), icon: "none" });
 	} finally {
 		sending.value = false;
 	}
@@ -328,7 +521,7 @@ async function sendMessage(payload) {
 async function sendImage({ imagePath }) {
 	if (sending.value) return;
 	sending.value = true;
-	uni.showLoading({ title: "图片上传中" });
+	uni.showLoading({ title: t('inbox.uploadingImage') });
 	try {
 		const uploaded = await uploadChatImageApi(groupId.value, imagePath);
 		await sendChatMessageApi(groupId.value, {
@@ -340,9 +533,10 @@ async function sendImage({ imagePath }) {
 		});
 		replyMessage.value = null;
 		forceScrollAfterLoad = true;
+		forceScrollReason = "send";
 		await load({ silent: true });
 	} catch (error) {
-		uni.showToast({ title: error?.error || "图片上传失败", icon: "none" });
+		uni.showToast({ title: error?.error || t('inbox.uploadImageFailed'), icon: "none" });
 	} finally {
 		uni.hideLoading();
 		sending.value = false;
@@ -352,19 +546,35 @@ onLoad((options) => {
 	groupId.value = options.id;
 });
 onShow(() => {
+	uni.setNavigationBarTitle({ title: t('inbox.groupChat') });
+	latestButtonVisible.value = false;
+	latestButtonLeaving.value = false;
+	hasUserTriggeredH5Scroll = false;
+	isBlockingProgrammaticH5Scroll = true;
 	forceScrollAfterLoad = true;
+	forceScrollReason = "initial";
+	h5UserScrolledAwayFromBottom.value = false;
+	mountH5ScrollListener();
 	load();
 	startPolling();
+	nextTick(() => {
+		setTimeout(() => {
+			isBlockingProgrammaticH5Scroll = false;
+		}, 800);
+	});
 });
-	onHide(() => {
+watch(currentLocale, () => uni.setNavigationBarTitle({ title: t('inbox.groupChat') }));
+onHide(() => {
 	keyboardHeight.value = 0;
 	clearTimeout(latestButtonTimer);
 	clearTimeout(latestButtonLeaveTimer);
+	unmountH5ScrollListener();
 	stopPolling();
 });
 onUnload(() => {
 	clearTimeout(latestButtonTimer);
 	clearTimeout(latestButtonLeaveTimer);
+	unmountH5ScrollListener();
 	stopPolling();
 });
 </script>
@@ -377,6 +587,18 @@ onUnload(() => {
 	overflow: hidden;
 	background: #efefef;
 }
+/* #ifdef H5 */
+.page {
+	height: calc(100vh - var(--window-top, 44px));
+	position: relative;
+}
+.messages--h5 {
+	width: 100%;
+	overflow-y: auto;
+	overscroll-behavior: contain;
+	-webkit-overflow-scrolling: touch;
+}
+/* #endif */
 .room-head {
 	display: flex;
 	align-items: center;
@@ -431,7 +653,7 @@ onUnload(() => {
 .back-to-latest {
 	position: absolute;
 	left: 50%;
-	z-index: 4;
+	z-index: 9999;
 	display: flex;
 	flex-direction: column;
 	align-items: center;
@@ -444,7 +666,13 @@ onUnload(() => {
 	box-shadow: 0 8rpx 18rpx rgba(34, 40, 51, 0.16);
 	transform: translateX(-50%);
 	transition: transform 260ms ease-in, opacity 260ms ease-in;
+	pointer-events: auto;
 }
+/* #ifdef H5 */
+.back-to-latest {
+	position: fixed;
+}
+/* #endif */
 .latest-chevron {
 	display: block;
 	font-size: 36rpx;

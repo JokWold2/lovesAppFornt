@@ -2,56 +2,56 @@
   <view class="page">
 
     <view class="header">
-      <text class="header-title">🔍 搜尋候選人</text>
+      <text class="header-title">🔍 {{ t('search.title') }}</text>
     </view>
 
     <scroll-view scroll-y class="content-area" style="box-sizing: border-box;">
 
       <!-- 卡片1：選擇條件 -->
       <view class="form-card">
-        <view class="section-title">選擇條件</view>
+        <view class="section-title">{{ t('search.conditions') }}</view>
 
         <view class="form-row">
-          <text class="form-label">姓名</text>
-          <input class="form-input" v-model="form.name" placeholder="請輸入姓名" />
+          <text class="form-label">{{ t('search.name') }}</text>
+          <input class="form-input" v-model="form.name" :placeholder="t('search.namePlaceholder')" />
         </view>
 
         <view class="form-row">
-          <text class="form-label">性別</text>
+          <text class="form-label">{{ t('search.gender') }}</text>
           <view class="checkbox-group">
             <view class="checkbox-item" @tap="form.gender = '女'">
               <view class="radio-dot" :class="{ checked: form.gender === '女' }"></view>
-              <text>女</text>
+              <text>{{ choiceLabel('女') }}</text>
             </view>
             <view class="checkbox-item" @tap="form.gender = '男'">
               <view class="radio-dot" :class="{ checked: form.gender === '男' }"></view>
-              <text>男</text>
+              <text>{{ choiceLabel('男') }}</text>
             </view>
           </view>
         </view>
 
         <view class="form-row">
-          <text class="form-label">世代</text>
+          <text class="form-label">{{ t('search.generation') }}</text>
           <view class="checkbox-group">
             <view class="checkbox-item" @tap="form.generation = '祝福子女'">
               <view class="radio-dot" :class="{ checked: form.generation === '祝福子女' }"></view>
-              <text>祝福子女</text>
+              <text>{{ choiceLabel('祝福子女') }}</text>
             </view>
             <view class="checkbox-item" @tap="form.generation = '一世會員'">
               <view class="radio-dot" :class="{ checked: form.generation === '一世會員' }"></view>
-              <text>一世會員</text>
+              <text>{{ choiceLabel('一世會員') }}</text>
             </view>
           </view>
         </view>
 
         <view class="form-row">
-          <text class="form-label">狀態</text>
+          <text class="form-label">{{ t('search.status') }}</text>
           <view class="checkbox-group">
             <view class="checkbox-item" v-for="opt in statusOptions" :key="opt" @tap="toggle(form.status, opt)">
               <view class="box" :class="{ checked: form.status.includes(opt) }">
                 <text v-if="form.status.includes(opt)" class="check-mark">✓</text>
               </view>
-              <text>{{ opt }}</text>
+              <text>{{ choiceLabel(opt) }}</text>
             </view>
           </view>
         </view>
@@ -60,39 +60,39 @@
       <!-- 卡片2：進階條件 -->
       <view class="form-card">
         <view class="form-row">
-          <text class="form-label">首選國家</text>
+          <text class="form-label">{{ t('search.preferredCountry') }}</text>
           <view class="checkbox-group">
             <view class="checkbox-item" v-for="opt in countryOptions" :key="opt" @tap="toggle(form.preferredCountries, opt)">
               <view class="box" :class="{ checked: form.preferredCountries.includes(opt) }">
                 <text v-if="form.preferredCountries.includes(opt)" class="check-mark">✓</text>
               </view>
-              <text>{{ opt }}</text>
+              <text>{{ choiceLabel(opt) }}</text>
             </view>
           </view>
         </view>
 
         <view class="form-row">
-          <text class="form-label">年齡範圍</text>
+          <text class="form-label">{{ t('search.ageRange') }}</text>
           <view class="range-group">
-            <picker mode="selector" :range="ageOptions" @change="e => form.ageMin = ageOptions[e.detail.value]">
-              <view class="form-select"><text>{{ form.ageMin || '全部' }}</text></view>
+            <picker mode="selector" :range="ageOptionLabels" @change="e => form.ageMin = ageOptions[e.detail.value]">
+              <view class="form-select"><text>{{ choiceLabel(form.ageMin || '全部') }}</text></view>
             </picker>
             <text class="range-sep">~</text>
-            <picker mode="selector" :range="ageOptions" @change="e => form.ageMax = ageOptions[e.detail.value]">
-              <view class="form-select"><text>{{ form.ageMax || '全部' }}</text></view>
+            <picker mode="selector" :range="ageOptionLabels" @change="e => form.ageMax = ageOptions[e.detail.value]">
+              <view class="form-select"><text>{{ choiceLabel(form.ageMax || '全部') }}</text></view>
             </picker>
           </view>
         </view>
 
         <view class="form-row">
-          <text class="form-label">身高範圍 (cm)</text>
+          <text class="form-label">{{ t('search.heightRange') }}</text>
           <view class="range-group">
-            <picker mode="selector" :range="heightOptions" @change="e => form.heightMin = heightOptions[e.detail.value]">
-              <view class="form-select"><text>{{ form.heightMin || '全部' }}</text></view>
+            <picker mode="selector" :range="heightOptionLabels" @change="e => form.heightMin = heightOptions[e.detail.value]">
+              <view class="form-select"><text>{{ choiceLabel(form.heightMin || '全部') }}</text></view>
             </picker>
             <text class="range-sep">~</text>
-            <picker mode="selector" :range="heightOptions" @change="e => form.heightMax = heightOptions[e.detail.value]">
-              <view class="form-select"><text>{{ form.heightMax || '全部' }}</text></view>
+            <picker mode="selector" :range="heightOptionLabels" @change="e => form.heightMax = heightOptions[e.detail.value]">
+              <view class="form-select"><text>{{ choiceLabel(form.heightMax || '全部') }}</text></view>
             </picker>
           </view>
         </view>
@@ -105,42 +105,42 @@
             <view class="box" :class="{ checked: form.topGun }">
               <text v-if="form.topGun" class="check-mark">✓</text>
             </view>
-            <text>神TOP GUN 祝福候選人</text>
+            <text>{{ t('search.topGun') }}</text>
           </view>
         </view>
 
         <view class="form-row">
-          <text class="form-label">工作</text>
+          <text class="form-label">{{ t('search.jobs') }}</text>
           <view class="checkbox-group tight">
             <view class="checkbox-item" v-for="opt in jobOptions" :key="opt" @tap="toggle(form.jobs, opt)">
               <view class="box" :class="{ checked: form.jobs.includes(opt) }">
                 <text v-if="form.jobs.includes(opt)" class="check-mark">✓</text>
               </view>
-              <text>{{ opt }}</text>
+              <text>{{ choiceLabel(opt) }}</text>
             </view>
           </view>
         </view>
 
         <view class="form-row">
-          <text class="form-label">信仰生活</text>
+          <text class="form-label">{{ t('search.faith') }}</text>
           <view class="checkbox-group">
             <view class="checkbox-item" v-for="opt in faithOptions" :key="opt" @tap="toggle(form.faithLife, opt)">
               <view class="box" :class="{ checked: form.faithLife.includes(opt) }">
                 <text v-if="form.faithLife.includes(opt)" class="check-mark">✓</text>
               </view>
-              <text>{{ opt }}</text>
+              <text>{{ choiceLabel(opt) }}</text>
               <text class="help-icon">?</text>
             </view>
           </view>
         </view>
 
         <view class="form-row" style="margin-top: 15px;">
-          <text class="form-label">希望參加2026年祝福式<text class="help-icon">?</text></text>
+          <text class="form-label">{{ t('search.blessing2026') }}<text class="help-icon">?</text></text>
           <view class="checkbox-item" @tap="form.wantBlessing2026 = !form.wantBlessing2026">
             <view class="box" :class="{ checked: form.wantBlessing2026 }">
               <text v-if="form.wantBlessing2026" class="check-mark">✓</text>
             </view>
-            <text>希望參加</text>
+            <text>{{ t('search.wantJoin') }}</text>
           </view>
         </view>
       </view>
@@ -148,10 +148,10 @@
       <!-- 卡片4：分析工具 -->
       <view class="form-card">
         <view class="tools-header">
-          <view class="section-title" style="margin: 0;">分析工具</view>
-          <view class="btn-recommend" @tap="onFindRecommend">尋找推薦類型 ></view>
+          <view class="section-title" style="margin: 0;">{{ t('search.tools') }}</view>
+          <view class="btn-recommend" @tap="onFindRecommend">{{ t('search.recommend') }}</view>
         </view>
-        <text class="tools-desc">您可以在下面找到各種分析工具。您可以根據自己的盼望選擇或取消選擇選項。</text>
+        <text class="tools-desc">{{ t('search.toolsDescription') }}</text>
 
         <view class="tool-list">
           <!-- Tool 1：雙手交握 -->
@@ -160,17 +160,17 @@
               <view class="box" :class="{ checked: form.tools.hands.enabled }">
                 <text v-if="form.tools.hands.enabled" class="check-mark">✓</text>
               </view>
-              <text>雙手交握</text>
+              <text>{{ t('search.hands') }}</text>
               <text class="help-icon">?</text>
             </view>
             <view class="checkbox-group tool-options">
               <view class="checkbox-item" @tap="form.tools.hands.value = '右拇指'">
                 <view class="radio-dot" :class="{ checked: form.tools.hands.value === '右拇指' }"></view>
-                <text>右拇指</text>
+                <text>{{ choiceLabel('右拇指') }}</text>
               </view>
               <view class="checkbox-item" @tap="form.tools.hands.value = '左拇指'">
                 <view class="radio-dot" :class="{ checked: form.tools.hands.value === '左拇指' }"></view>
-                <text>左拇指</text>
+                <text>{{ choiceLabel('左拇指') }}</text>
               </view>
             </view>
           </view>
@@ -181,17 +181,17 @@
               <view class="box" :class="{ checked: form.tools.yinyang.enabled }">
                 <text v-if="form.tools.yinyang.enabled" class="check-mark">✓</text>
               </view>
-              <text>陰/陽</text>
+              <text>{{ t('search.yinYang') }}</text>
               <text class="help-icon">?</text>
             </view>
             <view class="checkbox-group tool-options">
               <view class="checkbox-item" @tap="form.tools.yinyang.value = '陽'">
                 <view class="radio-dot" :class="{ checked: form.tools.yinyang.value === '陽' }"></view>
-                <text>陽</text>
+                <text>{{ choiceLabel('陽') }}</text>
               </view>
               <view class="checkbox-item" @tap="form.tools.yinyang.value = '陰'">
                 <view class="radio-dot" :class="{ checked: form.tools.yinyang.value === '陰' }"></view>
-                <text>陰</text>
+                <text>{{ choiceLabel('陰') }}</text>
               </view>
             </view>
           </view>
@@ -202,7 +202,7 @@
               <view class="box" :class="{ checked: form.tools.fiveElements.enabled }">
                 <text v-if="form.tools.fiveElements.enabled" class="check-mark">✓</text>
               </view>
-              <text>五要素</text>
+              <text>{{ t('search.fiveElements') }}</text>
               <text class="help-icon">?</text>
             </view>
             <view class="checkbox-group tool-options">
@@ -210,7 +210,7 @@
                 <view class="box" :class="{ checked: form.tools.fiveElements.values.includes(opt) }">
                   <text v-if="form.tools.fiveElements.values.includes(opt)" class="check-mark">✓</text>
                 </view>
-                <text>{{ opt }}</text>
+                <text>{{ choiceLabel(opt) }}</text>
               </view>
             </view>
           </view>
@@ -221,7 +221,7 @@
               <view class="box" :class="{ checked: form.tools.enneagram.enabled }">
                 <text v-if="form.tools.enneagram.enabled" class="check-mark">✓</text>
               </view>
-              <text>九型人格</text>
+              <text>{{ t('search.enneagram') }}</text>
               <text class="help-icon">?</text>
             </view>
             <view class="checkbox-group tool-options tight">
@@ -229,7 +229,7 @@
                 <view class="box" :class="{ checked: form.tools.enneagram.values.includes(opt) }">
                   <text v-if="form.tools.enneagram.values.includes(opt)" class="check-mark">✓</text>
                 </view>
-                <text>{{ opt }}</text>
+                <text>{{ choiceLabel(opt) }}</text>
               </view>
             </view>
           </view>
@@ -245,7 +245,7 @@
             </view>
             <view class="tool-options" style="padding-top: 4px;">
               <picker mode="selector" :range="mbtiOptions" @change="e => form.tools.mbti.value = mbtiOptions[e.detail.value]">
-                <view class="form-select"><text>{{ form.tools.mbti.value || '請選擇' }}</text></view>
+                <view class="form-select"><text>{{ form.tools.mbti.value || t('search.select') }}</text></view>
               </picker>
             </view>
           </view>
@@ -255,16 +255,16 @@
       <!-- 搜尋結果 -->
       <view v-if="hasSearched || searching" class="form-card result-card">
         <view class="section-title">
-          搜尋結果
-          <text v-if="!searching" class="result-count">共 {{ total }} 人</text>
+          {{ t('search.searchResults') }}
+          <text v-if="!searching" class="result-count">{{ t('search.total', { count: total }) }}</text>
         </view>
 
         <view v-if="searching && results.length === 0" class="empty-tip">
-          <text>搜尋中...</text>
+          <text>{{ t('search.searching') }}</text>
         </view>
 
         <view v-else-if="results.length === 0" class="empty-tip">
-          <text>沒有符合條件的候選人</text>
+          <text>{{ t('search.noResults') }}</text>
         </view>
 
         <view v-else>
@@ -275,12 +275,12 @@
             </view>
             <view class="result-info">
               <view class="result-name">
-                <text>{{ item.native_first_name || item.en_first_name || '未填寫' }} {{ item.native_last_name || item.en_last_name || '' }}</text>
+                <text>{{ item.native_first_name || item.en_first_name || t('search.notFilled') }} {{ item.native_last_name || item.en_last_name || '' }}</text>
               </view>
               <view class="result-meta">
                 <text v-if="item.gender">{{ item.gender }} · </text>
                 <text v-if="item.generation">{{ item.generation }} · </text>
-                <text v-if="item.birth_year">{{ new Date().getFullYear() - Number(item.birth_year) }} 歲 · </text>
+                <text v-if="item.birth_year">{{ t('search.yearsOld', { count: new Date().getFullYear() - Number(item.birth_year) }) }} · </text>
                 <text v-if="item.height">{{ item.height }}cm</text>
               </view>
               <view class="result-meta">
@@ -292,9 +292,9 @@
           </view>
 
           <view class="result-more">
-            <text v-if="searching">載入中...</text>
-            <text v-else-if="results.length >= total">已載入全部</text>
-            <text v-else class="link" @tap="loadMore">點擊載入更多</text>
+            <text v-if="searching">{{ t('search.searching') }}</text>
+            <text v-else-if="results.length >= total">{{ t('search.allLoaded') }}</text>
+            <text v-else class="link" @tap="loadMore">{{ t('search.loadMore') }}</text>
           </view>
         </view>
       </view>
@@ -303,16 +303,18 @@
 
     <!-- 底部固定按鈕 -->
     <view class="bottom-bar">
-      <view class="btn btn-submit" @tap="onSearch">搜尋</view>
-      <view class="btn btn-reset" @tap="onReset">重填</view>
+      <view class="btn btn-submit" @tap="onSearch">{{ t('search.search') }}</view>
+      <view class="btn btn-reset" @tap="onReset">{{ t('search.reset') }}</view>
     </view>
 
   </view>
 </template>
 
 <script setup>
-import { reactive, ref } from 'vue'
+import { computed, reactive, ref } from 'vue'
 import { searchCandidatesApi } from '@/api/index.js'
+import { currentLocale, t } from '@/utils/localeRuntime.js'
+import { searchOptionLabel } from '@/utils/searchPresentation.js'
 
 function defaultForm () {
   return {
@@ -351,6 +353,9 @@ const enneagramOptions = ['1: 改革型', '2: 助人型', '3: 成就型', '4: �
 const mbtiOptions = ['INTJ', 'INTP', 'ENTJ', 'ENTP', 'INFJ', 'INFP', 'ENFJ', 'ENFP', 'ISTJ', 'ISFJ', 'ESTJ', 'ESFJ', 'ISTP', 'ISFP', 'ESTP', 'ESFP']
 const ageOptions = ['全部', ...Array.from({ length: 63 }, (_, i) => `${18 + i}`)]
 const heightOptions = ['全部', ...Array.from({ length: 71 }, (_, i) => `${140 + i}`)]
+const choiceLabel = value => searchOptionLabel(currentLocale.value, value)
+const ageOptionLabels = computed(() => ageOptions.map(choiceLabel))
+const heightOptionLabels = computed(() => heightOptions.map(choiceLabel))
 
 // ---- 搜索状态 ----
 const PAGE_SIZE = 20
@@ -379,7 +384,7 @@ function onResultClick (item) {
 
 function onFindRecommend () {
   // TODO: 接入「尋找推薦類型」實際邏輯 / 跳轉頁面
-  uni.showToast({ title: '功能開發中', icon: 'none' })
+  uni.showToast({ title: t('search.inDevelopment'), icon: 'none' })
 }
 
 // 构造请求体：清理「全部」这类占位符，避免发给后端

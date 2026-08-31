@@ -16,26 +16,26 @@
         <view class="auth-logo-circle">
           <text class="logo-icon">♥</text>
         </view>
-        <text class="title">歡迎回來</text>
-        <text class="subtitle">幸福相遇・啟航美好人生</text>
+        <text class="title">{{ t('legacyAuth.welcome') }}</text>
+        <text class="subtitle">{{ t('legacyAuth.welcomeSubtitle') }}</text>
       </view>
       <view class="auth-content">
         <view class="input-group">
-          <text class="input-label">電子郵件</text>
-          <input type="text" class="form-input" placeholder="請輸入您的 Email" v-model="loginForm.email" />
+          <text class="input-label">{{ t('legacyAuth.emailLabel') }}</text>
+          <input type="text" class="form-input" :placeholder="t('legacyAuth.emailPlaceholder')" v-model="loginForm.email" />
         </view>    
         <view class="input-group">
-          <text class="input-label">密碼</text>
-          <input type="password" class="form-input" placeholder="請輸入密碼" v-model="loginForm.password" />
+          <text class="input-label">{{ t('legacyAuth.passwordLabel') }}</text>
+          <input type="password" class="form-input" :placeholder="t('auth.password')" v-model="loginForm.password" />
         </view>
         <view class="forgot-password">
-          <text class="link-text" @click="handleForgotPassword">忘記密碼？</text>
+          <text class="link-text" @click="handleForgotPassword">{{ t('legacyAuth.forgot') }}</text>
         </view>
         <!-- <button class="btn-primary" :disabled="loading" @click="handleLogin">登入</button> -->
         <view @click="handleLogin">
           <button2 :haslight="false">
             <view style="width: 568rpx;margin: 0 auto;">
-              登入
+              {{ t('auth.login') }}
             </view>
           </button2>
         </view>
@@ -44,12 +44,12 @@
           <view class="checkbox-box" style="transform: scale(0.5);">
             <loading1 :checked="agreePrivacy" />
           </view>
-          <text class="privacy-text">我已閱讀並同意<span class="privacy-link">《隱私協議》</span></text>
+          <text class="privacy-text">{{ t('legacyAuth.agreed') }} <span class="privacy-link" @click.stop="openPrivacy">{{ t('legacyAuth.privacy') }}</span></text>
         </view>
 
         <view class="auth-footer">
-          <text class="text-secondary">還沒有帳號？ </text>
-          <text class="link-text-bold" @click="switchView(false)">立即註冊</text>
+          <text class="text-secondary">{{ t('legacyAuth.noAccount') }} </text>
+          <text class="link-text-bold" @click="switchView(false)">{{ t('legacyAuth.registerNow') }}</text>
         </view>
       </view>
     </view>
@@ -59,33 +59,33 @@
         <view class="auth-logo-circle logo-small">
           <text class="logo-icon">📝</text>
         </view>
-        <text class="title">建立新帳號</text>
-        <text class="subtitle">加入我們，尋找您的完美緣分</text>
+        <text class="title">{{ t('legacyAuth.createAccount') }}</text>
+        <text class="subtitle">{{ t('legacyAuth.registerSubtitle') }}</text>
       </view>
       <view class="auth-content">
         <view class="input-group">
-          <text class="input-label">電子郵件</text>
-          <input type="text" class="form-input" placeholder="請輸入有效的 Email" v-model="registerForm.email" />
+          <text class="input-label">{{ t('legacyAuth.emailLabel') }}</text>
+          <input type="text" class="form-input" :placeholder="t('legacyAuth.validEmail')" v-model="registerForm.email" />
         </view>
         <view class="input-group">
-          <text class="input-label">設定密碼</text>
-          <input type="password" class="form-input" placeholder="最少 8 個字元" v-model="registerForm.password" />
+          <text class="input-label">{{ t('legacyAuth.setPassword') }}</text>
+          <input type="password" class="form-input" :placeholder="t('legacyAuth.minimumPassword')" v-model="registerForm.password" />
         </view>
         <view class="input-group">
-          <text class="input-label">確認密碼</text>
-          <input type="password" class="form-input" placeholder="請再次輸入密碼" v-model="registerForm.confirmPassword" />
+          <text class="input-label">{{ t('auth.confirmPassword') }}</text>
+          <input type="password" class="form-input" :placeholder="t('auth.confirmPassword')" v-model="registerForm.confirmPassword" />
         </view>
         <!-- <button class="btn-primary btn-register" :disabled="loading" @click="handleRegister">註冊</button> -->
         <view @click="handleRegister">
           <button2 :haslight="false">
             <view style="width: 568rpx;margin: 0 auto;">
-              註冊
+              {{ t('auth.register') }}
             </view>
           </button2>
         </view>
         <view class="auth-footer">
-          <text class="text-secondary">已經有帳號了？ </text>
-          <text class="link-text-bold" @click="switchView(true)">返回登入</text>
+          <text class="text-secondary">{{ t('auth.hasAccount') }} </text>
+          <text class="link-text-bold" @click="switchView(true)">{{ t('auth.backToLogin') }}</text>
         </view>
       </view>
     </view>
@@ -95,6 +95,8 @@
 import { ref, reactive } from 'vue';
 import { loginApi, registerApi } from '@/api/index.js';
 import { setToken, setUserInfo } from '@/utils/auth.js';
+import { bootstrapLocale } from '@/utils/localeRuntime.js';
+import { t } from '@/utils/localeRuntime.js'
 import loading1 from '@/static/loading/loading1.vue';
 import loading5 from '@/static/loading/loading5.vue';
 import loading6 from '@/static/loading/loading6.vue';
@@ -143,12 +145,12 @@ function navigateAfterAuth() {
 // 處理登入
 const handleLogin = async () => {
   if (!loginForm.email || !loginForm.password) {
-    uni.showToast({ title: '請填寫完整資訊', icon: 'none' });
+    uni.showToast({ title: t('legacyAuth.completeInfo'), icon: 'none' });
     return;
   }
   // 校驗是否同意隱私協議
   if (!agreePrivacy.value) {
-    uni.showToast({ title: '請同意《隱私協議》', icon: 'none' });
+    uni.showToast({ title: t('auth.needAgreement'), icon: 'none' });
     return;
   }
   loading.value = true;
@@ -157,11 +159,12 @@ const handleLogin = async () => {
     // 后端返回 { message, token, user }
     if (data && data.token) {
       setToken(data.token);
+	  await bootstrapLocale();
       if (data.user) setUserInfo(data.user);
-      uni.showToast({ title: '登入成功', icon: 'success' });
+      uni.showToast({ title: t('auth.loginSuccess'), icon: 'success' });
       navigateAfterAuth();
     } else {
-      uni.showToast({ title: '登入失敗', icon: 'none' });
+      uni.showToast({ title: t('auth.loginFailed'), icon: 'none' });
     }
   } catch (e) {
     // request 已自动 toast，这里仅做兜底
@@ -173,17 +176,17 @@ const handleLogin = async () => {
 // 處理註冊
 const handleRegister = async () => {
   if (!registerForm.email || !registerForm.password) {
-    uni.showToast({ title: '請填寫完整資訊', icon: 'none' });
+    uni.showToast({ title: t('legacyAuth.completeInfo'), icon: 'none' });
     return;
   }
   if (registerForm.password !== registerForm.confirmPassword) {
-    uni.showToast({ title: '兩次密碼不一致', icon: 'none' });
+    uni.showToast({ title: t('auth.passwordMismatch'), icon: 'none' });
     return;
   }
   loading.value = true;
   try {
     await registerApi(registerForm.email, registerForm.password);
-    uni.showToast({ title: '註冊成功，請登入', icon: 'success' });
+    uni.showToast({ title: t('auth.registerSuccess'), icon: 'success' });
     switchView(true);
     // 把账号回填到登录表单
     loginForm.email = registerForm.email;
@@ -196,8 +199,12 @@ const handleRegister = async () => {
 };
 // 忘記密碼跳轉
 const handleForgotPassword = () => {
-  uni.showToast({ title: '跳轉忘記密碼流程', icon: 'none' });
+  uni.showToast({ title: t('auth.forgotPasswordTodo'), icon: 'none' });
 };
+
+function openPrivacy() {
+  uni.navigateTo({ url: '/pages/legal/privacyPolicy' })
+}
 </script>
 <style scoped lang="scss">
 /* 定义主题变量 */

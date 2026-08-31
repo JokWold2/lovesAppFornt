@@ -5,6 +5,7 @@
 	import { refreshUnreadBadge, startUnreadBadgePolling, stopUnreadBadgePolling } from '@/utils/unreadBadge.js'
 	import { installPushListeners, registerCurrentDevice } from '@/utils/pushNotifications.js'
 	import { configurePresenceApiMethods, pausePresence, resumePresence, startPresence, stopPresence } from '@/utils/presence.js'
+	import { bootstrapLocale } from '@/utils/localeRuntime.js'
 
 	configurePresenceApiMethods({ heartbeatPresenceApi, offlinePresenceApi })
 
@@ -26,6 +27,7 @@
 				if (!data?.valid || !data.user) throw new Error('登录状态已失效')
 				// 保留邮箱账号原有的本地密码缓存，只用服务端资料刷新公开字段。
 				setUserInfo({ ...getUserInfo(), ...data.user })
+				await bootstrapLocale()
 				uni.$emit('auth-session-ready', { restored: true })
 				registerCurrentDevice()
 				refreshUnreadBadge()

@@ -7,7 +7,7 @@
             <image class="banner-img" :src="item.cover" mode="aspectFill"></image>
             <view class="banner-mask">
               <text class="banner-title">{{ item.title }}</text>
-              <text class="banner-price">当前价 ¥{{ formatPrice(item.currentPrice) }}</text>
+              <text class="banner-price">{{ t('auction.currentPrice') }} ¥{{ formatPrice(item.currentPrice) }}</text>
             </view>
           </view>
         </swiper-item>
@@ -33,7 +33,7 @@
       <!-- 空状态 -->
       <view v-if="filteredAuctions.length === 0" class="state-box">
         <text class="state-icon">🔨</text>
-        <text class="state-text">暂无相关拍卖活动</text>
+        <text class="state-text">{{ t('auction.noAuctions') }}</text>
       </view>
   
       <!-- 拍品列表 -->
@@ -49,24 +49,24 @@
               </view>
             </view>
   
-            <text class="lot-no">拍品编号 No.{{ item.lotNo }} · {{ item.category }}</text>
+            <text class="lot-no">{{ t('auction.lot') }} {{ item.lotNo }} · {{ item.category }}</text>
   
             <view class="price-row">
               <view class="price-block">
-                <text class="price-label">{{ item.status === 'ended' ? '成交价' : '当前价' }}</text>
+                <text class="price-label">{{ item.status === 'ended' ? t('auction.soldPrice') : t('auction.currentPrice') }}</text>
                 <text class="price-value">¥{{ formatPrice(item.currentPrice) }}</text>
               </view>
               <view class="bid-block">
-                <text class="bid-count">{{ item.bidCount }}次出价</text>
+                <text class="bid-count">{{ t('auction.bids', { count: item.bidCount }) }}</text>
               </view>
             </view>
   
             <view class="countdown-row" v-if="item.status !== 'ended'">
               <uni-icons type="clock" size="14" color="#999"></uni-icons>
-              <text class="countdown-text">{{ item.status === 'upcoming' ? '距开始 ' : '距结束 ' }}{{ item.countdownText }}</text>
+              <text class="countdown-text">{{ item.status === 'upcoming' ? t('auction.untilStart') : t('auction.untilEnd') }} {{ item.countdownText }}</text>
             </view>
             <view class="countdown-row" v-else>
-              <text class="ended-text">已于 {{ item.endTimeText }} 结束</text>
+              <text class="ended-text">{{ t('auction.endedAt', { time: item.endTimeText }) }}</text>
             </view>
           </view>
         </view>
@@ -77,15 +77,10 @@
   <script setup>
   import { ref, computed, onMounted, onUnmounted } from 'vue';
   import { getAuctionList } from '@/utils/auctionStore.js';
+  import { currentLocale, t } from '@/utils/localeRuntime.js'
   
   // ------- 状态筛选 -------
-  const statusFilters = ref([
-    { key: 'all', label: '全部' },
-    { key: 'upcoming', label: '即将开始' },
-    { key: 'ongoing', label: '竞拍中' },
-    { key: 'preview', label: '预展中' },
-    { key: 'ended', label: '已结束' }
-  ]);
+  const statusFilters = computed(() => ['all', 'upcoming', 'ongoing', 'preview', 'ended'].map(key => ({ key, label: t(`auction.${key}`) })));
   const currentStatus = ref('all');
   
   // ------- 数据 -------
@@ -110,18 +105,18 @@
     const s = totalSec % 60;
     if (h >= 24) {
       const d = Math.floor(h / 24);
-      return `${d}天${pad(h % 24)}时`;
+      return t('auction.dayHour', { days: d, hours: pad(h % 24) });
     }
     return `${pad(h)}:${pad(m)}:${pad(s)}`;
   }
   
   function formatDate(ts) {
     const d = new Date(ts);
-    return `${d.getMonth() + 1}月${d.getDate()}日 ${pad(d.getHours())}:${pad(d.getMinutes())}`;
+    return new Intl.DateTimeFormat(currentLocale.value, { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' }).format(d);
   }
   
   function formatPrice(v) {
-    return v.toLocaleString('zh-CN');
+    return Number(v || 0).toLocaleString(currentLocale.value);
   }
   
   function tickCountdown() {
@@ -153,7 +148,7 @@
   });
   
   function statusLabel(status) {
-    return { upcoming: '即将开始', ongoing: '竞拍中', preview: '预展中', ended: '已结束' }[status] || '';
+    return t(`auction.${status}`);
   }
   
   function statusClass(status) {

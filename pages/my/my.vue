@@ -5,7 +5,7 @@
         <image class="avatar" src="/static/avatar.png" mode="aspectFill" />
       </view>
       <view class="user-info">
-        <text class="username">未登录用户</text>
+        <text class="username">{{ t('life.guest') }}</text>
         <text class="user-id">ID: -----</text>
       </view>
     </view>
@@ -27,13 +27,14 @@
 </template>
 
 <script setup>
-import { ref } from 'vue';
+import { computed } from 'vue';
+import { t } from '@/utils/localeRuntime.js'
 
-const menuItems = ref([
-  { name: '个人资料', icon: '/static/icons/profile.png', page: '/pages/profile/index' },
-  { name: '设置', icon: '/static/icons/settings.png', page: '/pages/settings/index' },
-  { name: '帮助中心', icon: '/static/icons/help.png', page: '/pages/help/index' },
-  { name: '关于我们', icon: '/static/icons/about.png', page: '/pages/about/index' },
+const menuItems = computed(() => [
+  { name: t('life.profile'), icon: '/static/icons/profile.png', page: '/pages/profile/index' },
+  { name: t('life.settings'), icon: '/static/icons/settings.png', page: '/pages/settings/index' },
+  { name: t('life.help'), icon: '/static/icons/help.png', page: '/pages/help/index' },
+  { name: t('life.about'), icon: '/static/icons/about.png', page: '/pages/about/index' },
 ]);
 
 const goPage = (url) => {

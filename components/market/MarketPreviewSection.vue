@@ -1,8 +1,8 @@
 <template>
 	<view class="market-section"
-		><view v-if="loading" class="state">加载中...</view
+		><view v-if="loading" class="state">{{ t('home.loading') }}</view
 		><view v-else-if="!posts.length" class="state"
-			>暂时还没有{{ title }}内容</view
+			>{{ t('market.noContent', { title }) }}</view
 		><view v-else class="waterfall"
 			><view class="column"
 				><view
@@ -15,12 +15,12 @@
 						class="cover"
 						:src="imageOf(post)"
 						mode="widthFix"
-					/><view v-else class="empty-cover">暂无图片</view
+					/><view v-else class="empty-cover">{{ t('market.noImage') }}</view
 					><view class="card-body"
 						><text class="post-title">{{ post.title }}</text
 						><text class="price">¥ {{ post.price }}</text
 						><view class="foot"
-							><text>{{ post.author_name || "用户" }}</text
+							><text>{{ post.author_name || t('moment.user') }}</text
 							><text>♡ {{ post.likeCount || 0 }}</text></view
 						></view
 					></view
@@ -36,12 +36,12 @@
 						class="cover"
 						:src="imageOf(post)"
 						mode="widthFix"
-					/><view v-else class="empty-cover">暂无图片</view
+					/><view v-else class="empty-cover">{{ t('market.noImage') }}</view
 					><view class="card-body"
 						><text class="post-title">{{ post.title }}</text
 						><text class="price">¥ {{ post.price }}</text
 						><view class="foot"
-							><text>{{ post.author_name || "用户" }}</text
+							><text>{{ post.author_name || t('moment.user') }}</text
 							><text>♡ {{ post.likeCount || 0 }}</text></view
 						></view
 					></view
@@ -53,6 +53,7 @@
 <script setup>
 import { computed, onMounted, ref } from "vue";
 import { getMarketPostsApi } from "@/api/market.js";
+import { t } from '@/utils/localeRuntime.js';
 import { marketFeedRoute } from "@/utils/marketNavigation.js";
 const props = defineProps({
 	category: { type: String, required: true },

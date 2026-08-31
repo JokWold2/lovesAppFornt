@@ -1,9 +1,13 @@
 import App from './App'
+import { initializeLocale, t } from './utils/localeRuntime.js'
+
+initializeLocale()
 
 // #ifndef VUE3
 import Vue from 'vue'
 import './uni.promisify.adaptor'
 Vue.config.productionTip = false
+Vue.prototype.$t = t
 App.mpType = 'app'
 const app = new Vue({
 	...App
@@ -17,6 +21,7 @@ import {
 } from 'vue'
 export function createApp() {
 	const app = createSSRApp(App)
+	app.config.globalProperties.$t = t
 	return {
 		app
 	}

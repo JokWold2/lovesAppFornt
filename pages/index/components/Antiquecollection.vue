@@ -20,23 +20,23 @@
       <!-- 排序切换 -->
       <view class="sort-row">
         <view class="sort-item" :class="{ active: sortType === 'latest' }" @click="sortType = 'latest'">
-          <text>最新</text>
+          <text>{{ t('antique.latest') }}</text>
         </view>
         <view class="sort-item" :class="{ active: sortType === 'hot' }" @click="sortType = 'hot'">
-          <text>最热</text>
+          <text>{{ t('antique.hot') }}</text>
         </view>
       </view>
 
       <!-- 首次加载 -->
       <view v-if="loading" class="state-box">
-        <text class="state-text">加载中...</text>
+        <text class="state-text">{{ t('antique.loading') }}</text>
       </view>
 
       <!-- 空状态 -->
       <view v-else-if="filteredItems.length === 0" class="state-box">
         <text class="state-icon">🏺</text>
-        <text class="state-text">暂时还没有古董藏品</text>
-        <text class="state-sub">点击右下角，晒出你的第一件收藏</text>
+        <text class="state-text">{{ t('antique.empty') }}</text>
+        <text class="state-sub">{{ t('antique.emptyHint') }}</text>
       </view>
 
       <!-- 瀑布流双栏 -->
@@ -103,6 +103,7 @@
 
   <script setup>
   import { ref, computed, onMounted } from 'vue';
+  import { t } from '@/utils/localeRuntime.js'
 
   // ------- 分类 & 排序 -------
   const categories = ref(['全部', '瓷器', '玉器', '书画', '钱币', '家具', '杂项']);
@@ -163,12 +164,12 @@
 
   function openDetail(item) {
     // 详情页接口未接入，先提示
-    uni.showToast({ title: '详情页开发中', icon: 'none' });
+    uni.showToast({ title: t('antique.detailInDevelopment'), icon: 'none' });
   }
 
   function handlePublish() {
     // 发布页/接口未接入，先提示
-    uni.showToast({ title: '发布功能开发中', icon: 'none' });
+    uni.showToast({ title: t('antique.publishInDevelopment'), icon: 'none' });
   }
   </script>
 

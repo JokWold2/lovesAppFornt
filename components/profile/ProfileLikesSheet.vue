@@ -1,20 +1,21 @@
 <template>
   <view v-if="visible" class="sheet-mask" @tap.self="emit('close')">
     <view class="sheet">
-      <view class="sheet-head"><text class="sheet-title">收到的点赞（{{ total }}）</text><text class="close" @tap="emit('close')">×</text></view>
+      <view class="sheet-head"><text class="sheet-title">{{ t('profile.receivedLikes', { count: total }) }}</text><text class="close" @tap="emit('close')">×</text></view>
       <scroll-view scroll-y class="likes-list">
         <view v-for="like in likes" :key="`${like.userId}-${like.createdAt}`" class="like-row">
           <image class="avatar" :src="like.avatarUrl || defaultAvatar" mode="aspectFill" />
           <view class="like-info"><text class="name">{{ like.name }}</text><text class="email">{{ like.email }}</text></view>
           <text class="time">{{ formatTime(like.createdAt) }}</text>
         </view>
-        <view v-if="!likes.length" class="empty">暂时还没有收到点赞</view>
+        <view v-if="!likes.length" class="empty">{{ t('profile.noReceivedLikes') }}</view>
       </scroll-view>
     </view>
   </view>
 </template>
 
 <script setup>
+import { t } from '@/utils/localeRuntime.js'
 defineProps({ visible: Boolean, likes: { type: Array, default: () => [] }, total: { type: Number, default: 0 } })
 const emit = defineEmits(['close'])
 const defaultAvatar = '/static/logo.png'
@@ -23,9 +24,9 @@ function formatTime(value) {
   const time = new Date(value).getTime()
   if (!time) return ''
   const seconds = Math.max(0, Math.floor((Date.now() - time) / 1000))
-  if (seconds < 60) return '刚刚'
-  if (seconds < 3600) return `${Math.floor(seconds / 60)}分钟前`
-  if (seconds < 86400) return `${Math.floor(seconds / 3600)}小时前`
+  if (seconds < 60) return t('profile.justNow')
+  if (seconds < 3600) return t('profile.minutesAgo', { count: Math.floor(seconds / 60) })
+  if (seconds < 86400) return t('profile.hoursAgo', { count: Math.floor(seconds / 3600) })
   const date = new Date(time)
   return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`
 }

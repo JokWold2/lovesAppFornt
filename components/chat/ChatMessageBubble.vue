@@ -11,7 +11,7 @@
 			}}</view></view
 		>
 		<view class="message-main">
-			<text class="sender-name">{{ message.sender_name || "成员" }}</text>
+			<text class="sender-name">{{ message.sender_name || t('chat.member') }}</text>
 			<view class="bubble" @longpress="onLongPress">
 				<image
 					v-if="message.message_type === 'image'"
@@ -51,9 +51,9 @@
 							<text v-else class="read-avatar read-avatar-fallback">{{ String(reader.name || '成').slice(0, 1) }}</text>
 						</view>
 					</view>
-					<text class="receipt-text">{{ message.readCount }}人已读</text>
+					<text class="receipt-text">{{ t('chat.readCount', { count: message.readCount }) }}</text>
 				</view>
-				<text v-else>未读</text>
+				<text v-else>{{ t('chat.unread') }}</text>
 			</view>
 		</view>
 	</view>
@@ -62,6 +62,7 @@
 <script setup>
 import { computed } from "vue";
 import { formatReplyPreview, tokenizeMentions } from "@/utils/chatMessagePresentation.js";
+import { t } from '@/utils/localeRuntime.js';
 
 const props = defineProps({
 	message: { type: Object, required: true },
@@ -69,7 +70,7 @@ const props = defineProps({
 });
 const emit = defineEmits(["message-long-press", "preview-image", "show-read-members"]);
 const avatarLabel = computed(() =>
-	String(props.message.sender_name || "成").slice(0, 1),
+	String(props.message.sender_name || t('chat.member')).slice(0, 1),
 );
 const textTokens = computed(() =>
 	tokenizeMentions(props.message.content, props.message.mentions),

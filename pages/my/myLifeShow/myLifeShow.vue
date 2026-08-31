@@ -2,7 +2,7 @@
   <view class="container">
     <!-- 加载状态 -->
     <view v-if="loading" class="loading-container">
-      <text class="loading-text">加载中...</text>
+      <text class="loading-text">{{ t('life.loading') }}</text>
     </view>
 
     <!-- 1. 顶部背景与用户信息 -->
@@ -27,13 +27,13 @@
         </swiper-item>
       </swiper>
       <view class="cover-change-button" @tap.stop="changeCover">
-        <text>换封面</text>
+        <text>{{ t('life.changeCover') }}</text>
       </view>
 
       <!-- 用户名与头像 -->
       <view class="user-info">
         <view class="user-text">
-          <text class="username">{{ userInfo.username || '用户' }}</text>
+          <text class="username">{{ userInfo.username || t('life.user') }}</text>
           <text v-if="userInfo.email" class="email">{{ userInfo.email }}</text>
         </view>
         <image class="avatar" :src="userInfo.avatarUrl || 'https://via.placeholder.com/150/cccccc/ffffff?text=Avatar'"
@@ -46,18 +46,18 @@
       <view class="received-avatars">
         <image v-for="like in receivedLikes.slice(0, 3)" :key="`${like.userId}-${like.createdAt}`" class="received-avatar" :src="getFullImageUrl(like.avatarUrl) || '/static/logo.png'" mode="aspectFill"></image>
       </view>
-      <text class="received-likes-text">{{ receivedLikes[0]?.name || '好友' }}<text v-if="receivedLikeTotal > 1">和其他 {{ receivedLikeTotal - 1 }} 人</text> 为您点赞</text>
+      <text class="received-likes-text">{{ receivedLikes[0]?.name || t('life.friend') }}<text v-if="receivedLikeTotal > 1">{{ t('life.andOthers', { count: receivedLikeTotal - 1 }) }}</text> {{ t('life.likedYou') }}</text>
     </view>
 
     <!-- 2. 个性签名 -->
     <view class="signature" @click="editSignature">
-      <text v-if="!editingBio" @click.stop="editSignature">{{ userInfo.bio || '这个人很懒，什么都没写' }}</text>
+      <text v-if="!editingBio" @click.stop="editSignature">{{ userInfo.bio || t('life.defaultBio') }}</text>
       <input v-else class="bio-input" v-model="bioDraft" :focus="true" confirm-type="done" maxlength="50"
-        placeholder="填写个性签名" @confirm="saveBio" @blur="saveBio" />
+        :placeholder="t('life.bioPlaceholder')" @confirm="saveBio" @blur="saveBio" />
     </view>
     <view style="position: relative;">
       <view style=" position: absolute; top: -100rpx; left: 40rpx;width: 176rpx;height: 90rpx;" @click="goToSearch">
-        <botton2 text="搜寻" />
+        <LightningButton :text="t('life.search')" />
         <!-- <loading2 /> -->
       </view>
     </view>
@@ -72,8 +72,8 @@
     <view class="moments-list">
       <!-- 空状态 -->
       <view v-if="!loading && moments.length === 0" class="empty-state">
-        <text class="empty-text">还没有动态</text>
-        <text class="empty-hint">点击下方按钮发布第一条动态</text>
+        <text class="empty-text">{{ t('life.empty') }}</text>
+        <text class="empty-hint">{{ t('life.emptyHint') }}</text>
       </view>
 
       <!-- 动态列表 -->
@@ -87,7 +87,7 @@
         <view class="list-item" @click="goToDetail(item)" @longpress="showItemActions(item)">
           <view class="left-time">
             <view v-if="item.is_pinned" class="pin-badge">
-              <text>置顶</text>
+              <text>{{ t('life.pinned') }}</text>
             </view>
             <view v-else class="time-info">
               <text class="time-hour">{{ formatTime(item.created_at) }}</text>
@@ -152,7 +152,7 @@
               <!-- 全部评论，点某条评论 = 回复这条评论的作者 -->
               <view v-for="c in item.comments" :key="c.id" class="comment-item" @click="startReply(item, c)">
                 <text class="comment-author">{{ c.email }}</text>
-                <text v-if="c.reply_to_email" class="comment-reply-arrow"> 回复 {{ c.reply_to_email }}</text>
+                <text v-if="c.reply_to_email" class="comment-reply-arrow"> {{ t('life.reply') }} {{ c.reply_to_email }}</text>
                 <text class="comment-colon">：</text>
                 <text class="comment-content">{{ c.content }}</text>
               </view>
@@ -161,14 +161,14 @@
             <!-- 评论输入框：点💬图标，或者点某条评论（回复）后展开 -->
             <view v-if="item.showCommentInput" class="comment-input-row" @click.stop>
               <view v-if="item.replyTarget" class="reply-target-tag">
-                <text>回复 {{ item.replyTarget.email }}</text>
+                <text>{{ t('life.reply') }} {{ item.replyTarget.email }}</text>
                 <text class="reply-cancel" @click="cancelReply(item)">×</text>
               </view>
               <view class="comment-input-inner">
                 <input class="comment-input" v-model="item.commentDraft" :focus="item.showCommentInput"
-                  confirm-type="send" :placeholder="item.replyTarget ? `回复 ${item.replyTarget.email}` : '说点什么…'"
+                  confirm-type="send" :placeholder="item.replyTarget ? `${t('life.reply')} ${item.replyTarget.email}` : t('life.saySomething')"
                   @confirm="submitComment(item)" />
-                <text class="comment-send-btn" @click="submitComment(item)">发送</text>
+                <text class="comment-send-btn" @click="submitComment(item)">{{ t('life.send') }}</text>
               </view>
             </view>
           </view>
@@ -178,7 +178,7 @@
 
     <!-- 底部发布按钮 -->
     <view class="fab-container" @click="goToEdit">
-      <botton3 text="+" />
+      <FloatingActionButton text="+" />
       <!-- <view class="fab" @click="goToEdit">
         <text class="fab-icon">+</text>
       </view> -->
@@ -189,8 +189,8 @@
     <ProfileLikesSheet :visible="showLikesSheet" :likes="receivedLikes" :total="receivedLikeTotal" @close="showLikesSheet = false" />
     <view v-if="coverExpanded" class="cover-preview-mask" @tap="closeCoverPreview">
       <image class="cover-preview-image" :src="profilePhotos[currentCoverIndex]" mode="aspectFit" @tap.stop />
-      <view class="cover-preview-change" @tap.stop="changeCover"><text>换封面</text></view>
-      <view class="cover-preview-delete" @tap.stop="deleteCurrentCover"><text>删除照片</text></view>
+      <view class="cover-preview-change" @tap.stop="changeCover"><text>{{ t('life.changeCover') }}</text></view>
+      <view class="cover-preview-delete" @tap.stop="deleteCurrentCover"><text>{{ t('life.deletePhoto') }}</text></view>
       <text class="cover-preview-close">×</text>
     </view>
   </view>
@@ -206,10 +206,11 @@ import {
   getLikesApi, getProfileLikesApi
 } from '@/api/index.js'
 import { config } from '@/utils/config.js'
-import botton2 from '@/static/botton/botton2.vue'
-import botton3 from '@/static/botton/botton3.vue'
+import LightningButton from '@/components/common/LightningButton.vue'
+import FloatingActionButton from '@/components/common/FloatingActionButton.vue'
 import ProfileDetailSections from '@/components/profile/ProfileDetailSections.vue'
 import ProfileLikesSheet from '@/components/profile/ProfileLikesSheet.vue'
+import { t, updateTabBarLocale } from '@/utils/localeRuntime.js'
 // import loading2 from '@/static/loading/loading2.vue'
 // 状态
 const loading = ref(false)
@@ -277,12 +278,12 @@ function getDateLabel(dateStr) {
   const yesterday = new Date(today.getTime() - 24 * 60 * 60 * 1000)
   const itemDate = new Date(date.getFullYear(), date.getMonth(), date.getDate())
 
-  if (itemDate.getTime() === today.getTime()) return '今天'
-  if (itemDate.getTime() === yesterday.getTime()) return '昨天'
+  if (itemDate.getTime() === today.getTime()) return t('life.today')
+  if (itemDate.getTime() === yesterday.getTime()) return t('life.yesterday')
 
   const month = date.getMonth() + 1
   const day = date.getDate()
-  return `${month}月${day}日`
+  return `${month}/${day}`
 }
 
 
@@ -338,7 +339,7 @@ function normalizeProfileLike(like) {
   return {
     userId: like.userId ?? like.user_id,
     email,
-    name: like.name || email.split('@')[0] || '好友',
+    name: like.name || email.split('@')[0] || t('life.friend'),
     avatarUrl: like.avatarUrl || like.avatar_url || '',
     createdAt: like.createdAt || like.created_at || ''
   }
@@ -360,7 +361,7 @@ async function saveBio() {
     uni.setStorageSync('USER_INFO', { ...cached, bio: text })
   } catch (e) {
     console.error('签名保存失败', e)
-    uni.showToast({ title: '保存失败', icon: 'none' })
+    uni.showToast({ title: t('life.saveFailed'), icon: 'none' })
   }
 }
 // 格式化时间
@@ -395,7 +396,7 @@ async function loadMoments() {
     loadMetaForMoments()
   } catch (e) {
     console.error('加载动态失败', e)
-    uni.showToast({ title: '加载失败', icon: 'none' })
+    uni.showToast({ title: t('life.loadFailed'), icon: 'none' })
   } finally {
     loading.value = false
   }
@@ -492,7 +493,7 @@ async function toggleLike(item) {
     // 请求失败则回滚
     item.is_liked = prevLiked
     item.like_count = prevCount
-    uni.showToast({ title: '操作失败，请重试', icon: 'none' })
+    uni.showToast({ title: t('life.actionFailed'), icon: 'none' })
   }
 }
 
@@ -525,15 +526,15 @@ async function submitComment(item) {
     item.showCommentInput = false
   } catch (e) {
     console.error('评论失败', e)
-    uni.showToast({ title: '评论失败', icon: 'none' })
+    uni.showToast({ title: t('life.commentFailed'), icon: 'none' })
   }
 }
 
 // 长按动态：置顶/取消置顶、删除
 function showItemActions(item) {
-  const pinLabel = item.is_pinned ? '取消置顶' : '置顶'
+  const pinLabel = item.is_pinned ? t('life.unpin') : t('life.pin')
   uni.showActionSheet({
-    itemList: [pinLabel, '删除'],
+    itemList: [pinLabel, t('life.delete')],
     success: async (res) => {
       if (res.tapIndex === 0) {
         try {
@@ -546,21 +547,23 @@ function showItemActions(item) {
           })
         } catch (e) {
           console.error('置顶操作失败', e)
-          uni.showToast({ title: '操作失败', icon: 'none' })
+          uni.showToast({ title: t('life.actionFailed'), icon: 'none' })
         }
       } else if (res.tapIndex === 1) {
         uni.showModal({
-          title: '确认删除',
-          content: '删除后无法恢复，确定删除这条动态吗？',
+          title: t('life.deleteTitle'),
+          content: t('life.deleteContent'),
+          cancelText: t('common.cancel'),
+          confirmText: t('life.delete'),
           success: async (modalRes) => {
             if (modalRes.confirm) {
               try {
                 await deleteMomentApi(item.id)
                 moments.value = moments.value.filter(m => m.id !== item.id)
-                uni.showToast({ title: '已删除', icon: 'success' })
+                uni.showToast({ title: t('life.deleted'), icon: 'success' })
               } catch (e) {
                 console.error('删除失败', e)
-                uni.showToast({ title: '删除失败', icon: 'none' })
+                uni.showToast({ title: t('life.deleteFailed'), icon: 'none' })
               }
             }
           }
@@ -597,7 +600,7 @@ function closeCoverPreview() {
 function changeCover() {
   const remaining = 9 - profilePhotos.value.length
   if (remaining <= 0) {
-    uni.showToast({ title: '最多只能上传 9 张照片', icon: 'none' })
+    uni.showToast({ title: t('life.photoLimit'), icon: 'none' })
     return
   }
   uni.chooseImage({
@@ -605,7 +608,7 @@ function changeCover() {
     sourceType: ['album'],
     success: async (res) => {
       try {
-        uni.showLoading({ title: '上传中...' })
+        uni.showLoading({ title: t('life.uploading') })
         const result = await uploadProfilePhotosApi(res.tempFilePaths)
         profilePhotos.value = normalizePhotoUrls(result.photos).map(getFullImageUrl)
         currentCoverIndex.value = Math.max(profilePhotos.value.length - 1, 0)
@@ -615,7 +618,7 @@ function changeCover() {
         await loadUserProfile()
       } catch (e) {
         console.error('封面上传失败', e)
-        uni.showToast({ title: '上传失败', icon: 'none' })
+        uni.showToast({ title: t('life.uploadFailed'), icon: 'none' })
       } finally {
         uni.hideLoading()
       }
@@ -628,14 +631,15 @@ function deleteCurrentCover() {
   if (!photo) return
 
   uni.showModal({
-    title: '删除照片',
-    content: '删除后将从个人相册移除，是否继续？',
-    confirmText: '删除',
+    title: t('life.deletePhoto'),
+    content: t('life.deletePhotoContent'),
+    cancelText: t('common.cancel'),
+    confirmText: t('life.delete'),
     confirmColor: '#fe385c',
     success: async ({ confirm }) => {
       if (!confirm) return
       try {
-        uni.showLoading({ title: '删除中...' })
+        uni.showLoading({ title: t('life.deleting') })
         const result = await deleteProfilePhotoApi(photo)
         profilePhotos.value = normalizePhotoUrls(result.photos).map(getFullImageUrl)
         currentCoverIndex.value = Math.min(currentCoverIndex.value, Math.max(profilePhotos.value.length - 1, 0))
@@ -647,7 +651,7 @@ function deleteCurrentCover() {
         if (!profilePhotos.value.length) closeCoverPreview()
       } catch (e) {
         console.error('删除资料照片失败', e)
-        uni.showToast({ title: '删除失败，请稍后重试', icon: 'none' })
+        uni.showToast({ title: t('life.deletePhotoFailed'), icon: 'none' })
       } finally {
         uni.hideLoading()
       }
@@ -662,14 +666,14 @@ function changeAvatar() {
     sourceType: ['album'],
     success: async (res) => {
       try {
-        uni.showLoading({ title: '上传中...' })
+        uni.showLoading({ title: t('life.uploading') })
         const result = await uploadAvatarApi(res.tempFilePaths[0])
         userInfo.value.avatarUrl =  result.url
         const cached = uni.getStorageSync('USER_INFO') || {}
         uni.setStorageSync('USER_INFO', { ...cached, avatar_url: result.url })
       } catch (e) {
         console.error('头像上传失败', e)
-        uni.showToast({ title: '上传失败', icon: 'none' })
+        uni.showToast({ title: t('life.uploadFailed'), icon: 'none' })
       } finally {
         uni.hideLoading()
       }
@@ -697,6 +701,7 @@ function getUserInfo() {
 }
 
 onShow(() => {
+  updateTabBarLocale()
   getUserInfo()     // 本地缓存先展示，避免首屏空白
   loadUserProfile() // 再用后端最新数据覆盖，保证回显准确
   loadMoments()
@@ -871,7 +876,7 @@ onShow(() => {
   min-height: 68rpx;
   padding: 18rpx 30rpx 0;
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   gap: 16rpx;
   background: #fff6df;
 }
@@ -879,7 +884,8 @@ onShow(() => {
 .received-avatars {
   display: flex;
   align-items: center;
-  padding-left: 10rpx;
+  flex: 0 0 auto;
+  padding-left: 24rpx;
 }
 
 .received-avatar {
@@ -890,8 +896,14 @@ onShow(() => {
   margin-left: -24rpx;
   background: #eee;
 }
+.received-avatar:first-child { margin-left: 0; }
 
 .received-likes-text {
+  flex: 1;
+  min-width: 0;
+  padding-top: 6rpx;
+  line-height: 34rpx;
+  word-break: break-all;
   color: #333;
   font-size: 26rpx;
 }

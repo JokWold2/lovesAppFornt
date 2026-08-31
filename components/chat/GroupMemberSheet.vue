@@ -6,17 +6,17 @@
         <view v-for="member in memberCards" :key="member.userId" class="member-row">
           <image v-if="member.avatarUrl" class="member-avatar" :src="member.avatarUrl" mode="aspectFill" />
           <view v-else class="member-avatar member-avatar-fallback">{{ member.name.slice(0, 1) }}</view>
-          <view class="member-copy"><text class="member-name">{{ member.name }}</text><text class="member-email">{{ member.email || '暂无邮箱' }}</text></view>
+          <view class="member-copy"><text class="member-name">{{ member.name }}</text><text class="member-email">{{ member.email || t('chat.noEmail') }}</text></view>
         </view>
-        <view v-if="!memberCards.length" class="empty">暂无成员</view>
+        <view v-if="!memberCards.length" class="empty">{{ t('chat.noMembers') }}</view>
         <template v-if="hasUnreadSection">
-          <view class="section-head"><text>未读成员（{{ unreadMemberCards.length }}）</text></view>
+          <view class="section-head"><text>{{ t('chat.unreadMembers', { count: unreadMemberCards.length }) }}</text></view>
           <view v-for="member in unreadMemberCards" :key="member.userId" class="member-row">
             <image v-if="member.avatarUrl" class="member-avatar" :src="member.avatarUrl" mode="aspectFill" />
             <view v-else class="member-avatar member-avatar-fallback">{{ member.name.slice(0, 1) }}</view>
-            <view class="member-copy"><text class="member-name">{{ member.name }}</text><text class="member-email">{{ member.email || '暂无邮箱' }}</text></view>
+            <view class="member-copy"><text class="member-name">{{ member.name }}</text><text class="member-email">{{ member.email || t('chat.noEmail') }}</text></view>
           </view>
-          <view v-if="!unreadMemberCards.length" class="all-read">全部已读</view>
+          <view v-if="!unreadMemberCards.length" class="all-read">{{ t('chat.allRead') }}</view>
         </template>
       </scroll-view>
     </view>
@@ -26,8 +26,9 @@
 <script setup>
 import { computed } from 'vue'
 import { visibleMemberDetails } from '@/utils/groupMemberSheetState.js'
+import { t } from '@/utils/localeRuntime.js'
 
-const props = defineProps({ visible: Boolean, title: { type: String, default: '成员' }, members: { type: Array, default: () => [] }, unreadMembers: { type: Array, default: null } })
+const props = defineProps({ visible: Boolean, title: { type: String, default: '' }, members: { type: Array, default: () => [] }, unreadMembers: { type: Array, default: null } })
 const emit = defineEmits(['close'])
 const memberCards = computed(() => props.members.map(visibleMemberDetails))
 const hasUnreadSection = computed(() => Array.isArray(props.unreadMembers))

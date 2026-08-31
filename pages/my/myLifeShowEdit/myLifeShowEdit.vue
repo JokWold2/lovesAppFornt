@@ -5,9 +5,9 @@
 
     <!-- 顶部导航栏 -->
     <view class="header">
-      <text class="cancel-btn" @click="onCancel">取消</text>
+      <text class="cancel-btn" @click="onCancel">{{ t('common.cancel') }}</text>
       <view class="publish-btn" :class="{ disabled: publishing }" @click="onPublish">
-        <text class="publish-text">{{ publishing ? '发布中...' : '发表' }}</text>
+        <text class="publish-text">{{ publishing ? t('publish.publishing') : t('publish.publish') }}</text>
       </view>
     </view>
 
@@ -16,7 +16,7 @@
       <textarea
         v-model="postContent"
         class="textarea"
-        placeholder="这一刻的想法..."
+        :placeholder="t('publish.thought')"
         auto-height
         placeholder-style="color: #BBBBBB; font-size: 32rpx;"
         :maxlength="2000"
@@ -40,7 +40,7 @@
 
       <!-- 上传进度 -->
       <view v-if="uploading" class="upload-progress">
-        <text class="progress-text">图片上传中...</text>
+        <text class="progress-text">{{ t('publish.uploading') }}</text>
       </view>
     </view>
 
@@ -50,10 +50,10 @@
       <view class="settings-item" @click="selectLocation">
         <view class="item-left">
           <view class="item-icon location-icon">📍</view>
-          <text class="item-title">所在位置</text>
+          <text class="item-title">{{ t('publish.location') }}</text>
         </view>
         <view class="item-right">
-          <text class="item-value">{{ location.name || '未选择' }}</text>
+          <text class="item-value">{{ location.name || t('publish.notSelected') }}</text>
           <view class="arrow-right"></view>
         </view>
       </view>
@@ -62,10 +62,10 @@
       <view class="settings-item" @click="selectRemind">
         <view class="item-left">
           <view class="item-icon at-icon">@</view>
-          <text class="item-title">提醒谁看</text>
+          <text class="item-title">{{ t('publish.remind') }}</text>
         </view>
         <view class="item-right">
-          <text class="item-value">{{ remindUsers.length > 0 ? `${remindUsers.length}位好友` : '未选择' }}</text>
+          <text class="item-value">{{ remindUsers.length > 0 ? t('publish.friends', { count: remindUsers.length }) : t('publish.notSelected') }}</text>
           <view class="arrow-right"></view>
         </view>
       </view>
@@ -74,7 +74,7 @@
       <view class="settings-item" @click="selectVisibility">
         <view class="item-left">
           <view class="item-icon people-icon">👥</view>
-          <text class="item-title">谁可以看</text>
+          <text class="item-title">{{ t('publish.visibility') }}</text>
         </view>
         <view class="item-right">
           <text class="item-value">{{ visibilityLabel }}</text>
@@ -84,7 +84,7 @@
 
       <!-- 部分可见好友列表 -->
       <view v-if="visibility === 'partial' && visibleUsers.length > 0" class="visible-users-list">
-        <text class="visible-users-label">可见好友：</text>
+        <text class="visible-users-label">{{ t('publish.visibleFriends') }}</text>
         <view class="visible-user-tags">
           <view v-for="user in visibleUsers" :key="user.id" class="user-tag">
             <text class="user-tag-text">{{ user.username }}</text>
@@ -103,6 +103,7 @@ import { ref, computed } from 'vue'
 import { onLoad, onUnload } from '@dcloudio/uni-app'
 import { uploadMomentImagesApi, createMomentApi } from '@/api/index.js'
 import {config} from '@/utils/config.js'
+import { t } from '@/utils/localeRuntime.js'
 
 // 页面状态
 const pageReady = ref(false)
@@ -127,10 +128,10 @@ const remindUsers = ref([])
 
 // 可见性
 const visibilityOptions = [
-  { value: 'public', label: '公开' },
-  { value: 'friends', label: '仅好友可见' },
-  { value: 'partial', label: '部分好友可见' },
-  { value: 'private', label: '仅自己可见' }
+  { value: 'public', label: () => t('publish.public') },
+  { value: 'friends', label: () => t('publish.friendsOnly') },
+  { value: 'partial', label: () => t('publish.partial') },
+  { value: 'private', label: () => t('publish.private') }
 ]
 const visibility = ref('public')
 
@@ -140,7 +141,7 @@ const visibleUsers = ref([])
 // 计算可见性标签
 const visibilityLabel = computed(() => {
   const option = visibilityOptions.find(v => v.value === visibility.value)
-  return option ? option.label : '公开'
+  return option ? option.label() : t('publish.public')
 })
 
 // 页面加载
@@ -174,8 +175,10 @@ async function loadMoment(id) {
 const onCancel = () => {
   if (postContent.value.trim() || imageList.value.length > 0) {
     uni.showModal({
-      title: '提示',
-      content: '确定放弃发布吗？',
+      title: t('publish.notice'),
+      content: t('publish.discard'),
+      cancelText: t('common.cancel'),
+      confirmText: t('common.confirm'),
       success: (res) => {
         if (res.confirm) {
           uni.navigateBack()
@@ -197,7 +200,7 @@ const onPublish = async () => {
 
   // 验证内容
   if (!postContent.value.trim() && imageList.value.length === 0) {
-    uni.showToast({ title: '请输入内容或添加图片', icon: 'none' })
+    uni.showToast({ title: t('publish.contentRequired'), icon: 'none' })
     return
   }
 
@@ -232,7 +235,7 @@ const onPublish = async () => {
     const res = await createMomentApi(payload)
     console.log('发布成功', res)
 
-    uni.showToast({ title: '发表成功', icon: 'success' })
+    uni.showToast({ title: t('publish.publishSuccess'), icon: 'success' })
 
     // 返回上一页并刷新列表
     setTimeout(() => {
@@ -245,7 +248,7 @@ const onPublish = async () => {
     }, 1500)
   } catch (e) {
     console.error('发布失败', e)
-    uni.showToast({ title: '发布失败，请重试', icon: 'none' })
+    uni.showToast({ title: t('publish.publishFailed'), icon: 'none' })
   } finally {
     publishing.value = false
   }
@@ -255,7 +258,7 @@ const onPublish = async () => {
 const addImages = () => {
   const remainCount = 9 - imageList.value.length
   if (remainCount <= 0) {
-    uni.showToast({ title: '最多上传9张图片', icon: 'none' })
+    uni.showToast({ title: t('publish.imageLimit'), icon: 'none' })
     return
   }
 
@@ -291,12 +294,12 @@ const addImages = () => {
           return img
         })
 
-        uni.showToast({ title: '上传成功', icon: 'success' })
+        uni.showToast({ title: t('publish.uploadSuccess'), icon: 'success' })
       } catch (e) {
         console.error('上传失败', e)
         // 移除上传失败的图片
         imageList.value = imageList.value.filter(img => !img.uploading)
-        uni.showToast({ title: '上传失败', icon: 'none' })
+        uni.showToast({ title: t('publish.uploadFailed'), icon: 'none' })
       } finally {
         uploading.value = false
       }
@@ -307,8 +310,10 @@ const addImages = () => {
 // 删除图片
 const deleteImage = (index) => {
   uni.showModal({
-    title: '提示',
-    content: '确定删除这张图片吗？',
+    title: t('publish.notice'),
+    content: t('publish.deleteImage'),
+    cancelText: t('common.cancel'),
+    confirmText: t('common.confirm'),
     success: (res) => {
       if (res.confirm) {
         imageList.value.splice(index, 1)
@@ -341,7 +346,7 @@ const selectLocation = () => {
       console.log('选择位置失败', err)
       // 如果用户拒绝了定位权限，给提示
       if (err.errMsg && err.errMsg.includes('auth deny')) {
-        uni.showToast({ title: '请允许获取位置权限', icon: 'none' })
+        uni.showToast({ title: t('publish.locationPermission'), icon: 'none' })
       }
     }
   })
@@ -358,7 +363,7 @@ const selectRemind = () => {
 // 选择可见性
 const selectVisibility = () => {
   uni.showActionSheet({
-    itemList: visibilityOptions.map(v => v.label),
+    itemList: visibilityOptions.map(v => v.label()),
     success: (res) => {
       const selected = visibilityOptions[res.tapIndex]
       visibility.value = selected.value

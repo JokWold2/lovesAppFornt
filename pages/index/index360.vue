@@ -38,27 +38,27 @@
 			<view class="nav-center">
 				<view
 					class="nav-tab"
-					:class="{ active: model === '教學' }"
-					@click="model = '教學'"
+					:class="{ active: model === 'tutorial' }"
+					@click="model = 'tutorial'"
 				>
-					<text class="tab-text">教學</text>
-					<view class="tab-line" v-if="model === '教學'"></view>
+					<text class="tab-text">{{ t('home.tutorial') }}</text>
+					<view class="tab-line" v-if="model === 'tutorial'"></view>
 				</view>
 				<view
 					class="nav-tab"
-					:class="{ active: model === '為您推薦' }"
-					@click="model = '為您推薦'"
+					:class="{ active: model === 'recommend' }"
+					@click="model = 'recommend'"
 				>
-					<text class="tab-text">為您推薦</text>
-					<view class="tab-line" v-if="model === '為您推薦'"></view>
+					<text class="tab-text">{{ t('home.recommend') }}</text>
+					<view class="tab-line" v-if="model === 'recommend'"></view>
 				</view>
 				<view
 					class="nav-tab"
-					:class="{ active: model === '活動' }"
-					@click="model = '活動'"
+					:class="{ active: model === 'activity' }"
+					@click="model = 'activity'"
 				>
-					<text class="tab-text">活動</text>
-					<view class="tab-line" v-if="model === '活動'"></view>
+					<text class="tab-text">{{ t('home.activity') }}</text>
+					<view class="tab-line" v-if="model === 'activity'"></view>
 				</view>
 			</view>
 
@@ -67,11 +67,11 @@
 				<uni-icons type="mail" size="28" color="#333"></uni-icons>
 			</view>
 			</view>
-			<view v-if="model === '為您推薦'">
+			<view v-if="model === 'recommend'">
 			<!-- 搜索栏 -->
 			<view class="search-container">
 				<view class="search-box">
-					<text class="search-placeholder">搜索話題/用戶</text>
+					<text class="search-placeholder">{{ t('home.search') }}</text>
 				</view>
 			</view>
 
@@ -105,23 +105,23 @@
 			</view>
 		</view>
 		</view>
-		<view v-if="model === '為您推薦'">
-			<MarketPreviewSection v-if="currentEntryIndex === 2" category="antique" title="古董" />
-			<MarketPreviewSection v-if="currentEntryIndex === 3" category="second_hand" title="二手市场" />
+		<view v-if="model === 'recommend'">
+			<MarketPreviewSection v-if="currentEntryIndex === 2" category="antique" :title="t('home.antique')" />
+			<MarketPreviewSection v-if="currentEntryIndex === 3" category="second_hand" :title="t('home.secondHand')" />
 			<!-- 精选混排信息流 -->
 			<view class="feed-container" v-if="currentEntryIndex === 0">
 				<view
 					v-if="featuredLoading && featuredItems.length === 0"
 					class="loading-container"
 				>
-					<text class="loading-text">加载中...</text>
+					<text class="loading-text">{{ t('home.loading') }}</text>
 				</view>
 
 				<view
 					v-if="!featuredLoading && featuredItems.length === 0"
 					class="empty-state"
 				>
-					<text class="empty-text">暂无精选内容</text>
+					<text class="empty-text">{{ t('home.noFeatured') }}</text>
 				</view>
 
 				<view class="waterfall-grid">
@@ -265,7 +265,7 @@
 									v-if="item.commentsLoading"
 									class="comment-loading"
 								>
-									<text>加载中...</text>
+					<text>{{ t('home.loading') }}</text>
 								</view>
 								<template v-else>
 									<view
@@ -275,13 +275,13 @@
 										@click="startFeaturedReply(item, c)"
 									>
 										<text class="comment-author">{{
-											c.email
+											commentDisplayName(c, t('common.user'))
 										}}</text>
 										<text
-											v-if="c.reply_to_email"
+											v-if="commentReplyDisplayName(c, '')"
 											class="comment-reply-arrow"
 										>
-											回复 {{ c.reply_to_email }}</text
+											{{ t('home.replyTo', { name: commentReplyDisplayName(c, t('common.user')) }) }}</text
 										>
 										<text class="comment-colon">：</text>
 										<text class="comment-content">{{
@@ -295,7 +295,7 @@
 										"
 										class="comment-empty"
 									>
-										<text>还没有评论，来抢沙发～</text>
+										<text>{{ t('home.noComments') }}</text>
 									</view>
 								</template>
 
@@ -305,7 +305,7 @@
 										class="reply-target-tag"
 									>
 										<text>
-											回复 {{ item.replyTarget.email }}
+											{{ t('home.replyTo', { name: item.replyTarget.email }) }}
 										</text>
 										<text
 											class="reply-cancel"
@@ -320,8 +320,8 @@
 											confirm-type="send"
 											:placeholder="
 												item.replyTarget
-													? `回复 ${item.replyTarget.email}`
-													: '说点什么…'
+												? t('home.replyTo', { name: item.replyTarget.email })
+												: t('home.saySomething')
 											"
 											@confirm="submitFeaturedComment(item)"
 										/>
@@ -330,7 +330,7 @@
 											@click="
 												submitFeaturedComment(item)
 											"
-											>发送</text
+											>{{ t('home.send') }}</text
 										>
 									</view>
 								</view>
@@ -340,13 +340,13 @@
 				</view>
 
 				<view v-if="featuredLoadingMore" class="load-more-tip">
-					<text>加载更多中...</text>
+					<text>{{ t('home.loadingMore') }}</text>
 				</view>
 				<view
 					v-if="!featuredHasMore && featuredItems.length > 0"
 					class="load-more-tip"
 				>
-					<text>没有更多了</text>
+					<text>{{ t('home.noMore') }}</text>
 				</view>
 			</view>
 
@@ -357,7 +357,7 @@
 					v-if="loading && profiles.length === 0"
 					class="loading-container"
 				>
-					<text class="loading-text">加载中...</text>
+					<text class="loading-text">{{ t('home.loading') }}</text>
 				</view>
 
 				<!-- 空状态 -->
@@ -365,7 +365,7 @@
 					v-if="!loading && profiles.length === 0"
 					class="empty-state"
 				>
-					<text class="empty-text">暂时没有更多推荐</text>
+					<text class="empty-text">{{ t('home.noRecommendation') }}</text>
 				</view>
 
 				<view
@@ -448,7 +448,7 @@
 							v-if="item.commentsLoading"
 							class="comment-loading"
 						>
-							<text>加载中...</text>
+							<text>{{ t('home.loading') }}</text>
 						</view>
 						<template v-else>
 							<view
@@ -458,13 +458,13 @@
 								@click="startReply(item, c)"
 							>
 								<text class="comment-author">{{
-									c.email
+									commentDisplayName(c, t('common.user'))
 								}}</text>
 								<text
-									v-if="c.reply_to_email"
+									v-if="commentReplyDisplayName(c, '')"
 									class="comment-reply-arrow"
 								>
-									回复 {{ c.reply_to_email }}</text
+									{{ t('home.replyTo', { name: commentReplyDisplayName(c, t('common.user')) }) }}</text
 								>
 								<text class="comment-colon">：</text>
 								<text class="comment-content">{{
@@ -477,7 +477,7 @@
 								"
 								class="comment-empty"
 							>
-								<text>还没有评论，来抢沙发～</text>
+								<text>{{ t('home.noComments') }}</text>
 							</view>
 						</template>
 
@@ -487,7 +487,7 @@
 								v-if="item.replyTarget"
 								class="reply-target-tag"
 							>
-								<text>回复 {{ item.replyTarget.email }}</text>
+								<text>{{ t('home.replyTo', { name: item.replyTarget.email }) }}</text>
 								<text
 									class="reply-cancel"
 									@click="cancelReply(item)"
@@ -501,15 +501,15 @@
 									confirm-type="send"
 									:placeholder="
 										item.replyTarget
-											? `回复 ${item.replyTarget.email}`
-											: '说点什么…'
+										? t('home.replyTo', { name: item.replyTarget.email })
+										: t('home.saySomething')
 									"
 									@confirm="submitComment(item)"
 								/>
 								<text
 									class="comment-send-btn"
 									@click="submitComment(item)"
-									>发送</text
+									>{{ t('home.send') }}</text
 								>
 							</view>
 						</view>
@@ -518,13 +518,13 @@
 
 				<!-- 上滑加载更多状态 -->
 				<view v-if="loadingMore" class="load-more-tip">
-					<text>加载更多中...</text>
+					<text>{{ t('home.loadingMore') }}</text>
 				</view>
 				<view
 					v-if="!hasMore && profiles.length > 0"
 					class="load-more-tip"
 				>
-					<text>没有更多了</text>
+					<text>{{ t('home.noMore') }}</text>
 				</view>
 			</view>
 			<!-- <AuctionActivity v-if="currentEntryIndex == 2" /> -->
@@ -533,16 +533,16 @@
 				<uni-icons type="arrow-up" size="28" color="#000"></uni-icons>
 			</view>
 		</view>
-		<AntiqueCollection v-if="model === '教學'" />
-		<AuctionActivity v-if="model === '活動'" />
+		<AntiqueCollection v-if="model === 'tutorial'" />
+		<AuctionActivity v-if="model === 'activity'" />
 		<!-- 底部安全区留白 -->
 		<view class="safe-area-bottom"></view>
 	</view>
 </template>
 
 <script setup>
-import { ref, onMounted, computed, nextTick } from "vue";
-import { onPullDownRefresh, onReachBottom, onPageScroll } from "@dcloudio/uni-app";
+import { ref, onMounted, computed, nextTick, watch } from "vue";
+import { onPullDownRefresh, onReachBottom, onPageScroll, onShow } from "@dcloudio/uni-app";
 import {
 	getExploreFeedApi,
 	getFeaturedFeedApi,
@@ -560,13 +560,18 @@ import AuctionActivity from "./components/Auctionactivity.vue";
 import MarketPreviewSection from "@/components/market/MarketPreviewSection.vue";
 import {
 	createLatestRequestGuard,
+	commentDisplayName,
+	commentReplyDisplayName,
 	featuredItemImage,
 	featuredItemRoute,
 } from "@/utils/featuredFeed.js";
+import { currentLocale, t, updateTabBarLocale } from '@/utils/localeRuntime.js';
+
+onShow(() => updateTabBarLocale())
 
 // 状态栏高度适配
 const statusBarHeight = ref(44);
-const model = ref("為您推薦");
+const model = ref("recommend");
 const userInfo = ref({});
 const recommendationHeaderFixed = ref(false);
 const recommendationHeaderHeight = ref(0);
@@ -588,6 +593,10 @@ function openAccountCenter() {
 	uni.navigateTo({ url: "/pages/account/accountCenter" });
 }
 
+function updatePageTitle() {
+	uni.setNavigationBarTitle({ title: t('navigation.home') });
+}
+
 onMounted(async () => {
 	const storedUserInfo = uni.getStorageSync("USER_INFO");
 	if (storedUserInfo) {
@@ -604,8 +613,11 @@ onMounted(async () => {
 		},
 	});
 	measureRecommendationHeader();
+	updatePageTitle();
 	loadFeed({ isRefresh: true });
 });
+
+watch(currentLocale, updatePageTitle);
 
 // ------- 回到顶部 -------
 function scrollToTop() {
@@ -752,7 +764,7 @@ async function loadFeed({ isRefresh }) {
 		hasMore.value = !!res.hasMore;
 	} catch (e) {
 		console.error("加载推荐失败", e);
-		uni.showToast({ title: "加载失败", icon: "none" });
+		uni.showToast({ title: t('home.loadFailed'), icon: "none" });
 	} finally {
 		loading.value = false;
 		loadingMore.value = false;
@@ -815,7 +827,7 @@ async function loadFeaturedFeed({ isRefresh }) {
 		featuredHasMore.value = featuredCommittedState.hasMore;
 		featuredImageKeys.value = featuredCommittedState.imageKeys;
 		console.error("加载精选失败", e);
-		uni.showToast({ title: "加载失败", icon: "none" });
+		uni.showToast({ title: t('home.loadFailed'), icon: "none" });
 	} finally {
 		if (!featuredRequestGuard.isCurrent(requestId)) return;
 		featuredLoading.value = false;
@@ -846,7 +858,7 @@ onPullDownRefresh(() => {
 
 onPageScroll(({ scrollTop }) => {
 	recommendationHeaderFixed.value =
-		model.value === "為您推薦" && scrollTop > 8;
+		model.value === "recommend" && scrollTop > 8;
 });
 
 onReachBottom(() => {
@@ -872,7 +884,7 @@ async function toggleLike(item) {
 		console.error("点赞失败", e);
 		item.isLiked = prevLiked;
 		item.likeCount = prevCount;
-		uni.showToast({ title: "操作失败，请重试", icon: "none" });
+		uni.showToast({ title: t('home.actionFailed'), icon: "none" });
 	}
 }
 
@@ -919,7 +931,7 @@ async function toggleFeaturedLike(item) {
 		console.error("精选点赞失败", e);
 		item.isLiked = prevLiked;
 		item.likeCount = prevCount;
-		uni.showToast({ title: "操作失败，请重试", icon: "none" });
+		uni.showToast({ title: t('home.actionFailed'), icon: "none" });
 	}
 }
 
@@ -944,14 +956,17 @@ async function loadFeaturedComments(item) {
 		item.comments = res.comments || [];
 	} catch (e) {
 		console.error("获取精选评论失败", e);
-		uni.showToast({ title: "获取评论失败", icon: "none" });
+		uni.showToast({ title: t('home.getCommentsFailed'), icon: "none" });
 	} finally {
 		item.commentsLoading = false;
 	}
 }
 
 function startFeaturedReply(item, comment) {
-	item.replyTarget = { userId: comment.user_id, email: comment.email };
+	item.replyTarget = {
+		userId: comment.user_id,
+		email: commentDisplayName(comment, t('common.user')),
+	};
 }
 
 function cancelFeaturedReply(item) {
@@ -977,7 +992,7 @@ async function submitFeaturedComment(item) {
 		item.showComments = false;
 	} catch (e) {
 		console.error("发表精选评论失败", e);
-		uni.showToast({ title: "评论失败", icon: "none" });
+		uni.showToast({ title: t('home.commentFailed'), icon: "none" });
 	}
 }
 
@@ -1000,14 +1015,17 @@ async function loadComments(item) {
 		item.comments = res.comments || [];
 	} catch (e) {
 		console.error("获取评论失败", e);
-		uni.showToast({ title: "获取评论失败", icon: "none" });
+		uni.showToast({ title: t('home.getCommentsFailed'), icon: "none" });
 	} finally {
 		item.commentsLoading = false;
 	}
 }
 
 function startReply(item, comment) {
-	item.replyTarget = { userId: comment.user_id, email: comment.email };
+	item.replyTarget = {
+		userId: comment.user_id,
+		email: commentDisplayName(comment, t('common.user')),
+	};
 }
 
 function cancelReply(item) {
@@ -1029,16 +1047,16 @@ async function submitComment(item) {
 		item.replyTarget = null;
 	} catch (e) {
 		console.error("评论失败", e);
-		uni.showToast({ title: "评论失败", icon: "none" });
+		uni.showToast({ title: t('home.commentFailed'), icon: "none" });
 	}
 }
 
-const originalEntries = ref([
-	{ name: "精选", page: "/pages/choose/index" },
-	{ name: "祝福", page: "/pages/wishes/index" },
-	{ name: "古董", page: "/pages/market/marketList?category=antique" },
-	{ name: "二手市场", page: "/pages/market/marketList?category=second_hand" },
-	{ name: "搜尋候選人", page: "/pages/searchPerson/searchPerson" },
+const originalEntries = computed(() => [
+	{ name: t('home.featured'), page: "/pages/choose/index" },
+	{ name: t('home.blessing'), page: "/pages/wishes/index" },
+	{ name: t('home.antique'), page: "/pages/market/marketList?category=antique" },
+	{ name: t('home.secondHand'), page: "/pages/market/marketList?category=second_hand" },
+	{ name: t('home.searchPeople'), page: "/pages/searchPerson/searchPerson" },
 ]);
 
 const currentEntryIndex = ref(1);
@@ -1231,6 +1249,29 @@ $gray-bg: #f5f6f8;
 		z-index: 2;
 	}
 }
+
+/* #ifdef H5 */
+.recommendation-sticky-header.is-fixed {
+	top: var(--window-top, 44px);
+}
+
+.scroll-tabs-wrapper {
+	.scroll-tabs {
+		.tabs-content {
+			flex-wrap: nowrap;
+		}
+
+		.tab-pill {
+			flex: 0 0 auto;
+			white-space: nowrap;
+
+			text {
+				white-space: nowrap;
+			}
+		}
+	}
+}
+/* #endif */
 
 /* --- 4. 帖子信息流区 --- */
 .feed-container {

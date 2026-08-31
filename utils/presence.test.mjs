@@ -44,7 +44,7 @@ async function loadAppWithPresence({ token = 'jwt', valid = true } = {}) {
     'validateTokenApi', 'getToken', 'getUserInfo', 'removeToken', 'removeUserInfo', 'setUserInfo',
     'refreshUnreadBadge', 'startUnreadBadgePolling', 'stopUnreadBadgePolling',
     'installPushListeners', 'registerCurrentDevice', 'configurePresenceApiMethods', 'startPresence',
-    'pausePresence', 'stopPresence', 'heartbeatPresenceApi', 'offlinePresenceApi', 'uni', executable
+    'pausePresence', 'stopPresence', 'heartbeatPresenceApi', 'offlinePresenceApi', 'uni', 'bootstrapLocale', executable
   )
   const app = createApp(
     async () => valid ? { valid: true, user: { id: 1 } } : { valid: false },
@@ -58,7 +58,7 @@ async function loadAppWithPresence({ token = 'jwt', valid = true } = {}) {
     presence.startPresence.bind(presence),
     presence.pausePresence.bind(presence),
     presence.stopPresence.bind(presence),
-    () => Promise.resolve(), () => Promise.resolve(), uni
+    () => Promise.resolve(), () => Promise.resolve(), uni, () => Promise.resolve()
   )
 
   return { app, presence, storage }

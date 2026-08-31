@@ -1,56 +1,57 @@
 <template>
   <view class="page">
-    <view v-if="loading" class="loading">加载中…</view>
+    <view v-if="loading" class="loading">{{ t('home.loading') }}</view>
     <template v-else-if="group">
       <view class="profile-card">
         <GroupAvatar :avatar-url="group.avatar_url" :members="group.members || []" :size="76" />
         <view class="profile-copy">
           <text class="group-name">{{ group.name }}</text>
-          <text class="group-code">群成员 {{ group.memberCount || 0 }} 人</text>
+          <text class="group-code">{{ t('group.members') }} {{ t('group.memberCount', { count: group.memberCount || 0 }) }}</text>
         </view>
-        <text v-if="isActiveAdmin" class="edit-link" @tap="editing = !editing">{{ editing ? '取消' : '编辑' }}</text>
+        <text v-if="isActiveAdmin" class="edit-link" @tap="editing = !editing">{{ editing ? t('common.cancel') : t('group.edit') }}</text>
       </view>
 
       <view v-if="editing && isActiveAdmin" class="card edit-card">
-        <text class="card-title">群名称与头像</text>
+        <text class="card-title">{{ t('group.groupNameAvatar') }}</text>
         <view class="avatar-editor" @tap="chooseAvatar">
           <GroupAvatar :avatar-url="draftAvatarUrl" :members="group.members || []" :size="64" />
-          <text>更换头像</text>
+          <text>{{ t('group.changeAvatar') }}</text>
         </view>
-        <input v-model="draftName" class="name-input" maxlength="60" placeholder="请输入群名称" />
-        <button class="primary-button" :loading="saving" @tap="saveProfile">保存</button>
+        <input v-model="draftName" class="name-input" maxlength="60" :placeholder="t('group.groupNamePlaceholder')" />
+        <button class="primary-button" :loading="saving" @tap="saveProfile">{{ t('common.save') }}</button>
       </view>
 
       <view class="card members-card" @tap="openMembers">
-        <view class="row-title"><text>群聊成员</text><text class="row-meta">{{ group.memberCount || 0 }} 人 〉</text></view>
+        <view class="row-title"><text>{{ t('group.members') }}</text><text class="row-meta">{{ t('group.memberCount', { count: group.memberCount || 0 }) }} 〉</text></view>
         <view class="member-preview">
           <view v-for="member in (group.members || []).slice(0, 4)" :key="member.userId" class="preview-item">
             <image v-if="member.avatarUrl" :src="member.avatarUrl" mode="aspectFill" class="preview-avatar" />
             <view v-else class="preview-avatar fallback">{{ member.name?.slice(0, 1) || '群' }}</view>
-            <text>{{ member.name || '成员' }}</text>
+            <text>{{ member.name || t('chat.member') }}</text>
           </view>
           <view v-if="isActiveAdmin" class="preview-item">
             <view class="preview-avatar invite">+</view>
-            <text>管理</text>
+            <text>{{ t('group.manage') }}</text>
           </view>
         </view>
       </view>
 
       <view class="card settings-card">
-        <view class="setting-row"><text>群状态</text><text :class="group.status === 'dissolved' ? 'status-off' : 'status-on'">{{ group.status === 'dissolved' ? '已解散' : '正常' }}</text></view>
+        <view class="setting-row"><text>{{ t('group.status') }}</text><text :class="group.status === 'dissolved' ? 'status-off' : 'status-on'">{{ group.status === 'dissolved' ? t('group.dissolved') : t('group.normal') }}</text></view>
       </view>
-      <button v-if="isActiveAdmin" class="dissolve-button" @tap="confirmDissolve">解散群聊</button>
-      <view v-if="group.status === 'dissolved'" class="read-only-note">该群已解散，原成员仍可查看历史消息。</view>
+      <button v-if="isActiveAdmin" class="dissolve-button" @tap="confirmDissolve">{{ t('group.dissolve') }}</button>
+      <view v-if="group.status === 'dissolved'" class="read-only-note">{{ t('group.dissolvedNote') }}</view>
     </template>
   </view>
 </template>
 
 <script setup>
-import { computed, ref } from 'vue'
+import { computed, ref, watch } from 'vue'
 import { onLoad, onShow } from '@dcloudio/uni-app'
 import { dissolveChatGroupApi, getChatGroupDetailApi, updateChatGroupApi, uploadChatGroupAvatar } from '@/api/chat.js'
 import GroupAvatar from '@/components/chat/GroupAvatar.vue'
 import { presentGroupName } from '@/utils/chatGroupPresentation.js'
+import { currentLocale, t } from '@/utils/localeRuntime.js'
 
 const groupId = ref('')
 const group = ref(null)
@@ -71,7 +72,7 @@ async function load() {
     draftName.value = group.value?.name || ''
     draftAvatarUrl.value = group.value?.avatar_url || ''
   } catch (error) {
-    uni.showToast({ title: error?.error || '加载群管理失败', icon: 'none' })
+    uni.showToast({ title: error?.error || t('group.loadFailed'), icon: 'none' })
   } finally {
     loading.value = false
   }
@@ -88,38 +89,39 @@ async function chooseAvatar() {
     }))
     const filePath = result?.tempFilePaths?.[0]
     if (!filePath) return
-    uni.showLoading({ title: '头像上传中' })
+    uni.showLoading({ title: t('group.uploadingAvatar') })
     const uploaded = await uploadChatGroupAvatar(groupId.value, filePath)
     draftAvatarUrl.value = uploaded?.url || ''
     if (group.value) group.value.avatar_url = draftAvatarUrl.value
   } catch (error) {
     if (error?.errMsg?.includes('cancel')) return
-    uni.showToast({ title: error?.error || '头像上传失败', icon: 'none' })
+    uni.showToast({ title: error?.error || t('group.uploadAvatarFailed'), icon: 'none' })
   } finally { uni.hideLoading() }
 }
 async function saveProfile() {
   const name = draftName.value.trim()
-  if (!name) return uni.showToast({ title: '请输入群名称', icon: 'none' })
+  if (!name) return uni.showToast({ title: t('group.groupNameRequired'), icon: 'none' })
   saving.value = true
   try {
     const data = await updateChatGroupApi(groupId.value, { name, avatarUrl: draftAvatarUrl.value })
     if (group.value) Object.assign(group.value, data?.group || { name, avatar_url: draftAvatarUrl.value })
     editing.value = false
-    uni.showToast({ title: '已保存', icon: 'success' })
-  } catch (error) { uni.showToast({ title: error?.error || '保存失败', icon: 'none' }) } finally { saving.value = false }
+    uni.showToast({ title: t('common.save'), icon: 'success' })
+  } catch (error) { uni.showToast({ title: error?.error || t('group.saveFailed'), icon: 'none' }) } finally { saving.value = false }
 }
 function confirmDissolve() {
-  uni.showModal({ title: '解散群聊', content: '解散后不能继续发送消息，原成员仍可查看历史记录。确认解散吗？', confirmColor: '#fe0101', success: async result => {
+  uni.showModal({ title: t('group.dissolveTitle'), content: t('group.dissolveContent'), cancelText: t('common.cancel'), confirmText: t('group.dissolve'), confirmColor: '#fe0101', success: async result => {
     if (!result.confirm) return
     try {
       await dissolveChatGroupApi(groupId.value)
       await load()
-      uni.showToast({ title: '群聊已解散', icon: 'success' })
-    } catch (error) { uni.showToast({ title: error?.error || '解散失败', icon: 'none' }) }
+      uni.showToast({ title: t('group.dissolvedSuccess'), icon: 'success' })
+    } catch (error) { uni.showToast({ title: error?.error || t('group.dissolveFailed'), icon: 'none' }) }
   } })
 }
 onLoad(options => { groupId.value = options.id || '' })
-onShow(load)
+onShow(() => { uni.setNavigationBarTitle({ title: t('group.manage') }); load() })
+watch(currentLocale, () => uni.setNavigationBarTitle({ title: t('group.manage') }))
 </script>
 
 <style scoped lang="scss">

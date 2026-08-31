@@ -4,14 +4,15 @@
     <view v-else class="group-avatar-grid" :class="`group-avatar-grid--${Math.min(members.length || 1, 4)}`">
       <view v-for="member in members.slice(0, 4)" :key="member.userId" class="group-avatar-cell">
         <image v-if="member.avatarUrl" :src="member.avatarUrl" mode="aspectFill" />
-        <text v-else>{{ member.name?.slice(0, 1) || '群' }}</text>
+        <text v-else>{{ member.name?.slice(0, 1) || t('inbox.groupChat').slice(0, 1) }}</text>
       </view>
-      <view v-if="!members.length" class="group-avatar-cell group-avatar-empty">群</view>
+      <view v-if="!members.length" class="group-avatar-cell group-avatar-empty">{{ t('inbox.groupChat').slice(0, 1) }}</view>
     </view>
   </view>
 </template>
 
 <script setup>
+import { t } from '@/utils/localeRuntime.js'
 defineProps({
   avatarUrl: { type: String, default: '' },
   members: { type: Array, default: () => [] },

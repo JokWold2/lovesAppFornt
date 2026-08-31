@@ -2,7 +2,7 @@
 	<view class="page">
 		<view class="header" :class="{ 'search-open': searchOpen }">
 			<view class="header-title-wrap"
-				><text class="page-title">消息</text></view
+				><text class="page-title">{{ t('navigation.messages') }}</text></view
 			>
 			<view class="search-shell">
 				<uni-icons
@@ -16,7 +16,7 @@
 					v-model="searchKeyword"
 					class="search-input"
 					:focus="searchOpen"
-					placeholder="搜索消息"
+					:placeholder="t('inbox.search')"
 					confirm-type="search"
 				/>
 				<uni-icons
@@ -33,7 +33,7 @@
 		<view v-if="showInteractions" class="row" @click="openInteractions"
 			><view class="avatar interaction">⌁</view
 			><view class="main"
-				><text class="name">互动消息</text
+				><text class="name">{{ t('inbox.interactions') }}</text
 				><text class="summary">{{ interactionSummary }}</text></view
 			><view class="side"
 				><text class="date">{{ interactionDate }}</text
@@ -46,11 +46,11 @@
 			v-if="isAdmin && filteredRequests.length"
 			class="row"
 			@click="openRequestReviews"
-			><view class="avatar audit">审</view
+			><view class="avatar audit">✓</view
 			><view class="main"
-				><text class="name">待审核私聊申请</text
+				><text class="name">{{ t('inbox.pendingRequests') }}</text
 				><text class="summary"
-					>{{ filteredRequests.length }} 条申请等待处理</text
+					>{{ t('inbox.requestsWaiting', { count: filteredRequests.length }) }}</text
 				></view
 			><view class="side"
 				><text class="badge">{{
@@ -72,8 +72,8 @@
 				><text class="name">{{ presentGroupName(group.name) }}</text
 				><text class="summary">{{
 					group.status === "dissolved"
-						? "该群已解散"
-						: group.last_message || "暂无消息"
+						? t('inbox.dissolved')
+						: group.last_message || t('inbox.noMessages')
 				}}</text></view
 			><view class="side"
 				><text v-if="group.last_message_at" class="date">{{
@@ -87,12 +87,12 @@
 			></view
 		>
 		<view v-if="hasSearchKeyword && !hasSearchResults" class="search-empty"
-			>暂无匹配消息</view
+			>{{ t('inbox.noMatching') }}</view
 		>
 	</view>
 </template>
 <script setup>
-import { computed, ref } from "vue";
+import { computed, ref, watch } from "vue";
 import { onHide, onShow, onUnload } from "@dcloudio/uni-app";
 import { getNotificationsApi } from "@/api/notifications.js";
 import { getChatGroupsApi, getChatRequestsApi } from "@/api/chat.js";
@@ -101,6 +101,7 @@ import GroupAvatar from "@/components/chat/GroupAvatar.vue";
 import { presentGroupName } from "@/utils/chatGroupPresentation.js";
 import { formatConversationTime } from "@/utils/chatMessagePresentation.js";
 import { hasUnreadMessages } from "@/utils/unreadBadgeState.js";
+import { currentLocale, t, updateTabBarLocale } from '@/utils/localeRuntime.js';
 
 const notifications = ref([]),
 	chatGroups = ref([]),
@@ -117,8 +118,8 @@ const interactionUnread = computed(
 const latest = computed(() => interactions.value[0]);
 const interactionSummary = computed(() =>
 	latest.value
-		? `${latest.value.actor_name || latest.value.actor_email || "用户"} ${latest.value.type.includes("comment") ? "评论了你" : "赞了你"}`
-		: "暂无互动消息",
+		? `${latest.value.actor_name || latest.value.actor_email || t('inbox.user')} ${latest.value.type.includes("comment") ? t('inbox.commented') : t('inbox.liked')}`
+		: t('inbox.noInteractions'),
 );
 const interactionDate = computed(() =>
 	latest.value?.created_at
@@ -129,13 +130,13 @@ const hasSearchKeyword = computed(() => Boolean(searchKeyword.value.trim()));
 const showInteractions = computed(
 	() =>
 		!hasSearchKeyword.value ||
-		matchesSearch("互动消息", interactionSummary.value),
+		matchesSearch(t('inbox.interactions'), interactionSummary.value),
 );
 const filteredRequests = computed(() =>
 	requests.value.filter(() =>
 		matchesSearch(
-			"待审核私聊申请",
-			`${requests.value.length} 条申请等待处理`,
+			t('inbox.pendingRequests'),
+			t('inbox.requestsWaiting', { count: requests.value.length }),
 		),
 	),
 );
@@ -144,8 +145,8 @@ const filteredChatGroups = computed(() =>
 		matchesSearch(
 			presentGroupName(group.name),
 			group.status === "dissolved"
-				? "该群已解散"
-				: group.last_message || "暂无消息",
+				? t('inbox.dissolved')
+				: group.last_message || t('inbox.noMessages'),
 		),
 	),
 );
@@ -217,11 +218,14 @@ function stopMessagePolling() {
 	}
 }
 onShow(() => {
+	updateTabBarLocale();
+	uni.setNavigationBarTitle({ title: t('navigation.messages') });
 	load();
 	startMessagePolling();
 });
 onHide(stopMessagePolling);
 onUnload(stopMessagePolling);
+watch(currentLocale, () => uni.setNavigationBarTitle({ title: t('navigation.messages') }));
 </script>
 <style scoped lang="scss">
 .page {

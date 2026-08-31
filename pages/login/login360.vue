@@ -1,7 +1,7 @@
 <template>
   <view class="container">
     <view v-if="restoringSession" class="session-restoring-mask">
-      <text>正在恢复登录…</text>
+      <text>{{ t('auth.restoring') }}</text>
     </view>
     <!-- 顶部柔和暖黄渐变背景 -->
     <view class="bg-gradient"></view>
@@ -13,14 +13,14 @@
         <text v-else class="icon-back">←</text>
       </view>
       <view class="nav-right">
-        <text>中国</text>
+        <text>{{ t('auth.country') }}</text>
         <text class="icon-arrow">›</text>
       </view>
     </view>
 
     <!-- 页面标题 -->
     <view class="header-section">
-      <text class="page-title">{{ isLoginView ? '账号登录' : '邮箱注册' }}</text>
+      <text class="page-title">{{ isLoginView ? t('auth.loginTitle') : t('auth.registerTitle') }}</text>
       <view class="help-icon">?</view>
     </view>
 
@@ -28,19 +28,19 @@
     <view v-if="isLoginView" class="auth-view">
       <view class="auth-content">
         <!-- 账号密码输入框 -->
-        <input class="custom-input" type="text" placeholder="请输入邮箱" placeholder-class="ph-color"
+        <input class="custom-input" type="text" :placeholder="t('auth.email')" placeholder-class="ph-color"
           v-model="loginForm.email" />
-        <input class="custom-input" type="password" placeholder="请输入密码" placeholder-class="ph-color"
+        <input class="custom-input" type="password" :placeholder="t('auth.password')" placeholder-class="ph-color"
           v-model="loginForm.password" />
 
         <!-- 登录按钮 -->
         <view class="main-btn" :class="{ 'btn-active': isLoginValid }" @click="handleLogin">
-          登录
+          {{ t('auth.login') }}
         </view>
 
         <!-- 忘记密码 -->
         <view class="forgot-password">
-          <text @click="handleForgotPassword">忘记密码</text>
+          <text @click="handleForgotPassword">{{ t('auth.forgotPassword') }}</text>
         </view>
 
         <!-- 隐私协议勾选区域 -->
@@ -48,20 +48,20 @@
           <view class="radio-circle" :class="{ 'active': agreePrivacy }">
             <text v-if="agreePrivacy" class="tick">✓</text>
           </view>
-          <text class="privacy-text">已阅读并同意 <text class="link-text" @click.stop="openLegalDocument('service')">用户服务协议</text>、<text
-              class="link-text" @click.stop="openLegalDocument('privacy')">隐私政策</text></text>
+          <text class="privacy-text">{{ t('auth.agreedPrefix') }}<text class="link-text" @click.stop="openLegalDocument('service')">{{ t('common.serviceAgreement') }}</text>、<text
+              class="link-text" @click.stop="openLegalDocument('privacy')">{{ t('common.privacyPolicy') }}</text></text>
         </view>
 
         <!-- 更多登录方式 -->
         <view class="more-login-section">
           <view class="divider">
             <view class="line"></view>
-            <text class="divider-text">更多登录方式</text>
+            <text class="divider-text">{{ t('auth.moreMethods') }}</text>
             <view class="line"></view>
           </view>
 
           <view class="methods-row">
-            <view class="code-login-btn">验证码登录</view>
+            <view class="code-login-btn">{{ t('auth.codeLogin') }}</view>
             <view class="social-icons">
               <view class="circle-icon wechat">
                 <text class="icon-text">微</text>
@@ -78,8 +78,8 @@
 
         <!-- 切换到注册 -->
         <view class="auth-footer">
-          <text class="text-secondary">还没有账号？ </text>
-          <text class="link-text-bold" @click="switchView(false)">注册</text>
+          <text class="text-secondary">{{ t('auth.noAccount') }}</text>
+          <text class="link-text-bold" @click="switchView(false)">{{ t('auth.registerLink') }}</text>
         </view>
       </view>
     </view>
@@ -88,30 +88,30 @@
     <view v-else class="auth-view">
       <view class="auth-content">
         <!-- 注册表单 -->
-        <input class="custom-input"  placeholder="请输入您的邮箱" placeholder-class="ph-color"
+        <input class="custom-input" :placeholder="t('auth.emailForRegister')" placeholder-class="ph-color"
           v-model="registerForm.email" />
 
         <!-- 带发送验证码的输入框 -->
         <view class="custom-input input-with-action">
-          <input type="number" class="flex-1" placeholder="请输入验证码" placeholder-class="ph-color"
+          <input type="number" class="flex-1" :placeholder="t('auth.verificationCode')" placeholder-class="ph-color"
             v-model="registerForm.code" />
-          <text class="action-text">发送验证码</text>
+          <text class="action-text">{{ t('auth.sendCode') }}</text>
         </view>
 
-        <input class="custom-input" type="password" placeholder="请输入密码" placeholder-class="ph-color"
+        <input class="custom-input" type="password" :placeholder="t('auth.password')" placeholder-class="ph-color"
           v-model="registerForm.password" />
-        <input class="custom-input" type="password" placeholder="请再次输入密码" placeholder-class="ph-color"
+        <input class="custom-input" type="password" :placeholder="t('auth.confirmPassword')" placeholder-class="ph-color"
           v-model="registerForm.confirmPassword" />
 
         <!-- 密码规则提示 -->
         <view class="pwd-hint">
           <text class="hint-icon">i</text>
-          <text class="hint-text">8-20位字符，由数字、大写字母、小写字母、符号，任意两种组成</text>
+          <text class="hint-text">{{ t('auth.passwordHint') }}</text>
         </view>
 
         <!-- 注册按钮 -->
         <view class="main-btn" :class="{ 'btn-active': isRegisterValid }" @click="handleRegister">
-          注册账号
+          {{ t('auth.register') }}
         </view>
 
         <!-- 隐私协议勾选区域 -->
@@ -119,14 +119,14 @@
           <view class="radio-circle" :class="{ 'active': agreePrivacy }">
             <text v-if="agreePrivacy" class="tick">✓</text>
           </view>
-          <text class="privacy-text">已阅读并同意 <text class="link-text" @click.stop="openLegalDocument('service')">用户服务协议</text>、<text
-              class="link-text" @click.stop="openLegalDocument('privacy')">隐私政策</text></text>
+          <text class="privacy-text">{{ t('auth.agreedPrefix') }}<text class="link-text" @click.stop="openLegalDocument('service')">{{ t('common.serviceAgreement') }}</text>、<text
+              class="link-text" @click.stop="openLegalDocument('privacy')">{{ t('common.privacyPolicy') }}</text></text>
         </view>
 
         <!-- 切换到登录 (底部辅助返回) -->
         <view class="auth-footer" style="margin-top: 40px;">
-          <text class="text-secondary">已经有账号了？ </text>
-          <text class="link-text-bold" @click="switchView(true)">返回登录</text>
+          <text class="text-secondary">{{ t('auth.hasAccount') }}</text>
+          <text class="link-text-bold" @click="switchView(true)">{{ t('auth.backToLogin') }}</text>
         </view>
       </view>
     </view>
@@ -134,12 +134,13 @@
 </template>
 
 <script setup>
-import { ref, reactive, computed, onMounted } from 'vue';
+import { ref, reactive, computed, onMounted, watch } from 'vue';
 import { loginApi, registerApi, socialLoginApi } from '@/api/index.js';
 import { setToken, setUserInfo, getUserInfo } from '@/utils/auth.js';
 import { registerCurrentDevice } from '@/utils/pushNotifications.js';
 import { signInWithGoogle } from '@/utils/googleAuth.js';
 import { getOrCreatePresenceSessionId, startPresence } from '@/utils/presence.js';
+import { bootstrapLocale, currentLocale, t } from '@/utils/localeRuntime.js';
 
 // 视图状态：true 为登入视图，false 为注册视图
 const isLoginView = ref(true);
@@ -220,7 +221,7 @@ const handleLogin = async () => {
   if (!isLoginValid.value) return;
 
   if (!agreePrivacy.value) {
-    uni.showToast({ title: '请先阅读并同意《隐私协议》', icon: 'none' });
+    uni.showToast({ title: t('auth.needAgreement'), icon: 'none' });
     return;
   }
   loading.value = true;
@@ -229,14 +230,15 @@ const handleLogin = async () => {
     const data = await loginApi(loginForm.email, loginForm.password, { clientSessionId });
     if (data && data.token) {
       setToken(data.token);
+	  await bootstrapLocale();
       void startPresence();
       // 仅邮箱密码登录保存密码；第三方授权凭证不写入本地存储。
       if (data.user) setUserInfo({ ...data.user, loginType: data.user.loginType || 'email', password: loginForm.password });
       registerCurrentDevice();
-      uni.showToast({ title: '登入成功', icon: 'success' });
+      uni.showToast({ title: t('auth.loginSuccess'), icon: 'success' });
       navigateAfterAuth();
     } else {
-      uni.showToast({ title: '登入失败', icon: 'none' });
+      uni.showToast({ title: t('auth.loginFailed'), icon: 'none' });
     }
   } catch (e) {
     console.error('login error', e);
@@ -248,13 +250,13 @@ const handleLogin = async () => {
 // App 端由原生 Google SDK 返回 ID Token；令牌仅提交给后端校验，不在前端解析或保存。
 const handleGoogleLogin = async () => {
   if (!agreePrivacy.value) {
-    uni.showToast({ title: '请先阅读并同意《隐私协议》', icon: 'none' });
+    uni.showToast({ title: t('auth.needAgreement'), icon: 'none' });
     return;
   }
   if (socialLoading.value) return;
 
   // #ifndef APP-PLUS
-  uni.showToast({ title: '请在 Android App 中使用 Google 登录', icon: 'none' });
+  uni.showToast({ title: t('auth.googleOnlyAndroid'), icon: 'none' });
   return;
   // #endif
 
@@ -264,24 +266,26 @@ const handleGoogleLogin = async () => {
     const { idToken } = await signInWithGoogle();
     const clientSessionId = getOrCreatePresenceSessionId();
     const data = await socialLoginApi('google', { idToken }, { clientSessionId });
-    if (!data?.token) throw new Error('Google 登录未返回登录凭证');
+    if (!data?.token) throw new Error(t('auth.loginFailed'));
 
     setToken(data.token);
+	await bootstrapLocale();
     void startPresence();
     setUserInfo({ ...data.user, loginType: 'google' });
     registerCurrentDevice();
-    uni.showToast({ title: 'Google 登录成功', icon: 'success' });
+    uni.showToast({ title: t('auth.googleSuccess'), icon: 'success' });
     navigateAfterAuth();
   } catch (error) {
     console.error('google login error', error);
     // 原生 SDK 的失败对象通常使用 errMsg / errCode，不是标准 Error.message。
-    const errorCode = error?.errCode || error?.code || '未知';
-    const errorMessage = typeof error === 'string' ? error : error?.errMsg || error?.message || '未返回原生错误信息';
+    const errorCode = error?.errCode || error?.code || t('auth.unknownError');
+    const errorMessage = typeof error === 'string' ? error : error?.errMsg || error?.message || t('auth.nativeErrorMissing');
     // Toast 放不下 Google 原生错误（例如 login:fail 10），使用弹窗完整展示，便于排查配置问题。
     uni.showModal({
-      title: `Google 授权失败（${errorCode}）`,
+      title: t('auth.googleAuthorizationFailed', { code: errorCode }),
       content: errorMessage,
-      showCancel: false
+      showCancel: false,
+      confirmText: t('common.confirm')
     });
   } finally {
     socialLoading.value = false;
@@ -294,18 +298,18 @@ const handleRegister = async () => {
   if (!isRegisterValid.value) return;
 
   if (registerForm.password !== registerForm.confirmPassword) {
-    uni.showToast({ title: '两次密码输入不一致', icon: 'none' });
+    uni.showToast({ title: t('auth.passwordMismatch'), icon: 'none' });
     return;
   }
   if (!agreePrivacy.value) {
-    uni.showToast({ title: '请先阅读并同意《隐私协议》', icon: 'none' });
+    uni.showToast({ title: t('auth.needAgreement'), icon: 'none' });
     return;
   }
 
   loading.value = true;
   try {
     await registerApi(registerForm.email, registerForm.password, registerForm.code);
-    uni.showToast({ title: '注册成功，请登入', icon: 'success' });
+    uni.showToast({ title: t('auth.registerSuccess'), icon: 'success' });
     switchView(true);
     loginForm.email = registerForm.email;
     loginForm.password = '';
@@ -318,7 +322,7 @@ const handleRegister = async () => {
 
 // 忘记密码跳转
 const handleForgotPassword = () => {
-  uni.showToast({ title: '跳转忘记密码流程', icon: 'none' });
+  uni.showToast({ title: t('auth.forgotPasswordTodo'), icon: 'none' });
 };
 
 
@@ -337,6 +341,7 @@ function tryEmailAutoLogin() {
 }
 
 onMounted(() => {
+	uni.setNavigationBarTitle({ title: t('navigation.login') });
   const app = getApp();
   restoringSession.value = !!app?.globalData?.restoringSession;
 
@@ -349,6 +354,8 @@ onMounted(() => {
 
   tryEmailAutoLogin();
 });
+
+watch(currentLocale, () => uni.setNavigationBarTitle({ title: t('navigation.login') }));
 </script>
 
 <style scoped lang="scss">
@@ -584,7 +591,7 @@ $border-color: #f0f0f0;
 .privacy-agree {
   display: flex;
   justify-content: center;
-  align-items: center;
+  align-items: flex-start;
   margin-top: 40rpx;
 
   &.register-privacy {
@@ -601,7 +608,9 @@ $border-color: #f0f0f0;
     justify-content: center;
     align-items: center;
     margin-right: 12rpx;
+    margin-top: 2rpx;
     box-sizing: border-box;
+    flex-shrink: 0;
 
     &.active {
       background-color: $theme-color;
@@ -653,8 +662,10 @@ $border-color: #f0f0f0;
     justify-content: space-between;
 
     .code-login-btn {
-      width: 240rpx;
+      min-width: 300rpx;
       height: 80rpx;
+      padding: 0 24rpx;
+      box-sizing: border-box;
       background-color: $input-bg;
       border-radius: 40rpx;
       display: flex;
@@ -663,6 +674,7 @@ $border-color: #f0f0f0;
       font-size: 26rpx;
       color: $text-main;
       font-weight: 500;
+      white-space: nowrap;
     }
 
     .social-icons {

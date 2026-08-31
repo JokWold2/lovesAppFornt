@@ -252,6 +252,10 @@ export function toggleLikeMomentApi(id) {
   return post(`/api/moments/${id}/like`)
 }
 
+export function getMomentDetailApi(id) {
+  return get(`/api/moments/${id}`)
+}
+
 export function uploadAvatarApi(filePath) {
   return uni.uploadFile({
     url: config.baseURL + '/api/profile/avatar',
@@ -305,8 +309,20 @@ export function getProfileApi() {
   return get('/api/profile')
 }
 
-export function getCommentsApi(id) {
-  return get(`/api/moments/${id}/comments`)
+export function getCommentsApi(id, params) {
+  return get(`/api/moments/${id}/comments`, params)
+}
+
+export function getLocaleBootstrapApi(systemLocale) {
+  return get('/api/locale/bootstrap', systemLocale ? { systemLocale } : undefined)
+}
+
+export function saveLocalePreferenceApi(payload) {
+  return put('/api/locale/preference', payload)
+}
+
+export function getMomentCommentRepliesApi(id, rootCommentId, params) {
+  return get(`/api/moments/${id}/comments/${rootCommentId}/replies`, params)
 }
 
 // 获取点赞人列表
@@ -314,9 +330,9 @@ export function getLikesApi(id) {
   return get(`/api/moments/${id}/likes`)
 }
 
-// replyToUserId 可选：不传就是普通评论，传了就是回复某个人的评论
-export function addCommentApi(id, content, replyToUserId) {
-  return post(`/api/moments/${id}/comments`, { content, replyToUserId })
+// replyToCommentId 用于两层楼中楼；保留 replyToUserId 兼容旧的动态回复调用。
+export function addCommentApi(id, content, replyToUserId, replyToCommentId) {
+  return post(`/api/moments/${id}/comments`, { content, replyToUserId, replyToCommentId })
 }
 
 export function updateBioApi(bio) {

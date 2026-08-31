@@ -1,6 +1,6 @@
 <template>
 	<view class="auction-detail">
-		<view v-if="loading" class="state-box"><text>加载中...</text></view>
+		<view v-if="loading" class="state-box"><text>{{ t('auctionDetail.loading') }}</text></view>
 		<view v-else-if="!auction" class="state-box"
 			><text>{{ errorMessage }}</text></view
 		>
@@ -21,44 +21,44 @@
 				<text class="title">{{ auction.title }}</text>
 				<view class="price-row">
 					<view
-						><text class="price-label">当前价</text
+						><text class="price-label">{{ t('auctionDetail.currentPrice') }}</text
 						><text class="price"
 							>¥ {{ formatPrice(auction.currentPrice) }}</text
 						></view
 					>
 					<text class="countdown">{{
 						auction.status === "ongoing"
-							? `距结束 ${countdownText}`
+							? t('auctionDetail.ending', { time: countdownText })
 							: statusText
 					}}</text>
 				</view>
 				<view class="service-row"
-					><text>当面验货，验货后不可退</text><text>邮费到付</text
-					><text>有保留价</text></view
+					><text>{{ t('auctionDetail.service') }}</text><text>{{ t('auctionDetail.shipping') }}</text
+					><text>{{ t('auctionDetail.reserve') }}</text></view
 				>
 				<view class="rule-row"
 					><text
-						>起拍价 ¥{{ formatPrice(auction.startingPrice) }}</text
-					><text>佣金{{ auction.depositRate * 100 }}%</text></view
+						>{{ t('auctionDetail.starting') }} ¥{{ formatPrice(auction.startingPrice) }}</text
+					><text>{{ t('auctionDetail.commission', { rate: auction.depositRate * 100 }) }}</text></view
 				>
 				<text class="rule-row"
-					>竞价阶梯 ¥{{ formatPrice(auction.priceStep) }}</text
+					>{{ t('auctionDetail.step') }} ¥{{ formatPrice(auction.priceStep) }}</text
 				>
 			</view>
 
 			<view class="content-card">
-				<text class="section-title">拍品信息</text>
+				<text class="section-title">{{ t('auctionDetail.info') }}</text>
 				<view class="info-row"
-					><text>年代</text><text>{{ auction.era }}</text></view
+					><text>{{ t('auctionDetail.era') }}</text><text>{{ auction.era }}</text></view
 				>
 				<view class="info-row"
-					><text>尺寸</text><text>{{ auction.size }}</text></view
+					><text>{{ t('auctionDetail.size') }}</text><text>{{ auction.size }}</text></view
 				>
 				<view class="info-row"
-					><text>质地</text><text>{{ auction.material }}</text></view
+					><text>{{ t('auctionDetail.material') }}</text><text>{{ auction.material }}</text></view
 				>
 				<view class="info-row"
-					><text>品相</text><text>{{ auction.condition }}</text></view
+					><text>{{ t('auctionDetail.condition') }}</text><text>{{ auction.condition }}</text></view
 				>
 				<view class="description"
 					><text>{{ auction.description }}</text></view
@@ -67,12 +67,12 @@
 
 			<view class="content-card bid-card">
 				<view class="bid-header"
-					><text class="section-title">出价记录</text
-					><text>{{ auction.bidCount }}次出价</text></view
+					><text class="section-title">{{ t('auctionDetail.records') }}</text
+					><text>{{ t('auction.bids', { count: auction.bidCount }) }}</text></view
 				>
 				<scroll-view class="bid-list" scroll-y>
 					<view v-if="!auction.bidRecords.length" class="empty-bids"
-						><text>暂无出价，抢先出价吧</text></view
+						><text>{{ t('auctionDetail.noBids') }}</text></view
 					>
 					<view
 						v-for="record in sortedBidRecords"
@@ -101,24 +101,24 @@
 		<view v-if="auction" class="bottom-bar">
 			<view
 				class="bottom-action"
-				@click="showFeatureTip('客服功能开发中')"
+				@click="showFeatureTip(t('auctionDetail.customerService'))"
 			>
 				<uni-icons type="headphones" size="25" color="#333" />
-				<text>联系客服</text>
+				<text>{{ t('auctionDetail.customerService') }}</text>
 			</view>
 			<view
 				class="bottom-action"
-				@click="showFeatureTip('参拍提醒开发中')"
+				@click="showFeatureTip(t('auctionDetail.reminder'))"
 			>
 				<uni-icons type="notification" size="25" color="#333" />
-				<text>参拍提醒</text>
+				<text>{{ t('auctionDetail.reminder') }}</text>
 			</view>
 			<view
 				class="bottom-action"
-				@click="showFeatureTip('代理出价开发中')"
+				@click="showFeatureTip(t('auctionDetail.proxy'))"
 			>
 				<uni-icons type="paperplane" size="25" color="#333" />
-				<text>代理出价</text>
+				<text>{{ t('auctionDetail.proxy') }}</text>
 			</view>
 			<button
 				class="bid-button"
@@ -127,10 +127,10 @@
 			>
 				{{
 					bidding
-						? "出价中..."
+						? t('auctionDetail.bidding')
 						: canBid
-							? `立即出价 ¥${formatPrice(nextBidAmount)}`
-							: "当前不可出价"
+							? t('auctionDetail.bidNow', { amount: formatPrice(nextBidAmount) })
+							: t('auctionDetail.cannotBid')
 				}}
 			</button>
 		</view>
@@ -141,11 +141,12 @@
 import { computed, ref, onUnmounted } from "vue";
 import { onLoad } from "@dcloudio/uni-app";
 import { getAuctionDetail, placeAuctionBid } from "@/utils/auctionStore.js";
+import { t } from '@/utils/localeRuntime.js'
 
 const auction = ref(null);
 const loading = ref(true);
 const bidding = ref(false);
-const errorMessage = ref("拍品不存在或已下架");
+const errorMessage = ref(t('auctionDetail.missing'));
 const now = ref(Date.now());
 let timer = null;
 
@@ -194,17 +195,17 @@ async function handleBid() {
 	try {
 		const userInfo = uni.getStorageSync("USER_INFO") || {};
 		const result = await placeAuctionBid(auction.value.id, {
-			name: userInfo.nickname || userInfo.name || "我",
+			name: userInfo.nickname || userInfo.name || t('auctionDetail.mine'),
 			avatar:
 				userInfo.avatar_url ||
 				userInfo.avatarUrl ||
 				"/static/avatar.png",
 		});
 		auction.value = result.auction;
-		uni.showToast({ title: "出价成功", icon: "success" });
+		uni.showToast({ title: t('auctionDetail.bidSuccess'), icon: "success" });
 	} catch (error) {
 		uni.showToast({
-			title: error.message || "出价失败，请稍后重试",
+			title: error.message || t('auctionDetail.bidFailed'),
 			icon: "none",
 		});
 	} finally {
@@ -218,7 +219,7 @@ function showFeatureTip(title) {
 }
 
 function formatPrice(value) {
-	return Number(value || 0).toLocaleString("zh-CN");
+	return Number(value || 0).toLocaleString();
 }
 function formatCountdown(diff) {
 	if (diff <= 0) return "00:00:00";
@@ -233,10 +234,10 @@ function formatCountdown(diff) {
 }
 function relativeTime(timestamp) {
 	const diff = Math.max(0, Date.now() - timestamp);
-	if (diff < 60000) return "刚刚";
-	if (diff < 3600000) return `${Math.floor(diff / 60000)}分钟前`;
-	if (diff < 86400000) return `${Math.floor(diff / 3600000)}小时前`;
-	return `${Math.floor(diff / 86400000)}天前`;
+	if (diff < 60000) return t('auctionDetail.justNow');
+	if (diff < 3600000) return t('auctionDetail.minutesAgo', { count: Math.floor(diff / 60000) });
+	if (diff < 86400000) return t('auctionDetail.hoursAgo', { count: Math.floor(diff / 3600000) });
+	return t('auctionDetail.daysAgo', { count: Math.floor(diff / 86400000) });
 }
 function pad(value) {
 	return String(value).padStart(2, "0");

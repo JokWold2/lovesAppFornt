@@ -36,7 +36,7 @@
               <view class="list-icon-wrapper">
                 <uni-icons :type="item.icon" size="24" color="#fff6df" class="list-icon"></uni-icons>
                 <!-- 特殊：第一个项的徽章 -->
-                <view v-if="index === 0" class="badge-icon">初用者</view>
+                <view v-if="index === 0" class="badge-icon">{{ t('legacyIndex.newUserBadge') }}</view>
               </view>
             </template>
             <template v-slot:body>
@@ -54,7 +54,8 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue';
+import { ref, computed } from 'vue'
+import { t } from '@/utils/localeRuntime.js'
 
 // 假设的状态栏高度
 const statusBarHeight = ref(44);
@@ -69,11 +70,11 @@ const statusBarHeight = ref(44);
 // });
 
 // 轮播图数据
-const swiperItems = ref([
-  { image: 'https://via.placeholder.com/750x400/CCCCCC/FFFFFF?text=Family+Scene+1', text: '幸福相遇・啟航美好人生' },
-  { image: 'https://via.placeholder.com/750x400/BBBBBB/FFFFFF?text=Family+Scene+2', text: '幸福相遇・啟航美好人生' },
-  { image: 'https://via.placeholder.com/750x400/AAAAAA/FFFFFF?text=Family+Scene+3', text: '幸福相遇・啟航美好人生' },
-]);
+const swiperItems = computed(() => [
+  { image: 'https://via.placeholder.com/750x400/CCCCCC/FFFFFF?text=Family+Scene+1', text: t('legacyIndex.welcomeSubtitle') },
+  { image: 'https://via.placeholder.com/750x400/BBBBBB/FFFFFF?text=Family+Scene+2', text: t('legacyIndex.welcomeSubtitle') },
+  { image: 'https://via.placeholder.com/750x400/AAAAAA/FFFFFF?text=Family+Scene+3', text: t('legacyIndex.welcomeSubtitle') },
+])
 const currentSwiperIndex = ref(0);
 const onSwiperChange = (e) => {
   currentSwiperIndex.value = e.detail.current;
@@ -81,24 +82,24 @@ const onSwiperChange = (e) => {
 
 // 九宫格数据
 // 提示：uni-icons 的图标可能不完全匹配，复杂图标建议使用 <image>
-const gridItems = ref([
-  { name: '祝福', icon: 'gift', page: '/pages/wishes/index' }, // 类似灯笼，这里用礼物代替
-  { name: '分析工具', icon: 'map', page: '/pages/analysis/index' }, // 类似饼图，用chart代替
-  { name: '通知', icon: 'mail-open', page: '/pages/notification/index' },
-  { name: '搜尋候選人', icon: 'search', page: '/pages/searchPerson/searchPerson' }, // 类似人像+放大镜，这里用search代替
-  { name: '關心管理', icon: 'heart-filled', page: '/pages/care/index' },
-  { name: '家庭交流管理', icon: 'home', page: '/pages/family/index' }, // 类似房子+对话泡，用home代替
-]);
+const gridItems = computed(() => [
+  { name: t('legacyIndex.blessing'), icon: 'gift', page: '/pages/wishes/index' }, // 类似灯笼，这里用礼物代替
+  { name: t('legacyIndex.analysisTools'), icon: 'map', page: '/pages/analysis/index' }, // 类似饼图，用chart代替
+  { name: t('legacyIndex.notifications'), icon: 'mail-open', page: '/pages/notification/index' },
+  { name: t('legacyIndex.searchCandidates'), icon: 'search', page: '/pages/searchPerson/searchPerson' }, // 类似人像+放大镜，这里用search代替
+  { name: t('legacyIndex.careManagement'), icon: 'heart-filled', page: '/pages/care/index' },
+  { name: t('legacyIndex.familyManagement'), icon: 'home', page: '/pages/family/index' }, // 类似房子+对话泡，用home代替
+])
 
 // 列表数据
-const listItems = ref([
-  { name: '初用者', icon: 'person-filled', page: '/pages/my/myFile/myFile' }, // 这个项的图标是自定义徽章
-  { name: '祝福子女政策', icon: 'file-text', page: '/pages/policy/index' },
-  { name: '註冊', icon: 'personadd-filled', page: '/pages/auth/register' },
-  { name: '協助者手冊', icon: 'book-filled', page: '/pages/manual/helper' },
-  { name: '會員手冊', icon: 'vip', page: '/pages/manual/member' }, // 类似卡片，这里用vip代替
-  { name: '連絡', icon: 'phone-filled', page: '/pages/contact/index' },
-]);
+const listItems = computed(() => [
+  { name: t('legacyIndex.newUser'), icon: 'person-filled', page: '/pages/my/myFile/myFile' }, // 这个项的图标是自定义徽章
+  { name: t('legacyIndex.blessingPolicy'), icon: 'file-text', page: '/pages/policy/index' },
+  { name: t('legacyIndex.register'), icon: 'personadd-filled', page: '/pages/auth/register' },
+  { name: t('legacyIndex.helperManual'), icon: 'book-filled', page: '/pages/manual/helper' },
+  { name: t('legacyIndex.memberManual'), icon: 'vip', page: '/pages/manual/member' }, // 类似卡片，这里用vip代替
+  { name: t('legacyIndex.contact'), icon: 'phone-filled', page: '/pages/contact/index' },
+])
 
 // 跳转页面
 const goPage = (url) => {

@@ -10,10 +10,10 @@
     <view v-if="canRequestChat" class="chat-request" :class="`chat-request--${chatRequestButton.tone}`" @click="requestChat">{{ chatRequestButton.text }}</view>
   </view>
 
-  <view v-else-if="loading" class="state-box"><text>載入中...</text></view>
+  <view v-else-if="loading" class="state-box"><text>{{ t('profile.loading') }}</text></view>
   <view v-else class="state-box">
-    <text>候選人不存在或已被移除</text>
-    <view class="btn-back" @tap="goBack">返回</view>
+    <text>{{ t('profile.missing') }}</text>
+    <view class="btn-back" @tap="goBack">{{ t('profile.back') }}</view>
   </view>
 </template>
 
@@ -24,6 +24,7 @@ import { getCandidateProfileApi, getProfileLikesApi, toggleProfileLikeApi } from
 import ProfileDetailSections from '@/components/profile/ProfileDetailSections.vue'
 import { createChatRequestApi, getChatRequestStatusApi } from '@/api/chat.js'
 import { getChatRequestButtonState } from '@/utils/chatRequestState.js'
+import { t } from '@/utils/localeRuntime.js'
 
 // 升级 key，确保此前没有看到引导的用户也能在本次功能发布后看到一次说明。
 const GUIDE_KEY = 'PROFILE_LIKE_DOUBLE_TAP_GUIDE_V2'
@@ -35,7 +36,11 @@ const likePending = ref(false)
 const profileId = ref(null)
 const canRequestChat = ref(false)
 const chatRequestStatus = ref('none')
-const chatRequestButton = computed(() => getChatRequestButtonState(chatRequestStatus.value))
+const chatRequestButton = computed(() => getChatRequestButtonState(chatRequestStatus.value, {
+  requestChat: t('profile.requestChat'),
+  requestPending: t('profile.requestPending'),
+  requestApproved: t('profile.requestApproved')
+}))
 
 onLoad((options) => {
   profileId.value = options?.id ? Number(options.id) : null
@@ -74,7 +79,7 @@ async function fetchProfile() {
   } catch (error) {
     console.error('加载候选人资料失败', error)
     profile.value = null
-    uni.showToast({ title: '載入失敗', icon: 'none' })
+    uni.showToast({ title: t('profile.loadFailed'), icon: 'none' })
   } finally {
     loading.value = false
   }
@@ -82,13 +87,13 @@ async function fetchProfile() {
 
 function requestChat() {
   if (chatRequestButton.value.disabled) return
-  uni.showModal({ title: '申请私聊', editable: true, placeholderText: '可填写申请说明', success: async ({ confirm, content }) => {
+  uni.showModal({ title: t('profile.requestTitle'), editable: true, placeholderText: t('profile.requestPlaceholder'), cancelText: t('common.cancel'), confirmText: t('common.confirm'), success: async ({ confirm, content }) => {
     if (!confirm) return
     try {
       await createChatRequestApi({ targetUserId: profile.value.user_id, message: content || '' })
       chatRequestStatus.value = 'pending'
-      uni.showToast({ title: '已提交管理员审核', icon: 'success' })
-    } catch (error) { uni.showToast({ title: error?.error || '提交失败', icon: 'none' }) }
+      uni.showToast({ title: t('profile.requestSubmitted'), icon: 'success' })
+    } catch (error) { uni.showToast({ title: error?.error || t('profile.requestFailed'), icon: 'none' }) }
   } })
 }
 
@@ -110,7 +115,7 @@ async function toggleProfileLike() {
     console.error('资料点赞失败', error)
     isLiked.value = previousLiked
     likeCount.value = previousCount
-    uni.showToast({ title: '操作失败，请重试', icon: 'none' })
+    uni.showToast({ title: t('profile.actionFailed'), icon: 'none' })
   } finally {
     likePending.value = false
   }
@@ -121,9 +126,10 @@ function showLikeGuideOnce() {
   // 等页面完成首次渲染后再弹出，避免 App 端页面切换期间的弹窗被吞掉。
   setTimeout(() => {
     uni.showModal({
-      title: '点赞提示',
-      content: '双击照片可点赞，再次双击可取消点赞。',
+      title: t('profile.likeGuideTitle'),
+      content: t('profile.likeGuideContent'),
       showCancel: false,
+      confirmText: t('common.confirm'),
       success: () => uni.setStorageSync(GUIDE_KEY, '1')
     })
   }, 250)

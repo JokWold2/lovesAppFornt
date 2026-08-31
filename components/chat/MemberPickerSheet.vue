@@ -2,14 +2,14 @@
   <view v-if="visible" class="sheet-mask" @tap="close">
     <view class="member-sheet" @tap.stop>
       <view class="sheet-header">
-        <text class="sheet-title">{{ title }}</text>
+        <text class="sheet-title">{{ title || t('group.selectMembers') }}</text>
         <text class="sheet-close" @click="close">×</text>
       </view>
       <view v-if="showReviewFields" class="review-fields">
-        <input v-model="groupName" class="search-input" placeholder="群名称" />
-        <textarea v-model="reviewMessage" class="review-message" placeholder="给申请人的审核回复（可选）" @tap.stop />
+        <input v-model="groupName" class="search-input" :placeholder="t('profile.groupName')" />
+        <textarea v-model="reviewMessage" class="review-message" :placeholder="t('profile.reviewReply')" @tap.stop />
       </view>
-      <input v-model="keyword" class="search-input" placeholder="搜索姓名" @tap.stop @input="searchMembers" />
+      <input v-model="keyword" class="search-input" :placeholder="t('profile.searchName')" @tap.stop @input="searchMembers" />
       <scroll-view scroll-y class="member-list" @tap.stop @scrolltolower="loadNextPage">
         <view v-for="member in candidates" :key="member.userId" class="member-row" @click="toggleMember(member.userId)">
           <image v-if="member.avatarUrl" class="member-avatar" :src="member.avatarUrl" mode="aspectFill" />
@@ -20,11 +20,11 @@
           </view>
           <text class="member-check">{{ selectedIds.includes(member.userId) ? '☑' : '□' }}</text>
         </view>
-        <view v-if="!loading && !candidates.length" class="empty">没有找到可选成员</view>
+        <view v-if="!loading && !candidates.length" class="empty">{{ t('profile.noMembers') }}</view>
       </scroll-view>
       <view class="sheet-actions">
-        <text>已选择 {{ selectedIds.length }} 人</text>
-        <button class="confirm-button" @click="confirm">确认</button>
+        <text>{{ t('profile.selected', { count: selectedIds.length }) }}</text>
+        <button class="confirm-button" @click="confirm">{{ t('profile.confirm') }}</button>
       </view>
     </view>
   </view>
@@ -33,10 +33,11 @@
 <script setup>
 import { ref, watch } from 'vue';
 import { getChatRequestCandidatesApi } from '@/api/chat.js';
+import { t } from '@/utils/localeRuntime.js'
 
 const props = defineProps({
   visible: { type: Boolean, default: false },
-  title: { type: String, default: '选择群成员' },
+  title: { type: String, default: '' },
   showReviewFields: { type: Boolean, default: false },
   excludedUserIds: { type: Array, default: () => [] }
 });
@@ -52,7 +53,7 @@ const page = ref(1);
 const hasMore = ref(false);
 
 function displayName(item) {
-  return item.native_first_name || item.en_first_name || item.native_last_name || item.en_last_name || item.display_name || '用户';
+  return item.native_first_name || item.en_first_name || item.native_last_name || item.en_last_name || item.display_name || t('profile.user');
 }
 
 async function searchMembers() {
@@ -83,7 +84,7 @@ async function loadCandidates(append) {
   } catch (error) {
     if (version === requestVersion) {
       candidates.value = [];
-      uni.showToast({ title: error?.error || '搜索成员失败', icon: 'none' });
+      uni.showToast({ title: error?.error || t('profile.searchFailed'), icon: 'none' });
     }
   } finally {
     if (version === requestVersion) loading.value = false;

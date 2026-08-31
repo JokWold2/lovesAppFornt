@@ -7,8 +7,8 @@
 				<view class="topbar-row">
 					<view class="back-btn" @tap="onExit">‹</view>
 					<view>
-						<view class="topbar-title">個人資料</view>
-						<view class="topbar-sub">請完整填寫以下欄位</view>
+						<view class="topbar-title">{{ t('profile.personalInfo') }}</view>
+						<view class="topbar-sub">{{ t('profile.completeRequired') }}</view>
 					</view>
 				</view>
 				<view class="beads">
@@ -22,92 +22,92 @@
 			<scroll-view scroll-y class="scroll-area page-scroll" style="max-width: 750rpx;box-sizing: border-box;">
 				<view class="card">
 					<view class="card-head">
-						<view class="mark"></view><text class="card-title">基本資料</text><text class="req">必填</text>
+						<view class="mark"></view><text class="card-title">{{ t('profile.basicInfo') }}</text><text class="req">{{ t('profile.required') }}</text>
 					</view>
 					<view class="field">
-						<text class="field-label">ID<text class="star"></text></text>
-						<input class="input" v-model="form.id" placeholder="your_id" />
+						<text class="field-label">{{ t('profile.myFile.idLabel') }}<text class="star"></text></text>
+						<input class="input" v-model="form.id" :placeholder="t('profile.myFile.idPlaceholder')" />
 					</view>
 				</view>
 
 				<view class="card">
 					<view class="card-head">
-						<view class="mark"></view><text class="card-title">主要部分</text><text class="req">必填</text>
+						<view class="mark"></view><text class="card-title">{{ t('profile.mainSection') }}</text><text class="req">{{ t('profile.required') }}</text>
 					</view>
 					<view class="field">
-						<text class="field-label">世代</text>
-						<picker mode="selector" :range="generationOptions"
+						<text class="field-label">{{ t('profile.generation') }}</text>
+						<picker mode="selector" :range="optionList('generation', generationOptions)"
 							@change="e => form.generation = generationOptions[e.detail.value]">
 							<view class="select-row">
-								<text :class="{ placeholder: !form.generation }">{{ form.generation || '請選擇' }}</text>
+								<text :class="{ placeholder: !form.generation }">{{ form.generation || t('profile.myFile.select') }}</text>
 								<text class="chev">▾</text>
 							</view>
 						</picker>
 					</view>
 					<view class="field">
-						<text class="field-label">健康狀況</text>
+						<text class="field-label">{{ t('profile.health') }}</text>
 						<view class="pillgroup">
-							<view class="pill" :class="{ on: form.health === '健康' }" @tap="form.health = '健康'">健康</view>
+							<view class="pill" :class="{ on: form.health === '健康' }" @tap="form.health = '健康'">{{ optionLabel('health', '健康') }}</view>
 							<view class="pill" :class="{ on: form.health === '特殊需求' }" @tap="form.health = '特殊需求'">
-								特殊需求<text class="info">?</text></view>
+								{{ optionLabel('health', '特殊需求') }}<text class="info">?</text></view>
 						</view>
 					</view>
 					<view class="field">
-						<text class="field-label">祝福</text>
+						<text class="field-label">{{ t('profile.blessing') }}</text>
 						<view class="pillgroup">
 							<view class="pill" :class="{ on: form.blessingType === '第一次祝福' }"
-								@tap="form.blessingType = '第一次祝福'">第一次祝福</view>
+								@tap="form.blessingType = '第一次祝福'">{{ optionLabel('blessingType', '第一次祝福') }}</view>
 							<view class="pill" :class="{ on: form.blessingType === '重新祝福' }"
-								@tap="form.blessingType = '重新祝福'">重新祝福</view>
+								@tap="form.blessingType = '重新祝福'">{{ optionLabel('blessingType', '重新祝福') }}</view>
 						</view>
 					</view>
 					<view class="field">
-						<text class="field-label">性別</text>
+						<text class="field-label">{{ t('profile.gender') }}</text>
 						<view class="pillgroup">
-							<view class="pill" :class="{ on: form.gender === '男' }" @tap="form.gender = '男'">男</view>
-							<view class="pill" :class="{ on: form.gender === '女' }" @tap="form.gender = '女'">女</view>
+							<view class="pill" :class="{ on: form.gender === '男' }" @tap="form.gender = '男'">{{ optionLabel('gender', '男') }}</view>
+							<view class="pill" :class="{ on: form.gender === '女' }" @tap="form.gender = '女'">{{ optionLabel('gender', '女') }}</view>
 						</view>
 					</view>
 				</view>
 
 				<view class="card">
 					<view class="card-head">
-						<view class="mark"></view><text class="card-title">部分（所屬教會）</text>
+						<view class="mark"></view><text class="card-title">{{ t('profile.myFile.churchSection') }}</text>
 					</view>
 					<view class="field">
-						<text class="field-label">區域</text>
-						<picker mode="selector" :range="regionOptions"
+						<text class="field-label">{{ t('profile.region') }}</text>
+						<picker mode="selector" :range="optionList('region', regionOptions)"
 							@change="e => form.region = regionOptions[e.detail.value]">
-							<view class="select-row"><text :class="{ placeholder: !form.region }">{{ form.region ||
-									'請選擇' }}</text><text class="chev">▾</text></view>
+							<view class="select-row"><text :class="{ placeholder: !form.region }">{{ form.region ? optionLabel('region', form.region) :
+									t('profile.myFile.select') }}</text><text class="chev">▾</text></view>
 						</picker>
 					</view>
 					<view class="field">
-						<text class="field-label">分地區</text>
-						<picker mode="selector" :range="subRegionOptions"
+						<text class="field-label">{{ t('profile.myFile.subRegionLabel') }}</text>
+						<picker mode="selector" :range="optionList('subRegion', subRegionOptions)"
 							@change="e => form.subRegion = subRegionOptions[e.detail.value]">
 							<view class="select-row"><text :class="{ placeholder: !form.subRegion }">{{ form.subRegion
-								|| '請選擇' }}</text><text class="chev">▾</text></view>
+									? optionLabel('subRegion', form.subRegion) : t('profile.myFile.select') }}</text><text class="chev">▾</text></view>
 						</picker>
 					</view>
 					<view class="field">
-						<text class="field-label">國家（教區）</text>
-						<picker mode="selector" :range="countryOptions"
+						<text class="field-label">{{ t('profile.country') }}</text>
+						<picker mode="selector" :range="optionList('country', countryOptions)"
 							@change="e => form.country = countryOptions[e.detail.value]">
-							<view class="select-row"><text :class="{ placeholder: !form.country }">{{ form.country ||
-									'請選擇' }}</text><text class="chev">▾</text></view>
+							<view class="select-row"><text :class="{ placeholder: !form.country }">{{ form.country ? optionLabel('country', form.country) :
+									t('profile.myFile.select') }}</text><text class="chev">▾</text></view>
 						</picker>
 					</view>
 					<view class="field">
-						<text class="field-label">教會</text>
-						<input class="input" v-model="form.churchName" placeholder="Hong Kong Church" />
+						<text class="field-label">{{ t('profile.myFile.churchLabel') }}</text>
+						<input class="input" v-model="form.churchName" :placeholder="t('profile.myFile.churchPlaceholder')" />
 					</view>
 				</view>
 			</scroll-view>
 
 			<view class="bottombar">
-				<view class="btn ghost" @tap="onExit">取消</view>
-				<view class="btn primary" @tap="goNext(1)">下一步</view>
+				<view class="btn ghost" @tap="onExit">{{ t('messages.common.cancel') }}</view>
+				<view class="btn primary" @tap="goNext(1)">{{ t('profile.myFile.nextStep') }}</view>
 			</view>
 		</template>
 
@@ -117,8 +117,8 @@
 				<view class="topbar-row">
 					<view class="back-btn" @tap="step = 1">‹</view>
 					<view>
-						<view class="topbar-title">個人資料</view>
-						<view class="topbar-sub">姓名 · 出生 · 聯絡方式</view>
+						<view class="topbar-title">{{ t('profile.personalInfo') }}</view>
+						<view class="topbar-sub">{{ t('profile.myFile.step2Sub') }}</view>
 					</view>
 				</view>
 				<view class="beads">
@@ -132,151 +132,146 @@
 			<scroll-view scroll-y class="scroll-area page-scroll" style="max-width: 750rpx;box-sizing: border-box;">
 				<view class="card">
 					<view class="card-head">
-						<view class="mark"></view><text class="card-title">姓名</text><text class="req">必填</text>
+						<view class="mark"></view><text class="card-title">{{ t('profile.name') }}</text><text class="req">{{ t('profile.required') }}</text>
 					</view>
 					<view class="field">
-						<text class="field-label">姓名（母語）</text>
+						<text class="field-label">{{ t('profile.nativeName') }}</text>
 						<view class="row2">
-							<input class="input" v-model="form.nativeLastName" placeholder="姓" />
-							<input class="input" v-model="form.nativeFirstName" placeholder="名" />
+							<input class="input" v-model="form.nativeLastName" :placeholder="t('profile.myFile.nativeLastNamePlaceholder')" />
+							<input class="input" v-model="form.nativeFirstName" :placeholder="t('profile.myFile.nativeFirstNamePlaceholder')" />
 						</view>
 					</view>
 					<view class="field">
-						<text class="field-label">姓名（英文）</text>
+						<text class="field-label">{{ t('profile.englishName') }}</text>
 						<view class="row2">
-							<input class="input" v-model="form.enLastName" placeholder="Last name" />
-							<input class="input" v-model="form.enFirstName" placeholder="First name" />
+							<input class="input" v-model="form.enLastName" :placeholder="t('profile.myFile.enLastNamePlaceholder')" />
+							<input class="input" v-model="form.enFirstName" :placeholder="t('profile.myFile.enFirstNamePlaceholder')" />
 						</view>
 					</view>
 				</view>
 
 				<view class="card">
 					<view class="card-head">
-						<view class="mark"></view><text class="card-title">出生 · 體格</text>
+						<view class="mark"></view><text class="card-title">{{ t('profile.myFile.birthBodyTitle') }}</text>
 					</view>
 					<view class="field">
-						<text class="field-label">出生日期</text>
+						<text class="field-label">{{ t('profile.birthDate') }}</text>
 						<view class="pillgroup" style="margin-bottom: 8px;">
 							<view class="pill" :class="{ on: form.calendarType === '陽曆' }"
-								@tap="form.calendarType = '陽曆'">陽曆</view>
+								@tap="form.calendarType = '陽曆'">{{ optionLabel('calendarType', '陽曆') }}</view>
 							<view class="pill" :class="{ on: form.calendarType === '陰曆' }"
-								@tap="form.calendarType = '陰曆'">陰曆</view>
+								@tap="form.calendarType = '陰曆'">{{ optionLabel('calendarType', '陰曆') }}</view>
 						</view>
 						<view class="row3">
 							<picker mode="selector" :range="yearOptions"
 								@change="e => form.birthYear = yearOptions[e.detail.value]">
 								<view class="select-row"><text :class="{ placeholder: !form.birthYear }">{{
-									form.birthYear || '年' }}</text><text class="chev">▾</text></view>
+									form.birthYear || t('profile.myFile.yearPlaceholder') }}</text><text class="chev">▾</text></view>
 							</picker>
 							<picker mode="selector" :range="monthOptions"
 								@change="e => form.birthMonth = monthOptions[e.detail.value]">
 								<view class="select-row"><text :class="{ placeholder: !form.birthMonth }">{{
-									form.birthMonth || '月' }}</text><text class="chev">▾</text></view>
+									form.birthMonth || t('profile.myFile.monthPlaceholder') }}</text><text class="chev">▾</text></view>
 							</picker>
 							<picker mode="selector" :range="dayOptions"
 								@change="e => form.birthDay = dayOptions[e.detail.value]">
 								<view class="select-row"><text :class="{ placeholder: !form.birthDay }">{{ form.birthDay
-										|| '日' }}</text><text class="chev">▾</text></view>
+											|| t('profile.myFile.dayPlaceholder') }}</text><text class="chev">▾</text></view>
 							</picker>
 						</view>
 					</view>
 					<view class="row2">
 						<view class="field">
-							<text class="field-label">身高（公分）</text>
+							<text class="field-label">{{ t('profile.height') }}</text>
 							<input class="input" type="number" v-model="form.height" placeholder="170" />
 						</view>
 						<view class="field">
-							<text class="field-label">體重（公斤）</text>
+							<text class="field-label">{{ t('profile.weight') }}</text>
 							<input class="input" type="number" v-model="form.weight" placeholder="67" />
 						</view>
 					</view>
 					<view class="field">
-						<text class="field-label">血型</text>
+						<text class="field-label">{{ t('profile.bloodType') }}</text>
 						<view class="row2">
-							<picker mode="selector" :range="bloodTypeOptions"
+							<picker mode="selector" :range="optionList('bloodType', bloodTypeOptions)"
 								@change="e => form.bloodType = bloodTypeOptions[e.detail.value]">
 								<view class="select-row"><text :class="{ placeholder: !form.bloodType }">{{
-									form.bloodType || 'A型' }}</text><text class="chev">▾</text></view>
+									pickerDisplay('bloodType', form.bloodType) }}</text><text class="chev">▾</text></view>
 							</picker>
 							<picker mode="selector" :range="bloodRhOptions"
 								@change="e => form.bloodRh = bloodRhOptions[e.detail.value]">
-								<view class="select-row"><text :class="{ placeholder: !form.bloodRh }">{{ form.bloodRh
-									|| 'RH+' }}</text><text class="chev">▾</text></view>
+								<view class="select-row"><text :class="{ placeholder: !form.bloodRh }">{{ pickerDisplay('bloodRh', form.bloodRh) }}</text><text class="chev">▾</text></view>
 							</picker>
 						</view>
 					</view>
 				</view>
 
-				<view class="card">
-					<view class="card-head">
-						<view class="mark"></view><text class="card-title">國籍 · 語言</text>
-					</view>
-					<view class="field">
-						<text class="field-label">國籍</text>
-						<picker mode="selector" :range="countryOptions"
-							@change="e => form.nationality = countryOptions[e.detail.value]">
-							<view class="select-row"><text :class="{ placeholder: !form.nationality }">{{
-								form.nationality || 'Hong Kong' }}</text><text class="chev">▾</text></view>
-						</picker>
-					</view>
-					<view class="field">
-						<text class="field-label">外語能力 #1</text>
+					<view class="card">
+						<view class="card-head">
+							<view class="mark"></view><text class="card-title">{{ t('profile.myFile.nationalityLanguageTitle') }}</text>
+						</view>
+						<view class="field">
+							<text class="field-label">{{ t('profile.nationality') }}</text>
+							<picker mode="selector" :range="optionList('country', countryOptions)"
+								@change="e => form.nationality = countryOptions[e.detail.value]">
+								<view class="select-row"><text :class="{ placeholder: !form.nationality }">{{
+									form.nationality ? optionLabel('country', form.nationality) : t('profile.myFile.defaultCountry') }}</text><text class="chev">▾</text></view>
+							</picker>
+						</view>
+							<view class="field">
+								<text class="field-label">{{ t('profile.language1') }}</text>
+								<view class="row2">
+									<picker mode="selector" :range="optionList('lang', langOptions)"
+										@change="e => form.lang1Name = langOptions[e.detail.value]">
+										<view class="select-row"><text :class="{ placeholder: !form.lang1Name }">{{ pickerDisplay('lang', form.lang1Name) }}</text><text class="chev">▾</text></view>
+								</picker>
+								<picker mode="selector" :range="optionList('level', levelOptions)"
+									@change="e => form.lang1Level = levelOptions[e.detail.value]">
+									<view class="select-row"><text :class="{ placeholder: !form.lang1Level }">{{ pickerDisplay('level', form.lang1Level) }}</text><text class="chev">▾</text></view>
+								</picker>
+							</view>
+						</view>
+						<view class="field">
+							<text class="field-label">{{ t('profile.language2') }}</text>
 						<view class="row2">
-							<picker mode="selector" :range="langOptions"
-								@change="e => form.lang1Name = langOptions[e.detail.value]">
-								<view class="select-row"><text :class="{ placeholder: !form.lang1Name }">{{
-									form.lang1Name || '英文' }}</text><text class="chev">▾</text></view>
-							</picker>
-							<picker mode="selector" :range="levelOptions"
-								@change="e => form.lang1Level = levelOptions[e.detail.value]">
-								<view class="select-row"><text :class="{ placeholder: !form.lang1Level }">{{
-									form.lang1Level || '流利' }}</text><text class="chev">▾</text></view>
-							</picker>
+								<picker mode="selector" :range="optionList('lang', langOptions)"
+									@change="e => form.lang2Name = langOptions[e.detail.value]">
+									<view class="select-row"><text :class="{ placeholder: !form.lang2Name }">{{ pickerDisplay('lang', form.lang2Name) }}</text><text class="chev">▾</text></view>
+								</picker>
+								<picker mode="selector" :range="optionList('level', levelOptions)"
+									@change="e => form.lang2Level = levelOptions[e.detail.value]">
+									<view class="select-row"><text :class="{ placeholder: !form.lang2Level }">{{ pickerDisplay('level', form.lang2Level) }}</text><text class="chev">▾</text></view>
+								</picker>
+							</view>
 						</view>
 					</view>
-					<view class="field">
-						<text class="field-label">外語能力 #2</text>
-						<view class="row2">
-							<picker mode="selector" :range="langOptions"
-								@change="e => form.lang2Name = langOptions[e.detail.value]">
-								<view class="select-row"><text :class="{ placeholder: !form.lang2Name }">{{
-									form.lang2Name || '日文' }}</text><text class="chev">▾</text></view>
-							</picker>
-							<picker mode="selector" :range="levelOptions"
-								@change="e => form.lang2Level = levelOptions[e.detail.value]">
-								<view class="select-row"><text :class="{ placeholder: !form.lang2Level }">{{
-									form.lang2Level || '一點點' }}</text><text class="chev">▾</text></view>
-							</picker>
+
+					<view class="card">
+						<view class="card-head">
+							<view class="mark"></view><text class="card-title">{{ t('profile.myFile.contactTitle') }}</text><text class="req">{{ t('profile.required') }}</text>
+						</view>
+						<view class="field">
+							<text class="field-label">{{ t('profile.phone') }}</text>
+							<input class="input" type="number" v-model="form.mobile" :placeholder="t('profile.myFile.mobilePlaceholder')" />
+						</view>
+						<view class="field">
+							<text class="field-label">{{ t('profile.email') }}</text>
+							<input class="input" v-model="form.email" :placeholder="t('profile.myFile.emailPlaceholder')" />
+						</view>
+						<view class="field">
+							<text class="field-label">{{ t('profile.myFile.addressLabel') }}</text>
+							<input class="input" style="margin-bottom: 8px;" v-model="form.addressStreet"
+								:placeholder="t('profile.myFile.addressStreetPlaceholder')" />
+							<input class="input" v-model="form.addressCountry" :placeholder="t('profile.myFile.addressCountryPlaceholder')" />
 						</view>
 					</view>
-				</view>
+				</scroll-view>
 
-				<view class="card">
-					<view class="card-head">
-						<view class="mark"></view><text class="card-title">聯絡方式</text><text class="req">必填</text>
-					</view>
-					<view class="field">
-						<text class="field-label">手機</text>
-						<input class="input" type="number" v-model="form.mobile" placeholder="country code — number" />
-					</view>
-					<view class="field">
-						<text class="field-label">電子郵件</text>
-						<input class="input" v-model="form.email" placeholder="name@example.com" />
-					</view>
-					<view class="field">
-						<text class="field-label">地址</text>
-						<input class="input" style="margin-bottom: 8px;" v-model="form.addressStreet"
-							placeholder="城市 / 街道" />
-						<input class="input" v-model="form.addressCountry" placeholder="國家" />
-					</view>
+				<view class="bottombar">
+					<view class="btn ghost" @tap="step = 1">{{ t('messages.common.cancel') }}</view>
+					<view class="btn primary" @tap="goNext(2)">{{ t('profile.myFile.nextStep') }}</view>
 				</view>
-			</scroll-view>
-
-			<view class="bottombar">
-				<view class="btn ghost" @tap="step = 1">上一步</view>
-				<view class="btn primary" @tap="goNext(2)">下一步</view>
-			</view>
-		</template>
+			</template>
 
 		<!-- ========== 畫面 3／4 — 學經歷與資格 ========== -->
 		<template v-if="step === 3">
@@ -284,8 +279,8 @@
 				<view class="topbar-row">
 					<view class="back-btn" @tap="step = 2">‹</view>
 					<view>
-						<view class="topbar-title">學經歷與資格</view>
-						<view class="topbar-sub">學歷 · 工作 · 特殊條件</view>
+						<view class="topbar-title">{{ t('profile.myFile.step3Title') }}</view>
+						<view class="topbar-sub">{{ t('profile.myFile.step3Sub') }}</view>
 					</view>
 				</view>
 				<view class="beads">
@@ -297,114 +292,113 @@
 			</view>
 
 			<scroll-view scroll-y class="scroll-area page-scroll" style="max-width: 750rpx;box-sizing: border-box;">
-				<view class="helperbox">神 TOP GUN 祝福候選人認定 — 如符合資格將顯示於此，無需另外填寫。</view>
+				<view class="helperbox">{{ t('profile.myFile.helperNote') }}</view>
 
 				<view class="card">
 					<view class="card-head">
-						<view class="mark"></view><text class="card-title">最高學歷</text>
+						<view class="mark"></view><text class="card-title">{{ t('profile.education') }}</text>
 					</view>
-					<view class="field">
-						<text class="field-label">學位</text>
-						<view class="row2">
-							<picker mode="selector" :range="degreeLevelOptions"
-								@change="e => form.degreeLevel = degreeLevelOptions[e.detail.value]">
-								<view class="select-row"><text :class="{ placeholder: !form.degreeLevel }">{{
-									form.degreeLevel || '學院 / 大學' }}</text><text class="chev">▾</text></view>
+						<view class="field">
+							<text class="field-label">{{ t('profile.degree') }}</text>
+							<view class="row2">
+						<picker mode="selector" :range="optionList('degreeLevel', degreeLevelOptions)"
+							@change="e => form.degreeLevel = degreeLevelOptions[e.detail.value]">
+							<view class="select-row"><text :class="{ placeholder: !form.degreeLevel }">{{
+								pickerDisplay('degreeLevel', form.degreeLevel) }}</text><text class="chev">▾</text></view>
 							</picker>
-							<picker mode="selector" :range="degreeStatusOptions"
-								@change="e => form.degreeStatus = degreeStatusOptions[e.detail.value]">
-								<view class="select-row"><text :class="{ placeholder: !form.degreeStatus }">{{
-									form.degreeStatus || '畢業' }}</text><text class="chev">▾</text></view>
-							</picker>
+						<picker mode="selector" :range="optionList('degreeStatus', degreeStatusOptions)"
+							@change="e => form.degreeStatus = degreeStatusOptions[e.detail.value]">
+									<view class="select-row"><text :class="{ placeholder: !form.degreeStatus }">{{
+										pickerDisplay('degreeStatus', form.degreeStatus) }}</text><text class="chev">▾</text></view>
+								</picker>
+							</view>
+						</view>
+						<view class="field">
+							<text class="field-label">{{ t('profile.school') }}</text>
+							<input class="input" v-model="form.schoolName" :placeholder="t('profile.myFile.schoolPlaceholder')" />
+						</view>
+						<view class="field">
+							<text class="field-label">{{ t('profile.major') }}</text>
+							<input class="input" v-model="form.major" :placeholder="t('profile.myFile.majorPlaceholder')" />
 						</view>
 					</view>
-					<view class="field">
-						<text class="field-label">學校名稱</text>
-						<input class="input" v-model="form.schoolName" placeholder="City University of Hong Kong" />
-					</view>
-					<view class="field">
-						<text class="field-label">主修</text>
-						<input class="input" v-model="form.major" placeholder="Criminology" />
-					</view>
-				</view>
 
-				<view class="card">
-					<view class="card-head">
-						<view class="mark"></view><text class="card-title">就業機會</text>
-					</view>
-					<view class="field">
-						<text class="field-label">工作</text>
-						<picker mode="selector" :range="occupationOptions"
+							<view class="card">
+						<view class="card-head">
+								<view class="mark"></view><text class="card-title">{{ t('profile.myFile.employmentOpportunityTitle') }}</text>
+							</view>
+						<view class="field">
+							<text class="field-label">{{ t('profile.occupation') }}</text>
+						<picker mode="selector" :range="optionList('occupation', occupationOptions)"
 							@change="e => form.occupation = occupationOptions[e.detail.value]">
-							<view class="select-row"><text :class="{ placeholder: !form.occupation }">{{ form.occupation
-								|| '自營商' }}</text><text class="chev">▾</text></view>
+							<view class="select-row"><text :class="{ placeholder: !form.occupation }">{{ pickerDisplay('occupation', form.occupation) }}</text><text class="chev">▾</text></view>
 						</picker>
 					</view>
 					<view class="field">
-						<text class="field-label">公司名稱</text>
-						<input class="input" v-model="form.companyName" placeholder="公司 / 品牌名稱" />
+						<text class="field-label">{{ t('profile.company') }}</text>
+						<input class="input" v-model="form.companyName" :placeholder="t('profile.myFile.companyPlaceholder')" />
 					</view>
 				</view>
 
 				<view class="card">
 					<view class="card-head">
-						<view class="mark"></view><text class="card-title">資格</text>
+						<view class="mark"></view><text class="card-title">{{ t('profile.myFile.qualificationTitle') }}</text>
 					</view>
 					<view class="field">
-						<text class="field-label">資格 #1</text>
-						<input class="input" v-model="form.qualification1" placeholder="Scuba diving instructor" />
+						<text class="field-label">{{ t('profile.myFile.qualification1Label') }}</text>
+						<input class="input" v-model="form.qualification1" :placeholder="t('profile.myFile.qualification1Placeholder')" />
 					</view>
 					<view class="field">
-						<text class="field-label">資格 #2</text>
-						<input class="input" v-model="form.qualification2" placeholder="尚未填寫" />
+						<text class="field-label">{{ t('profile.myFile.qualification2Label') }}</text>
+						<input class="input" v-model="form.qualification2" :placeholder="t('profile.myFile.notFilledPlaceholder')" />
 					</view>
 				</view>
 
 				<view class="card">
 					<view class="card-head">
-						<view class="mark"></view><text class="card-title">首選國家</text><text class="req">必填</text>
+						<view class="mark"></view><text class="card-title">{{ t('profile.myFile.preferredCountryTitle') }}</text><text class="req">{{ t('profile.required') }}</text>
 					</view>
 					<view class="field">
-						<text class="field-label">第一個盼望特質</text>
-						<picker mode="selector" :range="allCountryOptions"
-							@change="e => form.preferredCountry1 = allCountryOptions[e.detail.value]">
+						<text class="field-label">{{ t('profile.myFile.preferredCountryFirstLabel') }}</text>
+					<picker mode="selector" :range="optionList('allCountry', allCountryOptions)"
+						@change="e => form.preferredCountry1 = allCountryOptions[e.detail.value]">
 							<view class="select-row"><text :class="{ placeholder: !form.preferredCountry1 }">{{
-								form.preferredCountry1 || '所有國家' }}</text><text class="chev">▾</text></view>
+								form.preferredCountry1 ? optionLabel('allCountry', form.preferredCountry1) : t('profile.myFile.allCountriesLabel') }}</text><text class="chev">▾</text></view>
 						</picker>
 					</view>
 					<view class="field">
-						<text class="field-label">第二個盼望特質</text>
-						<picker mode="selector" :range="allCountryOptions"
+						<text class="field-label">{{ t('profile.myFile.preferredCountrySecondLabel') }}</text>
+						<picker mode="selector" :range="optionList('allCountry', allCountryOptions)"
 							@change="e => form.preferredCountry2 = allCountryOptions[e.detail.value]">
 							<view class="select-row"><text :class="{ placeholder: !form.preferredCountry2 }">{{
-								form.preferredCountry2 || '所有國家' }}</text><text class="chev">▾</text></view>
+								form.preferredCountry2 ? optionLabel('allCountry', form.preferredCountry2) : t('profile.myFile.allCountriesLabel') }}</text><text class="chev">▾</text></view>
 						</picker>
 					</view>
 				</view>
 
 				<view class="card">
 					<view class="card-head">
-						<view class="mark"></view><text class="card-title">特殊需求</text>
+						<view class="mark"></view><text class="card-title">{{ t('profile.myFile.specialNeedTitle') }}</text>
 					</view>
 					<view class="field">
-						<text class="field-label">類別</text>
-						<picker mode="selector" :range="specialCategoryOptions"
+						<text class="field-label">{{ t('profile.special') }}</text>
+						<picker mode="selector" :range="optionList('specialCategory', specialCategoryOptions)"
 							@change="e => form.specialCategory = specialCategoryOptions[e.detail.value]">
 							<view class="select-row"><text :class="{ placeholder: !form.specialCategory }">{{
-								form.specialCategory || '選擇' }}</text><text class="chev">▾</text></view>
+								pickerDisplay('specialCategory', form.specialCategory) }}</text><text class="chev">▾</text></view>
 						</picker>
 					</view>
 					<view class="field">
-						<text class="field-label">生活能力程度<text class="info">?</text></text>
-						<picker mode="selector" :range="specialLevelOptions"
+						<text class="field-label">{{ t('profile.myFile.specialAbility') }}<text class="info">?</text></text>
+						<picker mode="selector" :range="optionList('specialLevel', specialLevelOptions)"
 							@change="e => form.specialLevel = specialLevelOptions[e.detail.value]">
 							<view class="select-row"><text :class="{ placeholder: !form.specialLevel }">{{
-								form.specialLevel || '選擇' }}</text><text class="chev">▾</text></view>
+								pickerDisplay('specialLevel', form.specialLevel) }}</text><text class="chev">▾</text></view>
 						</picker>
 					</view>
 					<view class="field">
-						<text class="field-label">輸入欄位</text>
-						<textarea class="input" v-model="form.specialNote" :maxlength="30" placeholder="最多 30 個字" />
+						<text class="field-label">{{ t('profile.myFile.notesLabel') }}</text>
+						<textarea class="input" v-model="form.specialNote" :maxlength="30" :placeholder="t('profile.myFile.notesPlaceholder')" />
 						<view class="charcount">{{ form.specialNote.length }} / 30</view>
 					</view>
 				</view>
@@ -412,68 +406,68 @@
 				<view class="card">
 					<view class="addrow">
 						<view class="card-head" style="margin-bottom: 0;">
-							<view class="mark"></view><text class="card-title">事業</text>
+							<view class="mark"></view><text class="card-title">{{ t('profile.myFile.careerTitle') }}</text>
 						</view>
 						<view style="display: flex;">
-							<view class="mini-btn add" @tap="addCareer">＋ 新增</view>
-							<view class="mini-btn" @tap="removeCareer">－ 刪除</view>
+							<view class="mini-btn add" @tap="addCareer">{{ t('messages.common.add') }}</view>
+							<view class="mini-btn" @tap="removeCareer">{{ t('messages.common.remove') }}</view>
 						</view>
 					</view>
 
-					<view v-for="(career, index) in form.careers" :key="index" class="career-block">
+						<view v-for="(career, index) in form.careers" :key="index" class="career-block">
+							<view class="field">
+								<text class="field-label">{{ t('profile.myFile.periodLabel') }}</text>
+								<view class="row2">
+									<picker mode="selector" :range="yearOptions"
+										@change="e => career.startYear = yearOptions[e.detail.value]">
+										<view class="select-row"><text :class="{ placeholder: !career.startYear }">{{
+											career.startYear || t('profile.myFile.startYearPlaceholder') }}</text><text class="chev">▾</text></view>
+									</picker>
+									<picker mode="selector" :range="monthOptions"
+										@change="e => career.startMonth = monthOptions[e.detail.value]">
+										<view class="select-row"><text :class="{ placeholder: !career.startMonth }">{{
+											career.startMonth || t('profile.myFile.startMonthPlaceholder') }}</text><text class="chev">▾</text></view>
+									</picker>
+								</view>
+								<view class="row2" style="margin-top: 8px;">
+									<picker mode="selector" :range="yearOptions"
+										@change="e => career.endYear = yearOptions[e.detail.value]">
+										<view class="select-row"><text :class="{ placeholder: !career.endYear }">{{
+											career.endYear || t('profile.myFile.endYearPlaceholder') }}</text><text class="chev">▾</text></view>
+									</picker>
+									<picker mode="selector" :range="monthOptions"
+										@change="e => career.endMonth = monthOptions[e.detail.value]">
+										<view class="select-row"><text :class="{ placeholder: !career.endMonth }">{{
+											career.endMonth || t('profile.myFile.endMonthPlaceholder') }}</text><text class="chev">▾</text></view>
+									</picker>
+								</view>
+						</view>
 						<view class="field">
-							<text class="field-label">期間</text>
-							<view class="row2">
-								<picker mode="selector" :range="yearOptions"
-									@change="e => career.startYear = yearOptions[e.detail.value]">
-									<view class="select-row"><text :class="{ placeholder: !career.startYear }">{{
-										career.startYear || '開始年' }}</text><text class="chev">▾</text></view>
-								</picker>
-								<picker mode="selector" :range="monthOptions"
-									@change="e => career.startMonth = monthOptions[e.detail.value]">
-									<view class="select-row"><text :class="{ placeholder: !career.startMonth }">{{
-										career.startMonth || '開始月' }}</text><text class="chev">▾</text></view>
+							<text class="field-label">{{ t('profile.myFile.categoryLabel') }}</text>
+								<picker mode="selector" :range="optionList('careerCategory', careerCategoryOptions)"
+									@change="e => career.category = careerCategoryOptions[e.detail.value]">
+									<view class="select-row"><text :class="{ placeholder: !career.category }">{{
+										career.category ? pickerDisplay('careerCategory', career.category) : t('profile.myFile.otherLabel') }}</text><text class="chev">▾</text></view>
 								</picker>
 							</view>
-							<view class="row2" style="margin-top: 8px;">
-								<picker mode="selector" :range="yearOptions"
-									@change="e => career.endYear = yearOptions[e.detail.value]">
-									<view class="select-row"><text :class="{ placeholder: !career.endYear }">{{
-										career.endYear || '結束年' }}</text><text class="chev">▾</text></view>
-								</picker>
-								<picker mode="selector" :range="monthOptions"
-									@change="e => career.endMonth = monthOptions[e.detail.value]">
-									<view class="select-row"><text :class="{ placeholder: !career.endMonth }">{{
-										career.endMonth || '結束月' }}</text><text class="chev">▾</text></view>
-								</picker>
+							<view class="field">
+								<text class="field-label">{{ t('profile.myFile.companyDescriptionLabel') }}</text>
+								<textarea class="input" v-model="career.description"
+									:placeholder="t('profile.myFile.companyDescriptionPlaceholder')" />
 							</view>
-						</view>
-						<view class="field">
-							<text class="field-label">類別</text>
-							<picker mode="selector" :range="careerCategoryOptions"
-								@change="e => career.category = careerCategoryOptions[e.detail.value]">
-								<view class="select-row"><text :class="{ placeholder: !career.category }">{{
-									career.category || '其他' }}</text><text class="chev">▾</text></view>
-							</picker>
-						</view>
-						<view class="field">
-							<text class="field-label">公司名稱 / 說明</text>
-							<textarea class="input" v-model="career.description"
-								placeholder="Done program in Europe." />
-						</view>
-						<view class="field">
-							<text class="field-label">職務</text>
-							<input class="input" v-model="career.role" placeholder="Attendant" />
+							<view class="field">
+								<text class="field-label">{{ t('profile.myFile.roleLabel') }}</text>
+								<input class="input" v-model="career.role" :placeholder="t('profile.myFile.rolePlaceholder')" />
+							</view>
 						</view>
 					</view>
+				</scroll-view>
+
+				<view class="bottombar">
+					<view class="btn ghost" @tap="step = 2">{{ t('profile.myFile.previousStep') }}</view>
+					<view class="btn primary" @tap="goNext(3)">{{ t('profile.myFile.nextStep') }}</view>
 				</view>
-			</scroll-view>
-
-			<view class="bottombar">
-				<view class="btn ghost" @tap="step = 2">上一步</view>
-				<view class="btn primary" @tap="goNext(3)">下一步</view>
-			</view>
-		</template>
+			</template>
 
 		<!-- ========== 畫面 4／4 — 生活能力與協助者 ========== -->
 		<template v-if="step === 4">
@@ -481,8 +475,8 @@
 				<view class="topbar-row">
 					<view class="back-btn" @tap="step = 3">‹</view>
 					<view>
-						<view class="topbar-title">生活能力</view>
-						<view class="topbar-sub">興趣 · 信仰生活 · 協助者</view>
+						<view class="topbar-title">{{ t('profile.myFile.step4Title') }}</view>
+						<view class="topbar-sub">{{ t('profile.myFile.step4Sub') }}</view>
 					</view>
 				</view>
 				<view class="beads">
@@ -496,103 +490,106 @@
 			<scroll-view scroll-y class="scroll-area page-scroll" style="max-width: 750rpx;box-sizing: border-box;">
 				<view class="card">
 					<view class="card-head">
-						<view class="mark"></view><text class="card-title">生活能力</text>
+						<view class="mark"></view><text class="card-title">{{ t('profile.myFile.lifeAbilityTitle') }}</text>
 					</view>
 					<view class="field">
-						<text class="field-label">愛好 / 興趣 #1</text>
-						<input class="input" v-model="form.hobby1" placeholder="Underwater photography" />
+						<text class="field-label">{{ t('profile.myFile.hobby1Label') }}</text>
+						<input class="input" v-model="form.hobby1" :placeholder="t('profile.myFile.hobby1Placeholder')" />
 					</view>
 					<view class="field">
-						<text class="field-label">愛好 / 興趣 #2</text>
-						<input class="input" v-model="form.hobby2" placeholder="Outdoor activities" />
+						<text class="field-label">{{ t('profile.myFile.hobby2Label') }}</text>
+						<input class="input" v-model="form.hobby2" :placeholder="t('profile.myFile.hobby2Placeholder')" />
 					</view>
 					<view class="field">
-						<text class="field-label">我的信仰生活</text>
+						<text class="field-label">{{ t('profile.myFile.myFaithLifeLabel') }}</text>
 						<view class="pillgroup">
 							<view class="pill" :class="{ on: form.faithLife === '非常傳統' }"
-								@tap="form.faithLife = '非常傳統'">非常傳統</view>
+								@tap="form.faithLife = '非常傳統'">{{ optionLabel('faithLife', '非常傳統') }}</view>
 							<view class="pill" :class="{ on: form.faithLife === '有彈性' }" @tap="form.faithLife = '有彈性'">
-								有彈性</view>
+								{{ optionLabel('faithLife', '有彈性') }}</view>
 							<view class="pill" :class="{ on: form.faithLife === '妥協' }" @tap="form.faithLife = '妥協'">
-								妥協<text class="info">?</text></view>
+								{{ optionLabel('faithLife', '妥協') }}<text class="info">?</text></view>
 						</view>
 					</view>
 					<view class="field">
-						<text class="field-label">我希望我的配偶的信仰生活（可多選）</text>
+						<text class="field-label">{{ t('profile.myFile.spouseFaithLifeLabel') }}</text>
 						<view class="chipgroup">
-							<view v-for="opt in ['非常傳統', '有彈性', '妥協']" :key="opt" class="chip"
-								:class="{ on: form.spouseFaithLife.includes(opt) }" @tap="toggleSpouseFaith(opt)">{{ opt
-								}}</view>
+							<view v-for="opt in spouseFaithOptions" :key="opt" class="chip"
+								:class="{ on: form.spouseFaithLife.includes(opt) }" @tap="toggleSpouseFaith(opt)">{{
+									optionLabel('faithLife', opt) }}</view>
 						</view>
 					</view>
 					<view class="field">
-						<text class="field-label">對對象的希望</text>
-						<textarea class="input" v-model="form.partnerWish" :maxlength="30" placeholder="最多 30 個字" />
+						<text class="field-label">{{ t('profile.myFile.partnerExpectationLabel') }}</text>
+						<textarea class="input" v-model="form.partnerWish" :maxlength="30"
+							:placeholder="t('profile.myFile.partnerExpectationPlaceholder')" />
 						<view class="charcount">{{ form.partnerWish.length }} / 30</view>
 					</view>
 				</view>
 
 				<view class="card">
 					<view class="card-head">
-						<view class="mark"></view><text class="card-title">個人狀態</text>
+						<view class="mark"></view><text class="card-title">{{ t('profile.myFile.personalStatusTitle') }}</text>
 					</view>
 					<view class="field">
-						<text class="field-label">狀態</text>
+						<text class="field-label">{{ t('profile.myFile.statusLabel') }}</text>
 						<view class="pillgroup">
 							<view class="pill" v-for="opt in statusOptions" :key="opt"
-								:class="{ on: form.status === opt }" @tap="form.status = opt">{{ opt }}</view>
+									:class="{ on: form.status === opt }" @tap="form.status = opt">{{ optionLabel('status', opt) }}</view>
 						</view>
 					</view>
 					<view class="field">
-						<text class="field-label">希望參加2026年祝福式<text class="info">?</text></text>
+						<text class="field-label">{{ t('profile.myFile.wishBlessing2026Label') }}<text class="info">?</text></text>
 						<view class="checkbox-row" @tap="form.wantBlessing2026 = !form.wantBlessing2026">
 							<view class="box" :class="{ on: form.wantBlessing2026 }">
 								<text v-if="form.wantBlessing2026" class="checkmark">✓</text>
 							</view>
-							<text>希望參加</text>
+							<text>{{ t('profile.myFile.wishParticipateLabel') }}</text>
 						</view>
 					</view>
 				</view>
 
 				<view class="card">
 					<view class="card-head">
-						<view class="mark"></view><text class="card-title">分析工具</text>
+						<view class="mark"></view><text class="card-title">{{ t('profile.myFile.analysisToolsTitle') }}</text>
 					</view>
-					<text class="hint" style="display:block; margin-bottom: 12px;">以下資料用於配對分析，可選填。</text>
+					<text class="hint" style="display:block; margin-bottom: 12px;">{{ t('profile.myFile.analysisToolsHint') }}</text>
 
 					<view class="field">
-						<text class="field-label">雙手交握<text class="info">?</text></text>
+						<text class="field-label">{{ t('profile.myFile.handsLabel') }}<text class="info">?</text></text>
 						<view class="pillgroup">
 							<view class="pill" :class="{ on: form.tools.hands === '右拇指' }"
-								@tap="form.tools.hands = '右拇指'">右拇指</view>
+								@tap="form.tools.hands = '右拇指'">{{ optionLabel('hands', '右拇指') }}</view>
 							<view class="pill" :class="{ on: form.tools.hands === '左拇指' }"
-								@tap="form.tools.hands = '左拇指'">左拇指</view>
+								@tap="form.tools.hands = '左拇指'">{{ optionLabel('hands', '左拇指') }}</view>
 						</view>
 					</view>
 
 					<view class="field">
-						<text class="field-label">陰/陽<text class="info">?</text></text>
+						<text class="field-label">{{ t('profile.myFile.yinYangLabel') }}<text class="info">?</text></text>
 						<view class="pillgroup">
 							<view class="pill" :class="{ on: form.tools.yinyang === '陽' }"
-								@tap="form.tools.yinyang = '陽'">陽</view>
+								@tap="form.tools.yinyang = '陽'">{{ optionLabel('yinyang', '陽') }}</view>
 							<view class="pill" :class="{ on: form.tools.yinyang === '陰' }"
-								@tap="form.tools.yinyang = '陰'">陰</view>
+								@tap="form.tools.yinyang = '陰'">{{ optionLabel('yinyang', '陰') }}</view>
 						</view>
 					</view>
 
 					<view class="field">
-						<text class="field-label">五要素<text class="info">?</text></text>
+						<text class="field-label">{{ t('profile.myFile.fiveElementsLabel') }}<text class="info">?</text></text>
 						<view class="pillgroup">
 							<view class="pill" v-for="opt in fiveElementOptions" :key="opt"
-								:class="{ on: form.tools.fiveElements === opt }" @tap="form.tools.fiveElements = opt">{{ opt }}</view>
+								:class="{ on: form.tools.fiveElements === opt }"
+								@tap="form.tools.fiveElements = opt">{{ optionLabel('fiveElements', opt) }}</view>
 						</view>
 					</view>
 
 					<view class="field">
-						<text class="field-label">九型人格<text class="info">?</text></text>
+						<text class="field-label">{{ t('profile.myFile.enneagramLabel') }}<text class="info">?</text></text>
 						<view class="pillgroup">
 							<view class="pill" v-for="opt in enneagramOptions" :key="opt"
-								:class="{ on: form.tools.enneagram === opt }" @tap="form.tools.enneagram = opt">{{ opt }}</view>
+								:class="{ on: form.tools.enneagram === opt }"
+								@tap="form.tools.enneagram = opt">{{ optionLabel('enneagram', opt) }}</view>
 						</view>
 					</view>
 
@@ -600,40 +597,41 @@
 						<text class="field-label">MBTI</text>
 						<picker mode="selector" :range="mbtiOptions"
 							@change="e => form.tools.mbti = mbtiOptions[e.detail.value]">
-							<view class="select-row"><text :class="{ placeholder: !form.tools.mbti }">{{
-								form.tools.mbti || '請選擇' }}</text><text class="chev">▾</text></view>
-						</picker>
-					</view>
-				</view>
+								<view class="select-row"><text :class="{ placeholder: !form.tools.mbti }">{{
+									form.tools.mbti || t('profile.myFile.select') }}</text><text class="chev">▾</text></view>
+								</picker>
+							</view>
+						</view>
 
-				<view class="divider-note">協助者的資料</view>
+				<view class="divider-note">{{ t('profile.myFile.helperInfoTitle') }}</view>
 
 				<view class="card">
 					<view class="card-head">
-						<view class="mark"></view><text class="card-title">協助者聯絡方式</text>
+						<view class="mark"></view><text class="card-title">{{ t('profile.myFile.helperContactTitle') }}</text>
 					</view>
 					<view class="field">
-						<text class="field-label">姓名</text>
-						<input class="input" v-model="form.helperName" placeholder="姓氏，名字" />
+						<text class="field-label">{{ t('profile.myFile.helperNameLabel') }}</text>
+						<input class="input" v-model="form.helperName" :placeholder="t('profile.myFile.helperNamePlaceholder')" />
 					</view>
 					<view class="field">
-						<text class="field-label">手機</text>
-						<input class="input" type="number" v-model="form.helperMobile" placeholder="+852 — 手機號碼" />
+						<text class="field-label">{{ t('profile.myFile.helperMobileLabel') }}</text>
+						<input class="input" type="number" v-model="form.helperMobile"
+							:placeholder="t('profile.myFile.helperMobilePlaceholder')" />
 					</view>
 					<view class="field">
-						<text class="field-label">電子郵件</text>
-						<input class="input" v-model="form.helperEmail" placeholder="helper@example.com" />
+						<text class="field-label">{{ t('profile.myFile.helperEmailLabel') }}</text>
+						<input class="input" v-model="form.helperEmail" :placeholder="t('profile.myFile.helperEmailPlaceholder')" />
 					</view>
 				</view>
 
 				<view class="hint" style="text-align: center; margin-top: 4px;">
-					<text style="color: var(--wine);"></text> 必填欄位
+						<text style="color: var(--wine);"></text> {{ t('profile.required') }}
 				</view>
 			</scroll-view>
 
 		<view class="bottombar">
-			<view class="btn ghost" @tap="onExit">取消</view>
-			<view class="btn primary" :class="{ disabled: submitting }" @tap="onSubmit">儲存</view>
+			<view class="btn ghost" @tap="onExit">{{ t('messages.common.cancel') }}</view>
+			<view class="btn primary" :class="{ disabled: submitting }" @tap="onSubmit">{{ t('messages.common.save') }}</view>
 		</view>
 		</template>
 
@@ -641,8 +639,9 @@
 </template>
 
 <script setup>
-import { reactive, ref, onMounted } from 'vue'
+import { computed, reactive, ref, onMounted } from 'vue'
 import { getMyProfileApi, submitMyProfileApi } from '@/api/index.js'
+import { t } from '@/utils/localeRuntime.js'
 
 // 當前步驟 1~4
 const step = ref(1)
@@ -743,6 +742,159 @@ const statusOptions = ['健康', '單身', '重新祝福']
 const fiveElementOptions = ['木', '火', '土', '金', '水']
 const enneagramOptions = ['1: 改革型', '2: 助人型', '3: 成就型', '4: 藝術型', '5: 智慧型', '6: 忠誠型', '7: 遠見型', '8: 領導型', '9: 和平型']
 const mbtiOptions = ['INTJ', 'INTP', 'ENTJ', 'ENTP', 'INFJ', 'INFP', 'ENFJ', 'ENFP', 'ISTJ', 'ISFJ', 'ESTJ', 'ESFJ', 'ISTP', 'ISFP', 'ESTP', 'ESFP']
+const spouseFaithOptions = ['非常傳統', '有彈性', '妥協']
+const optionLabelMap = computed(() => ({
+	generation: {
+		'祝福子女': t('profile.options.generation.blessing'),
+		第一代: t('profile.options.generation.firstGen'),
+		第二代: t('profile.options.generation.secondGen')
+	},
+	health: {
+		健康: t('profile.options.health.healthy'),
+		特殊需求: t('profile.options.health.specialNeed')
+	},
+	blessingType: {
+		第一次祝福: t('profile.options.blessingType.first'),
+		重新祝福: t('profile.options.blessingType.again')
+	},
+	gender: {
+		男: t('profile.options.gender.male'),
+		女: t('profile.options.gender.female')
+	},
+	calendarType: {
+		陽曆: t('profile.options.calendarType.solar'),
+		陰曆: t('profile.options.calendarType.lunar')
+	},
+	lang: {
+		英文: t('profile.options.language.english'),
+		日文: t('profile.options.language.japanese'),
+		韓文: t('profile.options.language.korean'),
+		中文: t('profile.options.language.chinese'),
+		西班牙文: t('profile.options.language.spanish')
+	},
+	level: {
+		流利: t('profile.options.level.fluent'),
+		一般: t('profile.options.level.fair'),
+		一點點: t('profile.options.level.basic')
+	},
+	degreeLevel: {
+		高中: t('profile.options.degreeLevel.highSchool'),
+		'學院 / 大學': t('profile.options.degreeLevel.college'),
+		碩士: t('profile.options.degreeLevel.master'),
+		博士: t('profile.options.degreeLevel.doctor')
+	},
+	degreeStatus: {
+		畢業: t('profile.options.degreeStatus.graduated'),
+		肄業: t('profile.options.degreeStatus.interrupted'),
+		就讀中: t('profile.options.degreeStatus.inSchool')
+	},
+	occupation: {
+		受雇: t('profile.options.occupation.employee'),
+		自營商: t('profile.options.occupation.selfEmployed'),
+		學生: t('profile.options.occupation.student'),
+		待業: t('profile.options.occupation.unemployed')
+	},
+	specialCategory: {
+		聽力: t('profile.options.specialCategory.hearing'),
+		視力: t('profile.options.specialCategory.vision'),
+		行動能力: t('profile.options.specialCategory.mobility'),
+		其他: t('profile.options.specialCategory.other')
+	},
+	specialLevel: {
+		輕度: t('profile.options.specialLevel.mild'),
+		中度: t('profile.options.specialLevel.moderate'),
+		重度: t('profile.options.specialLevel.severe')
+	},
+	careerCategory: {
+		全職: t('profile.options.careerCategory.fullTime'),
+		兼職: t('profile.options.careerCategory.partTime'),
+		志工: t('profile.options.careerCategory.volunteer'),
+		其他: t('profile.options.careerCategory.other')
+	},
+	status: {
+			健康: t('profile.options.status.healthy'),
+			單身: t('profile.options.status.single'),
+			重新祝福: t('profile.options.blessingType.again')
+	},
+	allCountry: {
+		所有國家: t('profile.myFile.allCountriesLabel'),
+		'Hong Kong': t('profile.options.country.hongKong'),
+		Taiwan: t('profile.options.country.taiwan'),
+		Japan: t('profile.options.country.japan'),
+		Korea: t('profile.options.country.korea'),
+		Singapore: t('profile.options.country.singapore')
+	},
+	region: {
+		Asia: t('profile.options.region.asia'),
+		Europe: t('profile.options.region.europe'),
+		Americas: t('profile.options.region.americas'),
+		Africa: t('profile.options.region.africa'),
+		Oceania: t('profile.options.region.oceania')
+	},
+	subRegion: {
+		'Southeast Asia Region': t('profile.options.subRegion.southeastAsia'),
+		'East Asia Region': t('profile.options.subRegion.eastAsia'),
+		'South Asia Region': t('profile.options.subRegion.southAsia')
+	},
+	country: {
+		'Hong Kong': t('profile.options.country.hongKong'),
+		Taiwan: t('profile.options.country.taiwan'),
+		Japan: t('profile.options.country.japan'),
+		Korea: t('profile.options.country.korea'),
+		Singapore: t('profile.options.country.singapore')
+	},
+	bloodType: {
+		A型: t('profile.options.bloodType.a'),
+		B型: t('profile.options.bloodType.b'),
+		O型: t('profile.options.bloodType.o'),
+		AB型: t('profile.options.bloodType.ab')
+	},
+	faithLife: {
+			非常傳統: t('profile.options.faithLife.veryTraditional'),
+			有彈性: t('profile.options.faithLife.flexible'),
+			妥協: t('profile.options.faithLife.compromise')
+	},
+	hands: {
+		右拇指: t('profile.options.hands.rightThumb'),
+		左拇指: t('profile.options.hands.leftThumb')
+	},
+	yinyang: {
+		陽: t('profile.options.yinYang.yang'),
+		陰: t('profile.options.yinYang.yin')
+	},
+	fiveElements: {
+		木: t('profile.options.fiveElements.wood'),
+		火: t('profile.options.fiveElements.fire'),
+		土: t('profile.options.fiveElements.earth'),
+		金: t('profile.options.fiveElements.metal'),
+		水: t('profile.options.fiveElements.water')
+	},
+	enneagram: {
+		'1: 改革型': t('profile.options.enneagram.1'),
+		'2: 助人型': t('profile.options.enneagram.2'),
+		'3: 成就型': t('profile.options.enneagram.3'),
+		'4: 藝術型': t('profile.options.enneagram.4'),
+		'5: 智慧型': t('profile.options.enneagram.5'),
+		'6: 忠誠型': t('profile.options.enneagram.6'),
+		'7: 遠見型': t('profile.options.enneagram.7'),
+		'8: 領導型': t('profile.options.enneagram.8'),
+		'9: 和平型': t('profile.options.enneagram.9')
+	}
+}))
+
+function optionLabel(category, rawValue) {
+	if (!rawValue) return rawValue
+	const map = optionLabelMap.value[category]
+	return map?.[rawValue] || rawValue
+}
+
+function optionList(category, rawOptions = []) {
+	return rawOptions.map((value) => optionLabel(category, value))
+}
+
+function pickerDisplay(category, rawValue) {
+	return rawValue ? optionLabel(category, rawValue) : t('profile.myFile.select')
+}
 
 // ---- 事件方法 ----
 function toggleSpouseFaith(value) {
@@ -765,11 +917,11 @@ function removeCareer() {
 // 每一步的必填校驗，校驗通過才進入下一步
 function goNext(fromStep) {
 	if (fromStep === 1 && !form.id) {
-		uni.showToast({ title: '請填寫 ID', icon: 'none' })
+		uni.showToast({ title: t('profile.myFile.fillIdError'), icon: 'none' })
 		return
 	}
 	if (fromStep === 2 && (!form.mobile || !form.email)) {
-		uni.showToast({ title: '請填寫聯絡方式', icon: 'none' })
+		uni.showToast({ title: t('profile.myFile.fillContactError'), icon: 'none' })
 		return
 	}
 	step.value = fromStep + 1
@@ -926,16 +1078,16 @@ function sanitizeForSubmit(raw) {
 async function onSubmit() {
 	if (submitting.value) return
 	submitting.value = true
-	uni.showLoading({ title: '儲存中...' })
+	uni.showLoading({ title: t('messages.common.saving') })
 	try {
 		// 把整个 form（含 careers 数组）交给后端，后端会做 camelCase -> snake_case 映射
 		// 送出之前先清洗一遍，避免未填欄位以空字串形式打到後端造成寫入報錯
 		const data = await submitMyProfileApi(sanitizeForSubmit(form))
 		if (data && data.profileId) {
-			uni.showToast({ title: '已儲存', icon: 'success' })
+			uni.showToast({ title: t('messages.common.saved'), icon: 'success' })
 			setTimeout(() => uni.navigateBack(), 600)
 		} else {
-			uni.showToast({ title: '已儲存', icon: 'success' })
+			uni.showToast({ title: t('messages.common.saved'), icon: 'success' })
 		}
 	} catch (e) {
 		console.error('submit profile error', e)

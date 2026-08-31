@@ -30,7 +30,7 @@ async function loadLogin360(dependencies) {
   const createLogin = new Function(
     'ref', 'reactive', 'computed', 'onMounted', 'loginApi', 'registerApi', 'socialLoginApi',
     'setToken', 'setUserInfo', 'getUserInfo', 'registerCurrentDevice', 'signInWithGoogle',
-    'getOrCreatePresenceSessionId', 'startPresence', 'uni', 'getCurrentPages', 'getApp',
+    'getOrCreatePresenceSessionId', 'startPresence', 'uni', 'getCurrentPages', 'getApp', 'watch', 'currentLocale', 't', 'bootstrapLocale',
     `${script}\nreturn { agreePrivacy, handleGoogleLogin, handleLogin, loginForm }`
   )
   return createLogin(
@@ -50,7 +50,11 @@ async function loadLogin360(dependencies) {
     dependencies.startPresence,
     { navigateBack() {}, reLaunch() {}, showModal() {}, showToast() {}, switchTab() {} },
     () => [],
-    () => ({ globalData: {} })
+    () => ({ globalData: {} }),
+    () => {},
+    { value: 'en' },
+    () => 'Login',
+    () => Promise.resolve()
   )
 }
 
@@ -64,7 +68,7 @@ async function loadAppWithPresence() {
     'validateTokenApi', 'getToken', 'getUserInfo', 'removeToken', 'removeUserInfo', 'setUserInfo',
     'refreshUnreadBadge', 'startUnreadBadgePolling', 'stopUnreadBadgePolling',
     'installPushListeners', 'registerCurrentDevice', 'configurePresenceApiMethods', 'startPresence',
-    'pausePresence', 'resumePresence', 'stopPresence', 'heartbeatPresenceApi', 'offlinePresenceApi', 'uni', script
+    'pausePresence', 'resumePresence', 'stopPresence', 'heartbeatPresenceApi', 'offlinePresenceApi', 'uni', 'bootstrapLocale', script
   )
   const app = createApp(
     async () => ({ valid: true, user: { id: 1 } }),
@@ -80,7 +84,8 @@ async function loadAppWithPresence() {
     () => { presence.resumeCalls += 1 },
     () => {},
     () => Promise.resolve(), () => Promise.resolve(),
-    { $emit() {}, reLaunch() {}, switchTab() {} }
+    { $emit() {}, reLaunch() {}, switchTab() {} },
+    () => Promise.resolve()
   )
   return { app, presence }
 }

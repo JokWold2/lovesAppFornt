@@ -11,7 +11,7 @@
         />
       </view>
     </view>
-    <view v-else class="empty-text">暫無照片</view>
+    <view v-else class="empty-text">{{ t('profile.noPhotos') }}</view>
 
     <!-- 组件只上报交互，不直接发请求，方便个人页和他人资料页复用。 -->
     <view v-if="enableLike" class="like-button" @tap.stop="emitToggleLike">
@@ -27,6 +27,7 @@
 
 <script setup>
 import { ref } from 'vue'
+import { t } from '@/utils/localeRuntime.js'
 
 const props = defineProps({
   photos: { type: Array, default: () => [] },
