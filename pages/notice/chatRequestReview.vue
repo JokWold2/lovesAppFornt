@@ -1,5 +1,5 @@
 <template>
-  <view class="page">
+  <view class="page app-h5-min-screen">
     <view v-if="!pendingRequests.length" class="empty">{{ t('review.noPending') }}</view>
     <view v-for="request in pendingRequests" :key="request.id" class="request-card">
       <view class="people"><view><image class="avatar" :src="request.applicant_avatar_url || defaultAvatar" /><text>{{ request.applicant_name || t('review.applicant') }}</text></view><text class="arrow">→</text><view><image class="avatar" :src="request.target_avatar_url || defaultAvatar" /><text>{{ request.target_name || t('review.target') }}</text></view></view>

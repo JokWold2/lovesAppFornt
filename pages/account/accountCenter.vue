@@ -1,5 +1,5 @@
 <template>
-  <view class="page">
+  <view class="page app-h5-min-screen">
     <view class="profile-card">
       <image v-if="account.avatar" class="avatar" :src="account.avatar" mode="aspectFill" />
       <view v-else class="avatar-placeholder"><uni-icons type="person-filled" size="44" color="#ffffff" /></view>

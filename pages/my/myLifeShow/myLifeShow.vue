@@ -1,5 +1,5 @@
 <template>
-  <view class="container">
+  <view class="container app-h5-min-screen">
     <!-- 加载状态 -->
     <view v-if="loading" class="loading-container">
       <text class="loading-text">{{ t('life.loading') }}</text>

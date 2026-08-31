@@ -1,5 +1,5 @@
 <template>
-  <view class="interaction-page">
+  <view class="interaction-page app-h5-min-screen">
     <view v-if="loading" class="state">{{ t('inbox.loading') }}</view>
     <view v-else-if="!items.length" class="state">{{ t('inbox.noInteractions') }}</view>
     <view v-else>

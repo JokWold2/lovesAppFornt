@@ -1,5 +1,5 @@
 <template>
-  <view class="page">
+  <view class="page app-h5-min-screen">
     <view class="group-summary">
       <GroupAvatar :avatar-url="group?.avatar_url" :members="group?.members || []" :size="54" />
       <view class="group-summary-copy"><text class="group-name">{{ group?.name || t('group.members') }}</text><text class="member-count">{{ t('group.memberCount', { count: (group?.members || []).length }) }}</text></view>

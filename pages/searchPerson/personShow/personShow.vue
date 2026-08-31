@@ -1,5 +1,5 @@
 <template>
-  <view v-if="profile" class="page">
+  <view v-if="profile" class="page app-h5-min-screen">
     <ProfileDetailSections
       :profile="profile"
       :enable-like="true"

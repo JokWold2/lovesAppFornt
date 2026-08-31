@@ -1,5 +1,5 @@
 <template>
-	<view class="page">
+	<view class="page app-h5-min-screen">
 
 		<!-- ========== 畫面 1／4 — 基本資料 ========== -->
 		<template v-if="step === 1">

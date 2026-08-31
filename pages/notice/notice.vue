@@ -1,5 +1,5 @@
 <template>
-	<view class="page">
+	<view class="page app-h5-min-screen">
 		<view class="header" :class="{ 'search-open': searchOpen }">
 			<view class="header-title-wrap"
 				><text class="page-title">{{ t('navigation.messages') }}</text></view

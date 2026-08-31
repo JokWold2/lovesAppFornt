@@ -1,5 +1,5 @@
 <template>
-  <view class="container">
+  <view class="container app-h5-min-screen">
     <view class="profile-header">
       <view class="avatar-wrapper">
         <image class="avatar" src="/static/avatar.png" mode="aspectFill" />

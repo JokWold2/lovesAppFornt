@@ -1,5 +1,5 @@
 <template>
-  <view class="container">
+  <view class="container app-h5-min-screen">
     <!-- 顶部状态栏占位 -->
     <view class="status-bar"></view>
 

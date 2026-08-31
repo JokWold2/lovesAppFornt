@@ -1,5 +1,5 @@
 <template>
-  <view class="container">
+  <view class="container app-h5-min-screen">
     <view v-if="restoringSession" class="session-restoring-mask">
       <text>{{ t('auth.restoring') }}</text>
     </view>

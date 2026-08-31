@@ -1,5 +1,5 @@
 <template>
-  <view class="page">
+  <view class="page app-h5-min-screen">
     <view v-if="loading" class="loading">{{ t('home.loading') }}</view>
     <template v-else-if="group">
       <view class="profile-card">
