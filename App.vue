@@ -70,4 +70,48 @@
 
 <style>
 	/*每个页面公共css */
+	/* #ifdef H5 */
+	.app-h5-screen {
+		height: calc(100vh - var(--window-top, 44px));
+		height: calc(100dvh - var(--window-top, 44px));
+		height: calc(var(--app-viewport-height, 100dvh) - var(--window-top, 44px));
+		min-height: 0;
+		overflow: hidden;
+	}
+
+	.app-h5-min-screen {
+		min-height: calc(100vh - var(--window-top, 44px));
+		min-height: calc(100dvh - var(--window-top, 44px));
+		min-height: calc(var(--app-viewport-height, 100dvh) - var(--window-top, 44px));
+		padding-bottom: env(safe-area-inset-bottom);
+		box-sizing: border-box;
+	}
+
+	.app-h5-scroll {
+		flex: 1;
+		min-height: 0;
+		overflow-y: auto;
+		overscroll-behavior: contain;
+		-webkit-overflow-scrolling: touch;
+		touch-action: pan-y;
+	}
+
+	.app-h5-fixed-bottom {
+		--app-fixed-bottom-base: 0px;
+		bottom: calc(var(--app-fixed-bottom-base) + var(--app-viewport-bottom-offset, 0px));
+		padding-bottom: env(safe-area-inset-bottom);
+		box-sizing: border-box;
+	}
+
+	.app-h5-sheet-mask {
+		bottom: var(--app-viewport-bottom-offset, 0px);
+		overscroll-behavior: contain;
+	}
+
+	.app-h5-sheet {
+		max-height: calc(var(--app-viewport-height, 100dvh) - var(--window-top, 0px) - 24px);
+		padding-bottom: env(safe-area-inset-bottom);
+		box-sizing: border-box;
+	}
+	/* #endif */
 </style>
