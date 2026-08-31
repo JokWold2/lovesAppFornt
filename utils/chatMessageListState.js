@@ -67,3 +67,16 @@ export function shouldLoadOlderMessagesFromH5Scroll({ scrollTop = 0, hasOlderMes
 export function shouldAutoScrollOnChatLoad({ forceScroll = false, atBottom = false, userScrolled = false }) {
   return !Boolean(userScrolled) && (Boolean(forceScroll) || Boolean(atBottom))
 }
+
+export function shouldShowChatLatestButton({ atBottom = true }) {
+  return !Boolean(atBottom)
+}
+
+export function shouldStickToBottomAfterChatLoad({
+  forceScroll = false,
+  requestStartedAtBottom = false,
+  atBottom = false,
+  userScrolled = false,
+}) {
+  return !Boolean(userScrolled) && (Boolean(forceScroll) || (Boolean(requestStartedAtBottom) && Boolean(atBottom)))
+}

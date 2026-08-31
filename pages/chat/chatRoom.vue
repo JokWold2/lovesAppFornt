@@ -120,6 +120,8 @@ import {
 	mergeChatMessages,
 	shouldAutoScrollOnChatLoad,
 	shouldLoadOlderMessagesFromH5Scroll,
+	shouldShowChatLatestButton,
+	shouldStickToBottomAfterChatLoad,
 	shouldStickToBottom,
 } from "@/utils/chatMessageListState.js";
 import {
@@ -276,20 +278,26 @@ async function load({ silent = false } = {}) {
 		groupStatus.value = group?.status || "active";
 		const shouldForceAfterSending = forceScrollAfterLoad && forceScrollReason === "send";
 		// #ifdef H5
-		const h5UserScrolled = preLoadH5ScrollState ? !preLoadAtBottom : h5UserScrolledAwayFromBottom.value;
-		const h5AtBottom = preLoadH5ScrollState ? preLoadAtBottom : atBottom.value;
+		const h5UserScrolled = h5UserScrolledAwayFromBottom.value;
+		const h5AtBottom = atBottom.value;
 		// #endif
-		const shouldAutoScroll = shouldForceAfterSending || shouldAutoScrollOnChatLoad({
-			forceScroll: forceScrollAfterLoad,
+		const shouldAutoScroll = shouldForceAfterSending || (
 			// #ifdef H5
-			atBottom: h5AtBottom,
-			userScrolled: h5UserScrolled,
+			shouldStickToBottomAfterChatLoad({
+				forceScroll: forceScrollAfterLoad,
+				requestStartedAtBottom: preLoadAtBottom,
+				atBottom: h5AtBottom,
+				userScrolled: h5UserScrolled,
+			})
 			// #endif
 			// #ifndef H5
-			atBottom: atBottom.value,
-			userScrolled: h5UserScrolledAwayFromBottom.value,
+			shouldAutoScrollOnChatLoad({
+				forceScroll: forceScrollAfterLoad,
+				atBottom: atBottom.value,
+				userScrolled: h5UserScrolledAwayFromBottom.value,
+			})
 			// #endif
-		});
+		);
 		if (shouldAutoScroll) {
 			// H5 background refresh must not keep a smooth-scroll animation alive
 			// while the user is reading older messages.
@@ -304,7 +312,7 @@ async function load({ silent = false } = {}) {
 			// #endif
 		} else {
 			// #ifdef H5
-			h5UserScrolledAwayFromBottom.value = !preLoadAtBottom;
+			h5UserScrolledAwayFromBottom.value = !h5AtBottom;
 			if (!preLoadAtBottom) restoreH5ScrollState(preLoadH5ScrollState);
 			// #endif
 		}
@@ -399,7 +407,7 @@ function updateMessageScrollState({ scrollTop, scrollHeight, clientHeight }) {
 		viewportHeight: clientHeight,
 	});
 	h5UserScrolledAwayFromBottom.value = !atBottom.value;
-	if (!atBottom.value || scrollTop > 120) {
+	if (shouldShowChatLatestButton({ atBottom: atBottom.value })) {
 		showLatestButton();
 	} else {
 		latestButtonVisible.value = false;

@@ -2,7 +2,7 @@ import test from 'node:test'
 import assert from 'node:assert/strict'
 import { readFileSync } from 'node:fs'
 
-import { buildChatDisplayItems, mergeChatMessages, shouldAutoScrollOnChatLoad, shouldLoadOlderMessagesFromH5Scroll, shouldStickToBottom } from './chatMessageListState.js'
+import { buildChatDisplayItems, mergeChatMessages, shouldAutoScrollOnChatLoad, shouldLoadOlderMessagesFromH5Scroll, shouldShowChatLatestButton, shouldStickToBottom, shouldStickToBottomAfterChatLoad } from './chatMessageListState.js'
 
 test('消息列表会在跨日处插入时间分隔项', () => {
   const items = buildChatDisplayItems([
@@ -28,6 +28,26 @@ test('H5 用户手动查看历史消息后不会被首屏请求强制拉回底�
 	assert.equal(shouldAutoScrollOnChatLoad({ forceScroll: true, atBottom: false, userScrolled: true }), false)
 	assert.equal(shouldAutoScrollOnChatLoad({ forceScroll: false, atBottom: true, userScrolled: true }), false)
 	assert.equal(shouldAutoScrollOnChatLoad({ forceScroll: true, atBottom: false, userScrolled: false }), true)
+})
+
+test('H5 已在底部时隐藏回到最新按钮，离底时才显示', () => {
+  assert.equal(shouldShowChatLatestButton({ atBottom: true }), false)
+  assert.equal(shouldShowChatLatestButton({ atBottom: false }), true)
+})
+
+test('H5 轮询响应前用户离底时不再自动滚回底部', () => {
+  assert.equal(shouldStickToBottomAfterChatLoad({
+    forceScroll: false,
+    requestStartedAtBottom: true,
+    atBottom: false,
+    userScrolled: true,
+  }), false)
+  assert.equal(shouldStickToBottomAfterChatLoad({
+    forceScroll: false,
+    requestStartedAtBottom: true,
+    atBottom: true,
+    userScrolled: false,
+  }), true)
 })
 
 test('H5 消息节点不能被原生 template 的文档片段包裹', () => {
