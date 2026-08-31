@@ -1,6 +1,14 @@
 import App from './App'
 import { initializeLocale, t } from './utils/localeRuntime.js'
 
+// #ifdef H5
+import { installH5Viewport } from './utils/h5Viewport.js'
+
+if (typeof window !== 'undefined' && typeof document !== 'undefined') {
+	installH5Viewport(window, document)
+}
+// #endif
+
 initializeLocale()
 
 // #ifndef VUE3
