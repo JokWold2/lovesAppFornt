@@ -12,12 +12,37 @@ const pages = [
   ['pages/my/myLifeShow/myLifeShow.vue', 'container', true], ['pages/index/index360.vue', 'container', true]
 ]
 
+const crossPlatformRootStyles = [
+  ['pages/chat/groupManage.vue', 'page', [['padding', '26rpx'], ['box-sizing', 'border-box'], ['background', '#f4f5f7'], ['color', '#1b2230']]],
+  ['pages/notice/chatRequestReview.vue', 'page', [['padding', '24rpx'], ['background', '#f7f7f7']]],
+  ['pages/market/marketList.vue', 'page', [['background', '#f6f6f6'], ['padding', '20rpx 16rpx']]]
+]
+
 function conditionalBlocks(source, directive) {
   return [...source.matchAll(new RegExp(`/\\* #${directive} H5 \\*/([\\s\\S]*?)/\\* #endif \\*/`, 'g'))].map(match => match[1])
 }
 
 function rulesIn(block, selector) {
   return [...block.matchAll(new RegExp(`\\.${selector}\\s*\\{([^}]*)\\}`, 'g'))].map(match => match[1])
+}
+
+function unconditionalSource(source) {
+  return source.replaceAll(/\/\* #(ifdef|ifndef) H5 \*\/[\s\S]*?\/\* #endif \*\//g, '')
+}
+
+function assertRootAllowsNativeScroll(body, message) {
+  assert.doesNotMatch(body, /(?:^|;)\s*height\s*:/, `${message} must not set height`)
+  assert.doesNotMatch(body, /(?:^|;)\s*min-height\s*:/, `${message} must not set min-height`)
+  assert.doesNotMatch(body, /(?:^|;)\s*overflow\s*:\s*hidden(?:\s*!important)?\s*(?:;|$)/, `${message} must not hide overflow`)
+}
+
+function declarationPattern(property, value) {
+  const escapedValue = value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+  return new RegExp(`(?:^|;)\\s*${property}\\s*:\\s*${escapedValue}\\s*(?:;|$)`)
+}
+
+function declarationNames(bodies) {
+  return bodies.flatMap(body => [...body.matchAll(/(?:^|;)\s*([\w-]+)\s*:/g)].map(match => match[1]))
 }
 
 test('普通长页面根节点与 scoped H5 规则保持安全', async () => {
@@ -30,17 +55,32 @@ test('普通长页面根节点与 scoped H5 规则保持安全', async () => {
 
     const nonH5 = conditionalBlocks(source, 'ifndef').flatMap(block => rulesIn(block, rootClass))
     const h5 = conditionalBlocks(source, 'ifdef').flatMap(block => rulesIn(block, rootClass))
+    const unconditional = rulesIn(unconditionalSource(source), rootClass)
     assert.ok(nonH5.some(body => /min-height\s*:\s*100vh/.test(body)), `${file} non-H5 root fallback must contain min-height:100vh`)
-    const withoutNonH5 = source.replaceAll(/\/\* #ifndef H5 \*\/[\s\S]*?\/\* #endif \*\//g, '')
-    assert.doesNotMatch(withoutNonH5, new RegExp(`\\.${rootClass}\\s*\\{[^}]*min-height\\s*:\\s*100vh`), `${file} must not leave unconditional root min-height`)
-    for (const body of h5) {
-      assert.doesNotMatch(body, /(?:^|[;\s])(min-height|height)\s*:/, `${file} H5 root must not set height`)
-      assert.doesNotMatch(body, /overflow\s*:\s*hidden/, `${file} H5 root must not hide overflow`)
+    for (const [index, body] of unconditional.entries()) {
+      assertRootAllowsNativeScroll(body, `${file} unconditional root rule ${index + 1}`)
+    }
+    for (const [index, body] of h5.entries()) {
+      assertRootAllowsNativeScroll(body, `${file} H5 root rule ${index + 1}`)
       if (mergesPadding) assert.match(body, /padding-bottom\s*:[^;}]*env\(safe-area-inset-bottom\)/, `${file} H5 root must merge safe area padding`)
     }
     if (file.includes('login360')) {
       assert.ok(nonH5.some(body => /overflow\s*:\s*hidden/.test(body)), 'login non-H5 root keeps overflow fallback')
-      assert.doesNotMatch(withoutNonH5, /\.container\s*\{[^}]*overflow\s*:\s*hidden/, 'login H5 root allows native scrolling')
     }
+  }
+})
+
+test('跨端业务根样式不能随非 H5 高度 fallback 一起被隔离', async () => {
+  for (const [file, rootClass, declarations] of crossPlatformRootStyles) {
+    const source = await readFile(new URL(`../${file}`, import.meta.url), 'utf8')
+    const rules = rulesIn(unconditionalSource(source), rootClass)
+    const nonH5 = conditionalBlocks(source, 'ifndef').flatMap(block => rulesIn(block, rootClass))
+    const h5 = conditionalBlocks(source, 'ifdef').flatMap(block => rulesIn(block, rootClass))
+    assert.ok(rules.length, `${file} must keep an unconditional root rule`)
+    for (const [property, value] of declarations) {
+      assert.ok(rules.some(body => declarationPattern(property, value).test(body)), `${file} unconditional root must keep ${property}: ${value}`)
+    }
+    assert.deepEqual([...new Set(declarationNames(nonH5))], ['min-height'], `${file} non-H5 root must contain only the viewport fallback`)
+    assert.deepEqual([...new Set(declarationNames(h5))], ['padding-bottom'], `${file} H5 root must contain only the safe-area padding override`)
   }
 })

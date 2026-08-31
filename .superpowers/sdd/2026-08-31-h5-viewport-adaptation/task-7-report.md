@@ -45,3 +45,12 @@
 - RED：新条件归属测试先运行失败，首个具体失败为 `pages/login/login360.vue` 根 fallback 未在可提取的 `#ifndef H5` block 中；随后暴露三页无条件根 `min-height:100vh`。
 - GREEN：14 页均增加明确的非 H5 根 fallback block；`groupManage`、`chatRequestReview`、`marketList` 的 base 根规则移除 `min-height`，H5 规则仅保留 safe-area padding。
 - 测试命令：`node --test utils/h5LongPageLayout.test.mjs utils/h5ViewportLayout.test.mjs utils/h5FixedBottomPages.test.mjs utils/h5SheetLayout.test.mjs`，13/13 PASS；`git diff --check` PASS。
+
+## 修复轮次 4
+
+- 根因：b7f5674 将 `groupManage`、`chatRequestReview`、`marketList` 的整个根业务规则移入 `#ifndef H5`，H5 因而丢失原有 background、padding 及 groupManage 的 box-sizing/color；旧测试又只剔除非 H5 block，并只禁止无条件 `min-height:100vh`，未覆盖其他根锁滚声明。
+- RED：增强测试后运行 `node --test utils/h5LongPageLayout.test.mjs`，实际输出为 `tests 2`、`pass 1`、`fail 1`；失败断言为 `pages/chat/groupManage.vue must keep an unconditional root rule`。
+- 修复：三页无条件 root 恢复 c4c0153 的跨端业务属性且不含 height/min-height/overflow hidden；各自 `#ifndef H5` root 仅保留 `min-height:100vh`，`#ifdef H5` root 仅用后置 `padding-bottom` 合并原业务底部 padding 与 safe-area。
+- 覆盖：测试会先剔除全部 `#ifdef H5`/`#ifndef H5` blocks，再逐个检查无条件 root rule；同时逐个检查 H5 block 内 root rule，明确禁止 `height`、`min-height`、`overflow:hidden`，且不扫描局部非根组件。另以独立属性断言锁定三页关键业务样式和条件块归属，未复制整块 CSS。
+- GREEN 命令：`node --test utils/h5LongPageLayout.test.mjs utils/h5ViewportLayout.test.mjs utils/h5FixedBottomPages.test.mjs utils/h5SheetLayout.test.mjs`。
+- GREEN 实际输出：`tests 14`、`pass 14`、`fail 0`、`cancelled 0`、`skipped 0`、`todo 0`；`git diff --check` 退出码 0、无输出。
