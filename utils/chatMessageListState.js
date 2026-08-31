@@ -119,9 +119,8 @@ export function planH5ChatLoadScroll({
     })
     : Boolean(fallbackAtBottom)
   const userMovedAwayDuringRequest = Boolean(requestStartedAtBottom) && !atBottom
-  const shouldAutoScroll = shouldStickToBottomAfterChatLoad({
+  const shouldAutoScroll = shouldAutoScrollOnChatLoad({
     forceScroll,
-    requestStartedAtBottom,
     atBottom,
     userScrolled: Boolean(userScrolled) || userMovedAwayDuringRequest,
   })

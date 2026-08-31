@@ -135,6 +135,7 @@ test('does not overwrite the last valid variables when a later reading is invali
 test('starts when listener APIs are missing or individual registrations throw', () => {
   const registeredWindowEvents = []
   const removedWindowEvents = []
+  const warnings = []
   const visualViewport = {
     height: 500,
     offsetTop: 20,
@@ -154,12 +155,22 @@ test('starts when listener APIs are missing or individual registrations throw', 
   }
   const values = {}
   const documentLike = { documentElement: { style: { setProperty(name, value) { values[name] = value } } } }
+  const originalWarn = console.warn
+  console.warn = (...args) => warnings.push(args)
 
-  const cleanup = installH5Viewport(windowLike, documentLike)
-  assert.equal(values['--app-viewport-height'], '500px')
-  assert.deepEqual(registeredWindowEvents, ['resize', 'pageshow'])
-  assert.doesNotThrow(cleanup)
-  assert.deepEqual(removedWindowEvents, ['resize', 'pageshow'])
+  try {
+    const cleanup = installH5Viewport(windowLike, documentLike)
+    assert.equal(values['--app-viewport-height'], '500px')
+    assert.deepEqual(registeredWindowEvents, ['resize', 'pageshow'])
+    assert.deepEqual(warnings, [
+      ['[h5Viewport] viewport sync failed'],
+      ['[h5Viewport] viewport sync failed'],
+    ])
+    assert.doesNotThrow(cleanup)
+    assert.deepEqual(removedWindowEvents, ['resize', 'pageshow'])
+  } finally {
+    console.warn = originalWarn
+  }
 })
 
 test('starts and cleans up when both targets omit listener APIs', () => {
@@ -176,14 +187,13 @@ test('starts and cleans up when both targets omit listener APIs', () => {
   assert.doesNotThrow(cleanup)
 })
 
-test('cleanup ignores missing or throwing removal APIs and only removes registered listeners', () => {
+test('cleanup ignores missing or throwing removal APIs', () => {
   const registered = []
   const removed = []
   const visualViewport = {
     height: 500,
     offsetTop: 20,
     addEventListener(type) {
-      if (type === 'scroll') throw new Error('scroll registration failed')
       registered.push(`visual:${type}`)
     },
     removeEventListener(type) {
@@ -206,6 +216,7 @@ test('cleanup ignores missing or throwing removal APIs and only removes register
     'window:orientationchange',
     'window:pageshow',
     'visual:resize',
+    'visual:scroll',
   ])
-  assert.deepEqual(removed, ['visual:resize'])
+  assert.deepEqual(removed, ['visual:resize', 'visual:scroll'])
 })

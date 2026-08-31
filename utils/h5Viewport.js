@@ -59,7 +59,9 @@ export function installH5Viewport(windowLike = window, documentLike = document) 
     try {
       target.addEventListener(type, sync)
       registeredListeners.push({ target, type })
-    } catch {}
+    } catch {
+      console.warn('[h5Viewport] viewport sync failed')
+    }
   }
   windowEvents.forEach((type) => register(windowLike, type))
   visualEvents.forEach((type) => register(visualViewport, type))

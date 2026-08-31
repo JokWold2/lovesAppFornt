@@ -96,6 +96,20 @@ test('H5 请求从底部开始但用户在响应前查看历史时不跳回底�
   assert.deepEqual(plan.scrollStateToPreserve, liveStateBeforeMutation)
 })
 
+test('H5 轮询从历史位置开始但用户在响应前返回最新时继续跟随新消息', () => {
+  const plan = planH5ChatLoadScroll({
+    requestStartedAtBottom: false,
+    liveScrollState: { scrollTop: 900, scrollHeight: 1400, clientHeight: 500 },
+    fallbackAtBottom: false,
+    forceScroll: false,
+    userScrolled: false,
+  })
+
+  assert.equal(plan.atBottom, true)
+  assert.equal(plan.shouldAutoScroll, true)
+  assert.equal(plan.scrollStateToPreserve, null)
+})
+
 test('H5 输入交互只在接近底部时跟随最新，非 H5 保留原行为', () => {
   assert.equal(shouldAutoScrollForChatInteraction({ isH5: true, atBottom: false, userScrolled: true }), false)
   assert.equal(shouldAutoScrollForChatInteraction({ isH5: true, atBottom: true, userScrolled: false }), true)
