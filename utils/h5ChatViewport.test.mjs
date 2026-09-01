@@ -6,8 +6,9 @@ const source = readFileSync(new URL('../pages/chat/chatRoom.vue', import.meta.ur
 
 test('H5 群聊只有一个可滚动的消息容器，且输入栏位于其后', () => {
   assert.match(source, /<view class="page app-h5-screen">/)
-  assert.match(source, /<view ref="h5MessagesRef" class="messages messages--h5 app-h5-scroll" @scroll="onH5MessageScroll">/)
-  assert.doesNotMatch(source, /addEventListener\(['"]scroll['"]/)
+  assert.match(source, /<scroll-view[\s\S]*?ref="h5MessagesRef"[\s\S]*?class="messages messages--h5"[\s\S]*?scroll-y[\s\S]*?@scroll="onH5MessageScroll"/)
+  assert.match(source, /@scrolltoupper="loadOlderMessages"/)
+  assert.doesNotMatch(source, /addEventListener\(['"]scroll['"]\)/)
 
   const h5ScrollHandler = source.split('function onH5MessageScroll(event) {')[1].split('function showLatestButton()')[0]
   assert.match(h5ScrollHandler, /readH5MessageScrollMetrics\(\{\s+element: getH5MessagesElement\(\),\s+event,\s+\}\)/)
@@ -18,17 +19,16 @@ test('H5 群聊只有一个可滚动的消息容器，且输入栏位于其后',
   assert.match(scrollStateUpdate, /shouldShowChatLatestButton\(\{ atBottom: atBottom\.value \}\)/)
   assert.doesNotMatch(scrollStateUpdate, /scrollTop > 120/)
 
-  const h5MessagesStart = source.indexOf('<view ref="h5MessagesRef"')
-  const h5MessagesEnd = source.indexOf('</view>\n\t\t<!-- #endif -->', h5MessagesStart)
+  const h5MessagesStart = source.indexOf('<scroll-view')
+  const h5MessagesEnd = source.indexOf('</scroll-view>\n\t\t<!-- #endif -->', h5MessagesStart)
   const composerStart = source.indexOf('<ChatComposer')
   assert.ok(h5MessagesStart >= 0 && h5MessagesEnd > h5MessagesStart)
   assert.ok(composerStart > h5MessagesEnd)
 
   const h5MessagesRule = source.match(/\/\* #ifdef H5 \*\/\s*\.messages--h5\s*\{([^}]*)\}/)?.[1] || ''
-  assert.match(h5MessagesRule, /height\s*:\s*0\s*;/)
+  assert.match(h5MessagesRule, /height\s*:\s*auto\s*;/)
   assert.match(h5MessagesRule, /flex\s*:\s*1 1 0\s*;/)
-  assert.match(h5MessagesRule, /overflow-y\s*:\s*scroll\s*;/)
-  assert.match(h5MessagesRule, /-webkit-overflow-scrolling\s*:\s*touch\s*;/)
+  assert.doesNotMatch(h5MessagesRule, /overflow-y\s*:/)
 })
 
 test('非 H5 消息滚动与键盘补偿仍由原生 scroll-view 负责', () => {

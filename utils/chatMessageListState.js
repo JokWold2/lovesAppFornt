@@ -86,6 +86,30 @@ export function readH5MessageScrollMetrics({ element, event } = {}) {
     || readFiniteH5ScrollMetrics(event?.currentTarget)
 }
 
+export function resolveH5MessageScrollElement(root, {
+  documentLike,
+  getStyle,
+} = {}) {
+  const host = root?.$el || root || documentLike?.querySelector?.('.messages--h5')
+  if (!host) return null
+
+  const candidates = Array.from(host.querySelectorAll?.('.uni-scroll-view') || [])
+  if (!candidates.length) return host
+
+  const styleReader = getStyle || (
+    typeof window !== 'undefined' && typeof window.getComputedStyle === 'function'
+      ? window.getComputedStyle.bind(window)
+      : null
+  )
+  const verticalScroller = styleReader
+    ? candidates.find((element) => ['auto', 'scroll'].includes(styleReader(element)?.overflowY))
+    : null
+
+  return verticalScroller
+    || candidates.find((element) => Number(element.scrollHeight) > Number(element.clientHeight))
+    || candidates[candidates.length - 1]
+}
+
 export function shouldAutoScrollOnChatLoad({ forceScroll = false, atBottom = false, userScrolled = false }) {
   return !Boolean(userScrolled) && (Boolean(forceScroll) || Boolean(atBottom))
 }

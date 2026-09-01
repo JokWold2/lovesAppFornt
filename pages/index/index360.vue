@@ -1580,7 +1580,7 @@ $gray-bg: #f5f6f8;
 .fab-button {
 	position: fixed;
 	right: 40rpx;
-	--app-fixed-bottom-base: 200rpx;
+	--app-fixed-bottom-base: calc(var(--window-bottom, 50px) + 24rpx);
 	width: 100rpx;
 	height: 100rpx;
 	background-color: $brand-yellow;

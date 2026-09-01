@@ -10,7 +10,14 @@
 			>{{ t('inbox.groupManage') }}</text>
 		</view>
 		<!-- #ifdef H5 -->
-		<view ref="h5MessagesRef" class="messages messages--h5 app-h5-scroll" @scroll="onH5MessageScroll">
+		<scroll-view
+			ref="h5MessagesRef"
+			class="messages messages--h5"
+			scroll-y
+			:upper-threshold="80"
+			@scroll="onH5MessageScroll"
+			@scrolltoupper="loadOlderMessages"
+		>
 			<view v-if="loadingOlder" class="history-loading"><text>{{ t('inbox.loading') }}</text></view>
 			<view v-for="item in displayItems" :key="item.key">
 				<view v-if="item.kind === 'time'" class="time-divider">{{
@@ -30,7 +37,7 @@
 				>{{ t('inbox.emptyChat') }}</view
 			>
 			<view class="messages-end" />
-		</view>
+		</scroll-view>
 		<!-- #endif -->
 		<!-- #ifndef H5 -->
 		<scroll-view
@@ -120,6 +127,7 @@ import {
 	mergeChatMessages,
 	planH5ChatLoadScroll,
 	readH5MessageScrollMetrics,
+	resolveH5MessageScrollElement,
 	shouldAutoScrollForChatInteraction,
 	shouldAutoScrollOnChatLoad,
 	shouldLoadOlderMessagesFromH5Scroll,
@@ -187,11 +195,13 @@ const onlineLabel = computed(() => `${onlineMembers.value.length} ${t('inbox.onl
 const memberSheetTitle = computed(() => memberSheet.value === 'read' ? t('inbox.readMembers') : t('inbox.onlineMembers'));
 
 function getH5MessagesElement() {
-	let element = h5MessagesRef.value?.$el || h5MessagesRef.value;
-	if (!element && typeof document !== "undefined") {
-		element = document.querySelector(".messages--h5");
-	}
-	return element || null;
+	return resolveH5MessageScrollElement(h5MessagesRef.value, {
+		documentLike: typeof document !== "undefined" ? document : null,
+		getStyle:
+			typeof window !== "undefined" && typeof window.getComputedStyle === "function"
+				? window.getComputedStyle.bind(window)
+				: null,
+	});
 }
 
 function captureH5ScrollState() {
@@ -222,7 +232,7 @@ function scrollToLast({ animated = true } = {}) {
 	if (!messages.value.length) return;
 	// #ifdef H5
 	nextTick(() => {
-		const element = h5MessagesRef.value?.$el || h5MessagesRef.value;
+		const element = getH5MessagesElement();
 		if (!element) return;
 		element.scrollTo({
 			top: element.scrollHeight,
@@ -595,10 +605,8 @@ onUnload(() => {
 /* #ifdef H5 */
 .messages--h5 {
 	width: 100%;
-	height: 0;
+	height: auto;
 	flex: 1 1 0;
-	overflow-y: scroll;
-	-webkit-overflow-scrolling: touch;
 }
 /* #endif */
 .room-head {

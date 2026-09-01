@@ -40,6 +40,26 @@ test('H5 包装滚动事件没有 metrics 时读取实际消息容器位置', ()
   )
 })
 
+test('H5 scroll-view 解析到内部真正承载纵向触摸滚动的节点', async () => {
+  const chatState = await import('./chatMessageListState.js')
+  assert.equal(typeof chatState.resolveH5MessageScrollElement, 'function')
+
+  const wrapperLayer = { scrollTop: 0, scrollHeight: 600, clientHeight: 600 }
+  const verticalScroller = { scrollTop: 234, scrollHeight: 1601, clientHeight: 687 }
+  const host = {
+    querySelectorAll(selector) {
+      assert.equal(selector, '.uni-scroll-view')
+      return [wrapperLayer, verticalScroller]
+    },
+  }
+
+  const resolved = chatState.resolveH5MessageScrollElement({ $el: host }, {
+    getStyle: (element) => ({ overflowY: element === verticalScroller ? 'auto' : 'visible' }),
+  })
+
+  assert.equal(resolved, verticalScroller)
+})
+
 test('H5 用户手动查看历史消息后不会被首屏请求强制拉回底部', () => {
 	assert.equal(shouldAutoScrollOnChatLoad({ forceScroll: true, atBottom: false, userScrolled: true }), false)
 	assert.equal(shouldAutoScrollOnChatLoad({ forceScroll: false, atBottom: true, userScrolled: true }), false)

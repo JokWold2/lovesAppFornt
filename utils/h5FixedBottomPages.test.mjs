@@ -77,7 +77,7 @@ test('360 页回顶按钮保留安全区之外的正文占位', () => {
   const nonH5Rules = conditionalBlocks(source, 'ifndef').flatMap(block => rulesIn(block, 'fab-button'))
 
   assert.match(source, /<view class="fab-button app-h5-fixed-bottom" @click="scrollToTop">/)
-  assert.match(source, /\.fab-button\s*\{[^}]*--app-fixed-bottom-base:\s*200rpx/)
+  assert.match(source, /\.fab-button\s*\{[^}]*--app-fixed-bottom-base:\s*calc\(var\(--window-bottom,\s*50px\) \+ 24rpx\)/)
   assert.equal(hasDeclaration(nonH5Rules, 'bottom', '200rpx'), true)
   assert.match(source, /\.container\s*\{[^}]*padding-bottom:\s*calc\(300rpx \+ env\(safe-area-inset-bottom\)\)/)
 })
