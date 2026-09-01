@@ -72,6 +72,10 @@
 	/*每个页面公共css */
 	/* #ifdef H5 */
 	.app-h5-screen {
+		position: fixed;
+		top: calc(var(--app-viewport-offset-top, 0px) + var(--window-top, 44px));
+		right: 0;
+		left: 0;
 		height: calc(100vh - var(--window-top, 44px));
 		height: calc(100dvh - var(--window-top, 44px));
 		height: calc(var(--app-viewport-height, 100dvh) - var(--window-top, 44px));
@@ -82,7 +86,7 @@
 	.app-h5-min-screen {
 		min-height: calc(100vh - var(--window-top, 44px));
 		min-height: calc(100dvh - var(--window-top, 44px));
-		min-height: calc(var(--app-viewport-height, 100dvh) - var(--window-top, 44px));
+		min-height: calc(var(--app-layout-viewport-height, 100dvh) - var(--window-top, 44px));
 		padding-bottom: env(safe-area-inset-bottom);
 		box-sizing: border-box;
 	}

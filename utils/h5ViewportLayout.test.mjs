@@ -24,11 +24,16 @@ test('App.vue defines the shared H5 viewport layout classes and variables', () =
 
   for (const token of [
     '--app-viewport-height',
+    '--app-viewport-offset-top',
     '--app-viewport-bottom-offset',
+    '--app-layout-viewport-height',
     'env(safe-area-inset-bottom)'
   ]) {
     assert.match(h5Source, new RegExp(token.replace(/[()]/g, '\\$&')))
   }
+
+  assert.match(h5Source, /\.app-h5-screen\s*\{[^}]*position\s*:\s*fixed[^}]*top\s*:\s*calc\(var\(--app-viewport-offset-top[^}]*height\s*:\s*calc\(var\(--app-viewport-height/s)
+  assert.match(h5Source, /\.app-h5-min-screen\s*\{[^}]*min-height\s*:\s*calc\(var\(--app-layout-viewport-height/s)
 })
 
 test('shared H5 layout styles do not disable native page scrolling globally', () => {

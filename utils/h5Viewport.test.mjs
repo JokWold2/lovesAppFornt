@@ -7,20 +7,36 @@ import {
   installH5Viewport,
 } from './h5Viewport.js'
 
-test('prefers visual viewport and calculates the covered bottom area', () => {
+test('keyboard focus follows the panned visual viewport and exposes only its covered bottom area', () => {
   assert.deepEqual(
     measureH5Viewport({
       innerHeight: 844,
       visualViewport: { height: 500, offsetTop: 20 },
+      keyboardActive: true,
+      layoutHeight: 844,
     }),
-    { height: 500, bottomOffset: 324 },
+    { height: 500, offsetTop: 20, bottomOffset: 324, layoutHeight: 844 },
+  )
+})
+
+test('browser chrome without an editable focus does not lift fixed controls', () => {
+  assert.deepEqual(
+    measureH5Viewport({
+      innerHeight: 844,
+      visualViewport: { height: 744, offsetTop: 0 },
+      keyboardActive: false,
+      layoutHeight: 844,
+    }),
+    { height: 744, offsetTop: 0, bottomOffset: 0, layoutHeight: 844 },
   )
 })
 
 test('falls back to innerHeight when visual viewport is missing', () => {
   assert.deepEqual(measureH5Viewport({ innerHeight: 640 }), {
     height: 640,
+    offsetTop: 0,
     bottomOffset: 0,
+    layoutHeight: 640,
   })
 })
 
@@ -28,19 +44,48 @@ test('normalizes invalid and negative measurements to zero', () => {
   assert.deepEqual(measureH5Viewport({
     innerHeight: -1,
     visualViewport: { height: Number.NaN, offsetTop: -4 },
-  }), { height: 0, bottomOffset: 0 })
+  }), { height: 0, offsetTop: 0, bottomOffset: 0, layoutHeight: 0 })
 })
 
 test('writes viewport metrics as pixel CSS variables', () => {
   const values = {}
   writeH5ViewportVariables({ style: { setProperty(name, value) { values[name] = value } } }, {
     height: 500,
+    offsetTop: 20,
     bottomOffset: 324,
+    layoutHeight: 844,
   })
   assert.deepEqual(values, {
     '--app-viewport-height': '500px',
+    '--app-viewport-offset-top': '20px',
     '--app-viewport-bottom-offset': '324px',
+    '--app-layout-viewport-height': '844px',
   })
+})
+
+test('keeps the layout viewport stable while an editable field owns the keyboard', () => {
+  const { windowLike, visualViewport } = makeViewportWindow()
+  const values = {}
+  const documentLike = {
+    activeElement: { tagName: 'DIV', isContentEditable: false },
+    documentElement: { style: { setProperty(name, value) { values[name] = value } } },
+  }
+  let frameCallback
+  windowLike.requestAnimationFrame = (callback) => { frameCallback = callback; return 1 }
+
+  const cleanup = installH5Viewport(windowLike, documentLike)
+  documentLike.activeElement = { tagName: 'TEXTAREA', isContentEditable: false }
+  windowLike.innerHeight = 520
+  visualViewport.height = 360
+  visualViewport.offsetTop = 80
+  visualViewport.dispatch('resize')
+  frameCallback()
+
+  assert.equal(values['--app-layout-viewport-height'], '844px')
+  assert.equal(values['--app-viewport-height'], '360px')
+  assert.equal(values['--app-viewport-offset-top'], '80px')
+  assert.equal(values['--app-viewport-bottom-offset'], '80px')
+  cleanup()
 })
 
 function makeViewportWindow() {
@@ -80,7 +125,7 @@ test('installs, synchronizes on every viewport event, coalesces frames, and clea
   const cleanup = installH5Viewport(windowLike, documentLike)
   assert.equal(rafCalls, 0)
   assert.equal(values['--app-viewport-height'], '500px')
-  assert.equal(values['--app-viewport-bottom-offset'], '324px')
+  assert.equal(values['--app-viewport-bottom-offset'], '0px')
 
   for (const [target, type] of [
     [visualViewport, 'resize'], [visualViewport, 'scroll'],

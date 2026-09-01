@@ -23,6 +23,12 @@ test('H5 群聊只有一个可滚动的消息容器，且输入栏位于其后',
   const composerStart = source.indexOf('<ChatComposer')
   assert.ok(h5MessagesStart >= 0 && h5MessagesEnd > h5MessagesStart)
   assert.ok(composerStart > h5MessagesEnd)
+
+  const h5MessagesRule = source.match(/\/\* #ifdef H5 \*\/\s*\.messages--h5\s*\{([^}]*)\}/)?.[1] || ''
+  assert.match(h5MessagesRule, /height\s*:\s*0\s*;/)
+  assert.match(h5MessagesRule, /flex\s*:\s*1 1 0\s*;/)
+  assert.match(h5MessagesRule, /overflow-y\s*:\s*scroll\s*;/)
+  assert.match(h5MessagesRule, /-webkit-overflow-scrolling\s*:\s*touch\s*;/)
 })
 
 test('非 H5 消息滚动与键盘补偿仍由原生 scroll-view 负责', () => {
