@@ -8,8 +8,8 @@ export const config = {
   // H5 生产环境使用同源 API，避免 HTTPS 页面请求 HTTP API 时被浏览器拦截。
   //   baseURL: 'http://192.168.31.61:3000',
   // 后端 API 基础地址
-  // baseURL: 'http://localhost:3000',
-  baseURL: 'http://8.218.94.132',
+  baseURL: 'http://localhost:3000',
+  // baseURL: 'http://8.218.94.132',
 
   // 请求超时时间（毫秒）
   timeout: 10000,

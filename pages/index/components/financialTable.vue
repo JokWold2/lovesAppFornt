@@ -1,12 +1,7 @@
 <template>
   <view class="page-container">
     <view class="card-container">
-      <scroll-view
-        class="table-scroll-wrapper"
-        scroll-x
-        scroll-y
-        @scrolltolower="loadMoreRows"
-      >
+      <scroll-view class="table-scroll-wrapper" scroll-x scroll-y @scrolltolower="loadMoreRows">
         <view class="table">
           <!-- 表头 -->
           <view class="tr thead">
@@ -37,10 +32,7 @@
                 <view class="date-content">
                   <picker mode="date" @change="(e) => onDateChange(e, index)">
                     <!-- 占位文字：字号12px，颜色浅灰 -->
-                    <text
-                      :class="row.date ? 'date-text' : 'placeholder-text'"
-                      style="font-size: 12px; color: #ccc;"
-                    >
+                    <text :class="row.date ? 'date-text' : 'placeholder-text'" style="font-size: 12px; color: #ccc;">
                       {{ row.date || '请选择日期' }}
                     </text>
                   </picker>
@@ -49,12 +41,22 @@
 
               <!-- 公司名 -->
               <view class="td col-company">
-                <input type="text" placeholder="请输入公司" v-model="row.company" placeholder-class="ph-color" />
+                <view class="input-container">
+                  <input type="text" placeholder="公司名" v-model="row.company" placeholder-class="ph-color" />
+                  <picker mode="selector" :range="companyNames" @change="(e) => onCompanySelect(e, index)">
+                    <view class="picker-trigger">▼</view>
+                  </picker>
+                </view>
               </view>
 
               <!-- 货名 -->
               <view class="td col-goods">
-                <input type="text" placeholder="请输入货名" v-model="row.goods" placeholder-class="ph-color" />
+                <view class="input-container">
+                  <input type="text" placeholder="货名" v-model="row.goods" placeholder-class="ph-color" />
+                  <picker mode="selector" :range="getGoodsRange(row.company)" @change="(e) => onGoodsSelect(e, index)">
+                    <view class="picker-trigger">▼</view>
+                  </picker>
+                </view>
               </view>
 
               <!-- 数量 -->
@@ -89,14 +91,102 @@
           <text class="value highlight">${{ grandTotal }}</text>
         </view>
       </view>
-      <button class="btn-submit" @click="handleSubmit">📤 提交数据</button>
+      <view class="footer-right-buttons">
+        <button class="btn-add" @click="loadMoreRows">➕ 添加</button>
+        <button class="btn-submit" @click="handleSubmit">📤 提交数据</button>
+        <button class="btn-export" @click="handleExport">📥 导出</button>
+      </view>
     </view>
   </view>
 </template>
 
 <script setup>
 import { ref, computed } from 'vue'
-import { post } from '@/utils/request.js'
+import { onLoad } from '@dcloudio/uni-app'
+import { get, post } from '@/utils/request.js'
+import { config } from '@/utils/config.js'
+import { getToken } from '@/utils/auth.js'
+
+const branchId = ref(1)
+const referenceData = ref([])
+
+const companyNames = computed(() => {
+  return referenceData.value.map(item => item.supplier)
+})
+
+onLoad(async (options) => {
+  if (options.branchId) {
+    branchId.value = parseInt(options.branchId, 10)
+  }
+  await Promise.all([
+    loadExistingData(),
+    loadReferenceData()
+  ])
+})
+
+const loadReferenceData = async () => {
+  try {
+    const res = await get('/api/financial/reference-data')
+    if (res && Array.isArray(res)) {
+      referenceData.value = res
+    }
+  } catch (e) {
+    console.error('加载参考数据失败:', e)
+  }
+}
+
+const onCompanySelect = (e, index) => {
+  const selectedIndex = parseInt(e.detail.value, 10)
+  if (companyNames.value[selectedIndex]) {
+    tableData.value[index].company = companyNames.value[selectedIndex]
+    // 重置货物与价格，等待重新选择
+    tableData.value[index].goods = ''
+    tableData.value[index].price = ''
+  }
+}
+
+const getGoodsRange = (companyName) => {
+  if (!companyName) return []
+  const found = referenceData.value.find(item => item.supplier === companyName)
+  return found ? found.items.map(i => i.name) : []
+}
+
+const onGoodsSelect = (e, index) => {
+  const selectedIndex = parseInt(e.detail.value, 10)
+  const companyName = tableData.value[index].company
+  const goodsList = getGoodsRange(companyName)
+  const goodsName = goodsList[selectedIndex]
+  if (goodsName) {
+    tableData.value[index].goods = goodsName
+    
+    // 自动带上单价
+    const foundSupplier = referenceData.value.find(item => item.supplier === companyName)
+    if (foundSupplier) {
+      const foundItem = foundSupplier.items.find(i => i.name === goodsName)
+      if (foundItem && foundItem.price !== null && foundItem.price !== undefined) {
+        tableData.value[index].price = String(foundItem.price)
+      } else {
+        tableData.value[index].price = ''
+      }
+    }
+  }
+}
+
+const loadExistingData = async () => {
+  try {
+    const res = await get('/api/financial/form-by-branch', {
+      branchId: branchId.value,
+      type: 'financial'
+    })
+    if (res && res.details && res.details.length > 0) {
+      tableData.value = res.details
+    } else {
+      tableData.value = Array.from({ length: 10 }, () => createEmptyRow())
+    }
+  } catch (e) {
+    console.error('加载已有数据失败:', e)
+  }
+}
 
 const createEmptyRow = () => ({
   date: '',
@@ -106,7 +196,7 @@ const createEmptyRow = () => ({
   price: '',
 })
 
-const tableData = ref(Array.from({ length: 10 }, () => createEmptyRow()))
+const tableData = ref([])
 
 // 计算有效天数
 const totalRows = computed(() => {
@@ -146,9 +236,9 @@ const handleSubmit = async () => {
     const date = row.date ? row.date.trim() : ''
     if (!date) return
     const hasData = (row.company && row.company.trim() !== '') ||
-                    (row.goods && row.goods.trim() !== '') ||
-                    (row.quantity && row.quantity.trim() !== '') ||
-                    (row.price && row.price.trim() !== '')
+      (row.goods && row.goods.trim() !== '') ||
+      (row.quantity && row.quantity.trim() !== '') ||
+      (row.price && row.price.trim() !== '')
     if (hasData) {
       validData.push({
         date,
@@ -171,10 +261,10 @@ const handleSubmit = async () => {
   }
 
   try {
-    const now = new Date()
-    const title = `${now.getFullYear()}年${now.getMonth() + 1}月财务录入表`
+    const title = `分店 ${branchId.value} 财务录入表`
 
     await post('/api/financial/form', {
+      branchId: branchId.value,
       title,
       type: 'financial',
       data: validData
@@ -192,6 +282,46 @@ const handleSubmit = async () => {
   } catch (err) {
     console.error('提交失败:', err)
   }
+}
+
+// 导出为 XLSX 格式 (支持网页端直接跳转下载、以及小程序内本地下载打开)
+const handleExport = () => {
+  const downloadUrl = `${config.baseURL}/api/financial/export?branchId=${branchId.value}&type=financial&token=${getToken()}`
+
+  // #ifdef H5
+  // H5 网页端直接跳转或在新窗口中打开，触发浏览器原生 XLSX 下载
+  window.open(downloadUrl, '_blank')
+  // #endif
+
+  // #ifndef H5
+  // 小程序端 / App 端：先下载临时文件，再通过本地文档阅读器直接打开
+  uni.showLoading({ title: '正在导出 XLSX...' })
+  uni.downloadFile({
+    url: downloadUrl,
+    success: (res) => {
+      if (res.statusCode === 200) {
+        uni.openDocument({
+          filePath: res.tempFilePath,
+          showMenu: true, // 允许用户分享文件、保存到微信等，极佳的体验
+          success: () => {
+            uni.hideLoading()
+          },
+          fail: (err) => {
+            uni.hideLoading()
+            uni.showToast({ title: '打开文档失败，请确保安装了 Office 或 WPS', icon: 'none' })
+          }
+        })
+      } else {
+        uni.hideLoading()
+        uni.showToast({ title: '导出失败，请先保存数据', icon: 'none' })
+      }
+    },
+    fail: (err) => {
+      uni.hideLoading()
+      uni.showToast({ title: '下载文档失败', icon: 'none' })
+    }
+  })
+  // #endif
 }
 </script>
 
@@ -237,6 +367,7 @@ const handleSubmit = async () => {
   position: sticky;
   top: 0;
   z-index: 30;
+
   .th {
     padding: 12px 16px;
     font-size: 14px;
@@ -252,7 +383,8 @@ const handleSubmit = async () => {
   }
 }
 
-.th, .td {
+.th,
+.td {
   flex-shrink: 0;
   display: flex;
   align-items: center;
@@ -264,19 +396,36 @@ const handleSubmit = async () => {
 }
 
 /* 列宽定义 */
-.col-date { width: 100px; }
-.col-company { width: 130px; }
-.col-goods { width: 120px; }
-.col-quantity { width: 90px; }
-.col-price { width: 90px; }
-.col-total { width: 110px; }
+.col-date {
+  width: 100px;
+}
+
+.col-company {
+  width: 130px;
+}
+
+.col-goods {
+  width: 120px;
+}
+
+.col-quantity {
+  width: 90px;
+}
+
+.col-price {
+  width: 90px;
+}
+
+.col-total {
+  width: 110px;
+}
 
 /* 固定列位置 —— 关键修改：实现紧贴左侧 */
 .sticky-col-1 {
   position: sticky;
   left: 0;
   z-index: 10;
-  box-shadow: 2px 0 5px -2px rgba(0,0,0,0.03);
+  box-shadow: 2px 0 5px -2px rgba(0, 0, 0, 0.03);
 }
 
 .thead .sticky-col-1 {
@@ -356,13 +505,16 @@ input {
   display: flex;
   align-items: center;
   gap: 4px;
+
   .label {
     color: #94a3b8;
     font-weight: 400;
   }
+
   .value {
     color: #1e293b;
     font-weight: 600;
+
     &.highlight {
       color: #2563eb;
     }
@@ -375,8 +527,8 @@ input {
   color: #ffffff;
   border: none;
   border-radius: 10px;
-  padding: 10px 28px;
-  font-size: 16px;
+  padding: 10px 18px;
+  font-size: 14px;
   font-weight: 600;
   letter-spacing: 0.5px;
   box-shadow: 0 4px 12px rgba(37, 99, 235, 0.25);
@@ -384,9 +536,101 @@ input {
   display: flex;
   align-items: center;
   gap: 6px;
+  margin: 0 !important;
+
   &:active {
     transform: scale(0.97);
     opacity: 0.9;
+  }
+}
+
+.footer-right-buttons {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  flex-wrap: wrap;
+}
+
+.btn-add {
+  flex-shrink: 0;
+  background-color: #f1f5f9;
+  color: #475569;
+  border: 1px solid #cbd5e1;
+  border-radius: 10px;
+  padding: 10px 16px;
+  font-size: 14px;
+  font-weight: 600;
+  line-height: 1.2;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  margin: 0;
+
+  &:active {
+    transform: scale(0.97);
+    background-color: #e2e8f0;
+  }
+}
+
+.btn-export {
+  flex-shrink: 0;
+  background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+  color: #ffffff;
+  border: none;
+  border-radius: 10px;
+  padding: 10px 16px;
+  font-size: 14px;
+  font-weight: 600;
+  line-height: 1.2;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  margin: 0;
+  box-shadow: 0 4px 12px rgba(16, 185, 129, 0.2);
+
+  &:active {
+    transform: scale(0.97);
+    opacity: 0.9;
+  }
+}
+
+.input-container {
+  display: flex;
+  align-items: center;
+  width: 100%;
+  height: 100%;
+  padding: 0;
+  box-sizing: border-box;
+  position: relative;
+}
+
+.input-container input {
+  flex: 1;
+  height: 100%;
+  border: none;
+  background: transparent;
+  font-size: 13px;
+  text-align: center;
+  padding: 0 4px;
+}
+
+.picker-trigger {
+  width: 24px;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #94a3b8;
+  font-size: 10px;
+  cursor: pointer;
+  background-color: #f8fafc;
+  border-left: 1px solid #f1f5f9;
+  box-sizing: border-box;
+  &:active {
+    background-color: #e2e8f0;
   }
 }
 </style>
