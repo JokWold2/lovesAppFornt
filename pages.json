@@ -39,6 +39,12 @@
 			}
 		},
 		{
+			"path": "pages/legal/dataDeletion",
+			"style": {
+				"navigationBarTitleText": "数据删除说明"
+			}
+		},
+		{
 			"path": "pages/moments/momentDetail",
 			"style": {
 				"navigationBarTitleText": "动态详情",
