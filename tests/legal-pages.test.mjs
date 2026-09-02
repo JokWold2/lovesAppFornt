@@ -13,6 +13,11 @@ test('publishes a dedicated data-deletion instruction page', async () => {
   assert.match(document, /c546460@gmail\.com/)
 })
 
+test('keeps the data-deletion page publicly accessible without a login session', async () => {
+  const config = await readFile(new URL('utils/config.js', root), 'utf8')
+  assert.match(config, /'\/pages\/legal\/dataDeletion'/)
+})
+
 test('privacy policy provides the public privacy contact address', async () => {
   const document = await readFile(new URL('utils/legalDocuments.js', root), 'utf8')
   assert.match(document, /c546460@gmail\.com/)

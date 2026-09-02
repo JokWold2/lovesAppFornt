@@ -5,7 +5,7 @@
 export const config = {
   // 后端 API 基础地址
   // 局域网真机测试：Android 手机需与本机连接同一个 Wi‑Fi。
-  // 部署线上后恢复为正式 API 域名，不能保留局域网地址。
+  // H5 生产环境使用同源 API，避免 HTTPS 页面请求 HTTP API 时被浏览器拦截。
   //   baseURL: 'http://192.168.31.61:3000',
   // 后端 API 基础地址
   // baseURL: 'http://localhost:3000',
@@ -20,7 +20,8 @@ export const config = {
     '/pages/login/login',
     '/pages/login/login360',
     '/pages/legal/userAgreement',
-    '/pages/legal/privacyPolicy'
+    '/pages/legal/privacyPolicy',
+    '/pages/legal/dataDeletion'
   ],
 
   // 后端约定的业务状态码：成功
