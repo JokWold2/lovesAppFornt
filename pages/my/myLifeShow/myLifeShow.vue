@@ -29,6 +29,9 @@
       <view class="cover-change-button" @tap.stop="changeCover">
         <text>{{ t('life.changeCover') }}</text>
       </view>
+      <view class="cover-facebook-button" @tap.stop="openFacebookPhotoImporter">
+        <text>从 Facebook 导入</text>
+      </view>
 
       <!-- 用户名与头像 -->
       <view class="user-info">
@@ -193,6 +196,33 @@
       <view class="cover-preview-delete" @tap.stop="deleteCurrentCover"><text>{{ t('life.deletePhoto') }}</text></view>
       <text class="cover-preview-close">×</text>
     </view>
+    <view v-if="showFacebookPhotoPicker" class="facebook-photo-mask" @tap="closeFacebookPhotoPicker">
+      <view class="facebook-photo-sheet" @tap.stop>
+        <view class="facebook-photo-header">
+          <view>
+            <text class="facebook-photo-title">从 Facebook 导入照片</text>
+            <text class="facebook-photo-hint">最多还能导入 {{ facebookPhotoCapacity }} 张</text>
+          </view>
+          <text class="facebook-photo-close" @tap="closeFacebookPhotoPicker">×</text>
+        </view>
+        <scroll-view class="facebook-photo-grid" scroll-y>
+          <view
+            v-for="photo in facebookPhotos"
+            :key="photo.id"
+            class="facebook-photo-item"
+            :class="{ selected: facebookSelectedPhotoIds.includes(photo.id) }"
+            @tap="toggleFacebookPhoto(photo.id)"
+          >
+            <image :src="photo.picture" mode="aspectFill" />
+            <view class="facebook-photo-check">{{ facebookSelectedPhotoIds.includes(photo.id) ? '✓' : '' }}</view>
+          </view>
+        </scroll-view>
+        <view class="facebook-photo-actions">
+          <text>{{ facebookSelectedPhotoIds.length }} / {{ facebookPhotoCapacity }} 已选</text>
+          <view class="facebook-photo-confirm" :class="{ disabled: !facebookSelectedPhotoIds.length }" @tap="importSelectedFacebookPhotos">导入</view>
+        </view>
+      </view>
+    </view>
   </view>
 </template>
 
@@ -201,7 +231,7 @@ import { computed, ref } from 'vue'
 import { onShow } from '@dcloudio/uni-app'
 import {
   getMomentsApi, togglePinMomentApi, deleteMomentApi,
-  toggleLikeMomentApi, uploadAvatarApi, uploadProfilePhotosApi, deleteProfilePhotoApi,
+  toggleLikeMomentApi, uploadAvatarApi, uploadProfilePhotosApi, deleteProfilePhotoApi, importFacebookProfilePhotosApi,
   getProfileApi, getCommentsApi, addCommentApi, updateBioApi,
   getLikesApi, getProfileLikesApi
 } from '@/api/index.js'
@@ -211,6 +241,8 @@ import FloatingActionButton from '@/components/common/FloatingActionButton.vue'
 import ProfileDetailSections from '@/components/profile/ProfileDetailSections.vue'
 import ProfileLikesSheet from '@/components/profile/ProfileLikesSheet.vue'
 import { t, updateTabBarLocale } from '@/utils/localeRuntime.js'
+import { requestFacebookPhotoAccess } from '@/utils/facebookAuth.js'
+import { normalizeFacebookPhotos, toggleFacebookPhotoSelection } from '@/utils/facebookPhotoSelection.js'
 // import loading2 from '@/static/loading/loading2.vue'
 // 状态
 const loading = ref(false)
@@ -225,6 +257,11 @@ const coverAutoplay = computed(() => profilePhotos.value.length > 1 && !coverExp
 const receivedLikes = ref([])
 const receivedLikeTotal = ref(0)
 const showLikesSheet = ref(false)
+const showFacebookPhotoPicker = ref(false)
+const facebookPhotos = ref([])
+const facebookSelectedPhotoIds = ref([])
+const facebookAccessToken = ref('')
+const facebookPhotoCapacity = computed(() => Math.max(0, 9 - profilePhotos.value.length))
 const userInfo = ref({
   username: '',
   email: '',
@@ -626,6 +663,66 @@ function changeCover() {
   })
 }
 
+async function openFacebookPhotoImporter() {
+  if (facebookPhotoCapacity.value <= 0) {
+    uni.showToast({ title: t('life.photoLimit'), icon: 'none' })
+    return
+  }
+  try {
+    uni.showLoading({ title: '正在读取 Facebook 相册' })
+    const result = await requestFacebookPhotoAccess()
+    facebookAccessToken.value = result.accessToken
+    facebookPhotos.value = normalizeFacebookPhotos(result.photos)
+    facebookSelectedPhotoIds.value = []
+    if (!facebookPhotos.value.length) {
+      uni.showToast({ title: '没有可导入的 Facebook 照片', icon: 'none' })
+      return
+    }
+    showFacebookPhotoPicker.value = true
+  } catch (error) {
+    console.error('读取 Facebook 相册失败', error)
+    uni.showToast({ title: error?.message || '读取 Facebook 相册失败', icon: 'none' })
+  } finally {
+    uni.hideLoading()
+  }
+}
+
+function closeFacebookPhotoPicker() {
+  showFacebookPhotoPicker.value = false
+  facebookPhotos.value = []
+  facebookSelectedPhotoIds.value = []
+  facebookAccessToken.value = ''
+}
+
+function toggleFacebookPhoto(photoId) {
+  facebookSelectedPhotoIds.value = toggleFacebookPhotoSelection(
+    facebookSelectedPhotoIds.value,
+    photoId,
+    facebookPhotoCapacity.value
+  )
+}
+
+async function importSelectedFacebookPhotos() {
+  if (!facebookSelectedPhotoIds.value.length || !facebookAccessToken.value) return
+  try {
+    uni.showLoading({ title: '正在导入照片' })
+    const result = await importFacebookProfilePhotosApi(facebookAccessToken.value, facebookSelectedPhotoIds.value)
+    profilePhotos.value = normalizePhotoUrls(result.photos).map(getFullImageUrl)
+    currentCoverIndex.value = Math.max(profilePhotos.value.length - 1, 0)
+    if (profileData.value) profileData.value.photos = profilePhotos.value
+    const cached = uni.getStorageSync('USER_INFO') || {}
+    uni.setStorageSync('USER_INFO', { ...cached, photos: profilePhotos.value })
+    closeFacebookPhotoPicker()
+    await loadUserProfile()
+    uni.showToast({ title: '照片导入成功', icon: 'success' })
+  } catch (error) {
+    console.error('导入 Facebook 照片失败', error)
+    uni.showToast({ title: error?.message || '照片导入失败', icon: 'none' })
+  } finally {
+    uni.hideLoading()
+  }
+}
+
 function deleteCurrentCover() {
   const photo = profilePhotos.value[currentCoverIndex.value]
   if (!photo) return
@@ -760,6 +857,117 @@ onShow(() => {
   font-size: 24rpx;
   background: rgba(0, 0, 0, 0.36);
 }
+
+.cover-facebook-button {
+  position: absolute;
+  top: 92rpx;
+  right: 24rpx;
+  z-index: 2;
+  padding: 14rpx 22rpx;
+  border-radius: 28rpx;
+  color: #fff;
+  font-size: 24rpx;
+  background: rgba(24, 119, 242, 0.9);
+}
+
+.facebook-photo-mask {
+  position: fixed;
+  z-index: 1000;
+  inset: 0;
+  display: flex;
+  align-items: flex-end;
+  background: rgba(0, 0, 0, 0.48);
+}
+
+.facebook-photo-sheet {
+  width: 100%;
+  max-height: 78vh;
+  padding: 32rpx 30rpx calc(30rpx + env(safe-area-inset-bottom));
+  box-sizing: border-box;
+  border-radius: 32rpx 32rpx 0 0;
+  background: #fff;
+}
+
+.facebook-photo-header,
+.facebook-photo-actions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.facebook-photo-title {
+  display: block;
+  color: #1f2937;
+  font-size: 34rpx;
+  font-weight: 700;
+}
+
+.facebook-photo-hint,
+.facebook-photo-actions > text {
+  display: block;
+  margin-top: 8rpx;
+  color: #7b8494;
+  font-size: 24rpx;
+}
+
+.facebook-photo-close {
+  width: 56rpx;
+  height: 56rpx;
+  color: #6b7280;
+  font-size: 46rpx;
+  line-height: 52rpx;
+  text-align: center;
+}
+
+.facebook-photo-grid {
+  max-height: 720rpx;
+  margin: 28rpx 0;
+}
+
+.facebook-photo-item {
+  position: relative;
+  display: inline-block;
+  width: calc((100% - 24rpx) / 3);
+  height: calc((100vw - 84rpx) / 3);
+  margin: 0 12rpx 12rpx 0;
+  overflow: hidden;
+  border: 3rpx solid transparent;
+  border-radius: 12rpx;
+  box-sizing: border-box;
+}
+
+.facebook-photo-item:nth-child(3n) { margin-right: 0; }
+.facebook-photo-item.selected { border-color: #1877f2; }
+.facebook-photo-item image { width: 100%; height: 100%; }
+
+.facebook-photo-check {
+  position: absolute;
+  top: 10rpx;
+  right: 10rpx;
+  width: 40rpx;
+  height: 40rpx;
+  border: 2rpx solid #fff;
+  border-radius: 50%;
+  color: #fff;
+  font-size: 28rpx;
+  line-height: 38rpx;
+  text-align: center;
+  background: rgba(0, 0, 0, 0.32);
+}
+
+.selected .facebook-photo-check { background: #1877f2; }
+
+.facebook-photo-confirm {
+  min-width: 136rpx;
+  padding: 16rpx 26rpx;
+  border-radius: 36rpx;
+  color: #fff;
+  font-size: 28rpx;
+  text-align: center;
+  background: #1877f2;
+}
+
+.facebook-photo-confirm.disabled { opacity: 0.42; }
 
 .cover-default {
   width: 100%;

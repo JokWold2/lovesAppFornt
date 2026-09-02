@@ -69,7 +69,7 @@
               <view class="circle-icon google" :class="{ 'social-loading': socialLoading }" @click="handleGoogleLogin">
                 <text class="icon-text-g">G</text>
               </view>
-              <view class="circle-icon facebook">
+              <view class="circle-icon facebook" :class="{ 'social-loading': socialLoading }" @click="handleFacebookLogin">
                 <text class="icon-text">f</text>
               </view>
             </view>
@@ -139,6 +139,7 @@ import { loginApi, registerApi, socialLoginApi } from '@/api/index.js';
 import { setToken, setUserInfo, getUserInfo } from '@/utils/auth.js';
 import { registerCurrentDevice } from '@/utils/pushNotifications.js';
 import { signInWithGoogle } from '@/utils/googleAuth.js';
+import { signInWithFacebook } from '@/utils/facebookAuth.js';
 import { getOrCreatePresenceSessionId, startPresence } from '@/utils/presence.js';
 import { bootstrapLocale, currentLocale, t } from '@/utils/localeRuntime.js';
 
@@ -247,42 +248,36 @@ const handleLogin = async () => {
   }
 };
 
-// App 端由原生 Google SDK 返回 ID Token；令牌仅提交给后端校验，不在前端解析或保存。
-const handleGoogleLogin = async () => {
+async function completeSocialLogin(provider, authResult) {
+  const clientSessionId = getOrCreatePresenceSessionId();
+  const data = await socialLoginApi(provider, authResult, { clientSessionId });
+  if (!data?.token) throw new Error(t('auth.loginFailed'));
+
+  setToken(data.token);
+  await bootstrapLocale();
+  void startPresence();
+  setUserInfo({ ...data.user, loginType: provider });
+  registerCurrentDevice();
+  uni.showToast({ title: provider === 'facebook' ? 'Facebook 登录成功' : t('auth.googleSuccess'), icon: 'success' });
+  navigateAfterAuth();
+}
+
+async function handleSocialLogin(provider, signIn) {
   if (!agreePrivacy.value) {
     uni.showToast({ title: t('auth.needAgreement'), icon: 'none' });
     return;
   }
   if (socialLoading.value) return;
-
-  // #ifndef APP-PLUS
-  uni.showToast({ title: t('auth.googleOnlyAndroid'), icon: 'none' });
-  return;
-  // #endif
-
-  // #ifdef APP-PLUS
   socialLoading.value = true;
   try {
-    const { idToken } = await signInWithGoogle();
-    const clientSessionId = getOrCreatePresenceSessionId();
-    const data = await socialLoginApi('google', { idToken }, { clientSessionId });
-    if (!data?.token) throw new Error(t('auth.loginFailed'));
-
-    setToken(data.token);
-	await bootstrapLocale();
-    void startPresence();
-    setUserInfo({ ...data.user, loginType: 'google' });
-    registerCurrentDevice();
-    uni.showToast({ title: t('auth.googleSuccess'), icon: 'success' });
-    navigateAfterAuth();
+    await completeSocialLogin(provider, await signIn());
   } catch (error) {
-    console.error('google login error', error);
+    console.error(`${provider} login error`, error);
     // 原生 SDK 的失败对象通常使用 errMsg / errCode，不是标准 Error.message。
     const errorCode = error?.errCode || error?.code || t('auth.unknownError');
     const errorMessage = typeof error === 'string' ? error : error?.errMsg || error?.message || t('auth.nativeErrorMissing');
-    // Toast 放不下 Google 原生错误（例如 login:fail 10），使用弹窗完整展示，便于排查配置问题。
     uni.showModal({
-      title: t('auth.googleAuthorizationFailed', { code: errorCode }),
+      title: provider === 'facebook' ? `Facebook 授权失败（${errorCode}）` : t('auth.googleAuthorizationFailed', { code: errorCode }),
       content: errorMessage,
       showCancel: false,
       confirmText: t('common.confirm')
@@ -290,8 +285,13 @@ const handleGoogleLogin = async () => {
   } finally {
     socialLoading.value = false;
   }
-  // #endif
-};
+}
+
+// H5 GIS 或 Android 原生 SDK 返回 ID Token；令牌只提交后端校验，不在前端保存。
+const handleGoogleLogin = () => handleSocialLogin('google', signInWithGoogle);
+
+// H5 Meta SDK 或 Android 原生 OAuth 返回短期 Access Token；后端会二次验证 app_id 与用户 subject。
+const handleFacebookLogin = () => handleSocialLogin('facebook', signInWithFacebook);
 
 // 处理注册
 const handleRegister = async () => {

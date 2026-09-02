@@ -45,7 +45,10 @@
             },
             "sdkConfigs" : {
                 "oauth" : {
-                    "apple" : {}
+                    "apple" : {},
+                    "facebook" : {
+                        "appid" : "2610824026054986"
+                    }
                 },
                 "push" : {
                     "unipush" : {
