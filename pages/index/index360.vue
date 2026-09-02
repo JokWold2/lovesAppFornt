@@ -60,6 +60,9 @@
 					<text class="tab-text">{{ t('home.activity') }}</text>
 					<view class="tab-line" v-if="model === 'activity'"></view>
 				</view>
+				<view class="nav-tab" @click="goFinancial">
+					<text class="tab-text">财务</text>
+				</view>
 			</view>
 
 			<view class="nav-right">
@@ -591,6 +594,10 @@ function measureRecommendationHeader() {
 
 function openAccountCenter() {
 	uni.navigateTo({ url: "/pages/account/accountCenter" });
+}
+
+function goFinancial() {
+	uni.navigateTo({ url: "/pages/index/components/financialList" });
 }
 
 function updatePageTitle() {
@@ -1141,7 +1148,7 @@ $gray-bg: #f5f6f8;
 
 	.nav-center {
 		display: flex;
-		gap: 40rpx;
+		gap: 32rpx;
 		align-items: center;
 
 		.nav-tab {

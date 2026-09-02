@@ -116,7 +116,25 @@
 		,
 		{ "path": "pages/chat/chatRoom", "style": { "navigationBarTitleText": "群聊", "disableScroll": true } },
 		{ "path": "pages/chat/groupManage", "style": { "navigationBarTitleText": "聊天信息" } },
-		{ "path": "pages/chat/groupMembers", "style": { "navigationBarTitleText": "群聊成员" } }
+		{ "path": "pages/chat/groupMembers", "style": { "navigationBarTitleText": "群聊成员" } },
+		{
+			"path": "pages/index/components/financialList",
+			"style": {
+				"navigationBarTitleText": "财务列表"
+			}
+		},
+		{
+			"path": "pages/index/components/financialExcel",
+			"style": {
+				"navigationBarTitleText": "财务录入"
+			}
+		},
+		{
+			"path": "pages/index/components/financialTable",
+			"style": {
+				"navigationBarTitleText": "财务录入表"
+			}
+		}
 
 	],
 	"globalStyle": {
