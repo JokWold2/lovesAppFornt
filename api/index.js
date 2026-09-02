@@ -306,6 +306,11 @@ export function deleteProfilePhotoApi(photoUrl) {
   return del('/api/profile/photos', { photoUrl })
 }
 
+// Facebook 相册照片由后端再次校验归属后复制到 OSS；accessToken 仅存在于本次请求中。
+export function importFacebookProfilePhotosApi(accessToken, photoIds) {
+  return post('/api/profile/facebook-photos/import', { accessToken, photoIds })
+}
+
 export function getProfileApi() {
   return get('/api/profile')
 }
@@ -410,6 +415,7 @@ export default {
   uploadCoverApi,
   uploadProfilePhotosApi,
   deleteProfilePhotoApi,
+  importFacebookProfilePhotosApi,
   getExploreFeedApi,
   getFeaturedFeedApi,
   toggleProfileLikeApi,
