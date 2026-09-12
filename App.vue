@@ -1,5 +1,5 @@
 <script>
-	import { setupRouteGuard } from '@/utils/guard.js'
+	// import { setupRouteGuard } from '@/utils/guard.js'
 	import { validateTokenApi, heartbeatPresenceApi, offlinePresenceApi } from '@/api/index.js'
 	import { getToken, getUserInfo, removeToken, removeUserInfo, setUserInfo } from '@/utils/auth.js'
 	import { refreshUnreadBadge, startUnreadBadgePolling, stopUnreadBadgePolling } from '@/utils/unreadBadge.js'

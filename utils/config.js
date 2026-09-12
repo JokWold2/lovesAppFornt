@@ -2,14 +2,40 @@
  * 全局配置文件
  */
 
+// 后端服务端口（本地开发后端默认监听 3000）
+const API_PORT = 3000
+
+/**
+ * 解析后端 API 基础地址
+ *  - H5（浏览器）：跟随当前页面主机名
+ *      · 用 localhost / 127.0.0.1 / 内网 IP 打开 → 直连同主机的 3000 端口，换 Wi‑Fi 也不用改代码
+ *      · 用正式域名打开 → 返回 ''（同源），交给 Nginx 反代，避免 HTTPS 页面请求 HTTP 接口被拦截
+ *  - App / 小程序：真机调试走本机局域网 IP（手机需与电脑连接同一个 Wi‑Fi）
+ */function resolveBaseURL() {
+  // #ifdef H5
+  const hostname = window.location.hostname
+  const isLocalHost =
+    hostname === 'localhost' ||
+    hostname === '127.0.0.1' ||
+    /^(10\.|192\.168\.|172\.(1[6-9]|2\d|3[01])\.)/.test(hostname)
+  return isLocalHost ? `http://${hostname}:${API_PORT}` : ''
+  // #endif
+
+  // #ifndef H5
+  // 自动获取本机局域网 IP（无需换 Wi‑Fi 后手动改）
+  const os = uni.getSystemInfoSync()
+  const net = os.networkList || []
+  const wifi = net.find((n) => n.type === 'wifi' && n.active && n.ip && !n.ip.startsWith('169.254'))
+  const LAN_HOST = wifi ? wifi.ip : 'localhost'
+  return `http://${LAN_HOST}:${API_PORT}`
+  // #endif
+}
+
 export const config = {
   // 后端 API 基础地址
-  // 局域网真机测试：Android 手机需与本机连接同一个 Wi‑Fi。
-  // H5 生产环境使用同源 API，避免 HTTPS 页面请求 HTTP API 时被浏览器拦截。
-  //   baseURL: 'http://192.168.31.61:3000',
-  // 后端 API 基础地址
-  baseURL: 'http://localhost:3000',
-  // baseURL: 'http://8.218.94.132',
+  //  - H5 正式部署取同源（空串 → 相对路径）
+  //  - 本地调试 / 真机调试由文件末尾的 resolveBaseURL() 自动覆盖为可直连地址
+  baseURL: '',
 
   // 请求超时时间（毫秒）
   timeout: 10000,
@@ -38,3 +64,7 @@ export const config = {
   // 记住的登录账号（用于自动登录）
   savedAccountKey: 'SAVED_LOGIN_ACCOUNT'
 }
+
+// 本地 / 真机调试：自动切换为可直连的后端地址（正式域名访问时保持同源空串）
+const resolvedBaseURL = resolveBaseURL()
+if (resolvedBaseURL) config.baseURL = resolvedBaseURL
