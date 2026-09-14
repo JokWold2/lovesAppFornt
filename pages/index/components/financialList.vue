@@ -4,13 +4,20 @@
     <scroll-view class="branch-tabs-scroll" scroll-x show-scrollbar="false">
       <view class="branch-tabs-container">
         <view 
-          v-for="i in 9" 
+          v-for="i in 10" 
           :key="i" 
           class="branch-tab-item" 
           :class="{ active: currentBranchId === i }" 
           @click="selectBranch(i)"
         >
           分店 {{ i }}
+        </view>
+        <!-- 图表展示 Tab -->
+        <view 
+          class="branch-tab-item chart-tab-item" 
+          @click="goCharts"
+        >
+          📊 图表展示
         </view>
       </view>
     </scroll-view>
@@ -98,6 +105,12 @@ onShow(() => {
   loadData()
 })
 
+const goCharts = () => {
+  uni.navigateTo({
+    url: `/pages/index/components/financialCharts?branchId=${currentBranchId.value}`
+  })
+}
+
 // 点击卡片进入对应的报表编辑页面
 const goForm = (type) => {
   if (type === 'detail') {
@@ -158,6 +171,13 @@ const goForm = (type) => {
     font-weight: bold;
     box-shadow: 0 3px 8px rgba(37, 99, 235, 0.25);
   }
+}
+
+.chart-tab-item {
+  background: linear-gradient(135deg, #ec4899 0%, #db2777 100%) !important;
+  color: #ffffff !important;
+  font-weight: bold;
+  box-shadow: 0 3px 8px rgba(236, 72, 153, 0.25);
 }
 
 .card-list {

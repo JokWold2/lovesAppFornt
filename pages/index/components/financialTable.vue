@@ -23,6 +23,9 @@
             <view class="th col-total">
               总计
             </view>
+            <view class="th col-actions">
+              操作
+            </view>
           </view>
 
           <block v-for="(row, index) in tableData" :key="index">
@@ -72,6 +75,12 @@
               <!-- 总计 -->
               <view class="td col-total total-text">
                 {{ calculateRowTotal(row) }}
+              </view>
+              
+              <!-- 操作列 -->
+              <view class="td col-actions action-cell">
+                <button class="btn-delete" @click="deleteRow(index)">删除</button>
+                <button class="btn-clear" @click="clearRow(index)">清空</button>
               </view>
             </view>
           </block>
@@ -219,6 +228,27 @@ const loadMoreRows = () => {
   tableData.value.push(createEmptyRow())
 }
 
+const deleteRow = (index) => {
+  if (tableData.value.length > 1) {
+    tableData.value.splice(index, 1)
+  } else {
+    uni.showToast({
+      title: '至少需要保留一行数据',
+      icon: 'none',
+      duration: 2000
+    })
+  }
+}
+
+const clearRow = (index) => {
+  const row = tableData.value[index]
+  row.date = ''
+  row.company = ''
+  row.goods = ''
+  row.quantity = ''
+  row.price = ''
+}
+
 const onDateChange = (e, index) => {
   tableData.value[index].date = e.detail.value
 }
@@ -231,23 +261,70 @@ const calculateRowTotal = (row) => {
 
 // 提交处理
 const handleSubmit = async () => {
-  const validData = []
-  tableData.value.forEach(row => {
+  // 校验每一行数据的完整性
+  for (let i = 0; i < tableData.value.length; i++) {
+    const row = tableData.value[i]
     const date = row.date ? row.date.trim() : ''
-    if (!date) return
+    
+    // 如果日期不为空，但有其他字段填了数据，则必须保证整行都完整
+    if (date && (row.company || row.goods || row.quantity || row.price)) {
+      const hasCompany = row.company && row.company.trim() !== ''
+      const hasGoods = row.goods && row.goods.trim() !== ''
+      const hasQuantity = row.quantity && row.quantity.trim() !== ''
+      const hasPrice = row.price && row.price.trim() !== ''
+      
+      // 检查是否所有字段都填了数据，如果只填了部分，则提示错误
+      if ((hasCompany && hasGoods && hasQuantity && hasPrice) === false) {
+        // 存在某些字段填写但不完整的情况
+        uni.showToast({
+          title: `第 ${i + 1} 行数据不完整，请补全所有字段`,
+          icon: 'none',
+          duration: 3000
+        })
+        return
+      }
+    }
+    
+    // 如果日期不为空，检查是否填写了公司或其他信息
+    if (date) {
+      const hasData = (row.company && row.company.trim() !== '') ||
+        (row.goods && row.goods.trim() !== '') ||
+        (row.quantity && row.quantity.trim() !== '') ||
+        (row.price && row.price.trim() !== '')
+      if (hasData) {
+        validData.push({
+          date,
+          company: row.company,
+          goods: row.goods,
+          quantity: row.quantity,
+          price: row.price,
+          total: calculateRowTotal(row)
+        })
+      }
+    }
+  }
+
+  // 过滤掉日期为空的行，如果有的话
+  const validData = tableData.value.filter(row => {
+    const date = row.date ? row.date.trim() : ''
+    if (!date) return false
+    
     const hasData = (row.company && row.company.trim() !== '') ||
       (row.goods && row.goods.trim() !== '') ||
       (row.quantity && row.quantity.trim() !== '') ||
       (row.price && row.price.trim() !== '')
-    if (hasData) {
-      validData.push({
-        date,
-        company: row.company,
-        goods: row.goods,
-        quantity: row.quantity,
-        price: row.price,
-        total: calculateRowTotal(row)
-      })
+    
+    // 如果有填写任何数据，就保留该行
+    return hasData
+  }).map(row => {
+    const date = row.date ? row.date.trim() : ''
+    return {
+      date,
+      company: row.company,
+      goods: row.goods,
+      quantity: row.quantity,
+      price: row.price,
+      total: calculateRowTotal(row)
     }
   })
 
@@ -418,6 +495,11 @@ const handleExport = () => {
 
 .col-total {
   width: 110px;
+}
+
+.col-actions {
+  width: 130px;
+  padding: 0;
 }
 
 /* 固定列位置 —— 关键修改：实现紧贴左侧 */
@@ -594,6 +676,45 @@ input {
   &:active {
     transform: scale(0.97);
     opacity: 0.9;
+  }
+}
+
+.btn-delete {
+  flex-shrink: 0;
+  background-color: #ef4444;
+  color: #ffffff;
+  border: none;
+  border-radius: 5px;
+  padding: 5px 10px;
+  font-size: 12px;
+  font-weight: 600;
+  margin-right: 5px;
+}
+
+.btn-clear {
+  flex-shrink: 0;
+  background-color: #f59e0b;
+  color: #ffffff;
+  border: none;
+  border-radius: 5px;
+  padding: 5px 10px;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.action-cell {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 5px;
+  
+  .btn-delete,
+  .btn-clear {
+    width: auto;
+    padding: 5px 8px;
+    font-size: 12px;
+    margin: 0;
+    box-sizing: border-box;
   }
 }
 
