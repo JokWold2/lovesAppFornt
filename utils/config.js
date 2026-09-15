@@ -5,8 +5,8 @@
 // 接口环境开关：下面两行只启用一行，切换后在 HBuilderX 停止并重新运行。
 // H5 / 微信小程序 / iOS / Android 及上传接口共用，不再根据页面地址覆盖。
 // 地址末尾不要加 / 或 /api；正式打包前确认启用线上 HTTPS 地址。
-const API_BASE_URL = 'https://www.lovesapp2026.com' // 线上环境
-// const API_BASE_URL = 'http://127.0.0.1:3000' // 本地环境（需先启动后端）
+// const API_BASE_URL = 'https://www.lovesapp2026.com' // 线上环境
+const API_BASE_URL = 'http://127.0.0.1:3000' // 本地环境（需先启动后端）
 
 // 真机连接本地后端：将本地地址中的 127.0.0.1 改为电脑的局域网 IP，
 // 例如 http://192.168.31.61:3000，并确保手机和电脑在同一局域网。
