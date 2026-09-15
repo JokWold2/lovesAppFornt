@@ -5,7 +5,11 @@
       <text class="header-title">🔍 {{ t('search.title') }}</text>
     </view>
 
-    <scroll-view scroll-y class="content-area app-h5-scroll" :scroll-into-view="contentScrollIntoView" scroll-with-animation style="box-sizing: border-box;">
+    <view v-if="!canSearch" class="search-membership-gate">
+      <text>{{ entitlementLoading ? t('home.loading') : t('deck.searchLocked') }}</text>
+      <button v-if="!entitlementLoading" @click="openMembershipUpgrade('search')">{{ t('deck.viewMembership') }}</button>
+    </view>
+    <scroll-view v-if="canSearch" scroll-y class="content-area app-h5-scroll" :scroll-into-view="contentScrollIntoView" scroll-with-animation style="box-sizing: border-box;">
 
       <!-- 卡片1：選擇條件 -->
       <view class="form-card">
@@ -302,7 +306,7 @@
     </scroll-view>
 
     <!-- 底部固定按鈕 -->
-    <view class="bottom-bar app-h5-fixed-bottom">
+    <view v-if="canSearch" class="bottom-bar app-h5-fixed-bottom">
       <view class="btn btn-submit" @tap="onSearch">{{ t('search.search') }}</view>
       <view class="btn btn-reset" @tap="onReset">{{ t('search.reset') }}</view>
     </view>
@@ -312,7 +316,10 @@
 
 <script setup>
 import { computed, nextTick, reactive, ref } from 'vue'
+import { onShow } from '@dcloudio/uni-app'
 import { searchCandidatesApi } from '@/api/index.js'
+import { getMembershipApi } from '@/api/membership.js'
+import { handleMembershipError, openMembershipUpgrade } from '@/utils/membership.js'
 import { currentLocale, t } from '@/utils/localeRuntime.js'
 import { searchOptionLabel } from '@/utils/searchPresentation.js'
 
@@ -360,11 +367,22 @@ const heightOptionLabels = computed(() => heightOptions.map(choiceLabel))
 // ---- 搜索状态 ----
 const PAGE_SIZE = 20
 const searching = ref(false)
+const canSearch = ref(false)
+const entitlementLoading = ref(true)
 const hasSearched = ref(false)
 const results = ref([])
 const total = ref(0)
 const page = ref(1)
 const contentScrollIntoView = ref('')
+
+onShow(async () => {
+  entitlementLoading.value = true
+  canSearch.value = false
+  try { canSearch.value = (await getMembershipApi()).canSearch === true }
+  catch (error) { if (!handleMembershipError(error)) uni.showToast({ title: t('home.loadFailed'), icon: 'none' }) }
+  finally { entitlementLoading.value = false }
+  if (!canSearch.value) { results.value = []; total.value = 0 }
+})
 
 // ---- 方法 ----
 function toggle (list, value) {
@@ -403,6 +421,12 @@ async function doSearch (pageNum, append = false) {
   if (searching.value) return
   searching.value = true
   try {
+    canSearch.value = (await getMembershipApi()).canSearch === true
+    if (!canSearch.value) {
+      results.value = []
+      total.value = 0
+      return openMembershipUpgrade('search')
+    }
     const payload = buildPayload(pageNum)
     const data = await searchCandidatesApi(payload)
     total.value = data && data.total ? Number(data.total) : 0
@@ -424,6 +448,8 @@ async function doSearch (pageNum, append = false) {
     }
   } catch (e) {
     console.error('search error', e)
+    if (e?.code === 'MEMBERSHIP_REQUIRED') { canSearch.value = false; results.value = []; total.value = 0 }
+    if (!handleMembershipError(e)) uni.showToast({ title: t('home.loadFailed'), icon: 'none' })
   } finally {
     searching.value = false
   }
@@ -449,6 +475,8 @@ function onReset () {
 </script>
 
 <style scoped>
+.search-membership-gate { flex: 1; display: flex; flex-direction: column; justify-content: center; align-items: center; gap: 20px; padding: 32px; text-align: center; color: #6d5b30; }
+.search-membership-gate button { min-height: 44px; padding: 0 24px; line-height: 44px; border-radius: 24px; background: #ffdf85; color: #493812; font-size: 15px; }
 .page {
   --primary-color: #fff6df;
   --secondary-color: #606266;

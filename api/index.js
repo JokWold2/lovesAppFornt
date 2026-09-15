@@ -1,6 +1,7 @@
 import { post, get, put, del } from '../utils/request.js'
 import { config } from '../utils/config.js'
 import { getPresenceSessionId } from '../utils/auth.js'
+import { createMembershipRequestId } from '../utils/membership.js'
 
 /**
  * API 接口统一管理
@@ -125,7 +126,7 @@ export function submitMyProfileApi(payload) {
  * 返回: { total, page, pageSize, results: [...] }
  */
 export function searchCandidatesApi(payload) {
-  return post('/api/search', payload)
+  return post('/api/search', payload, { silent: true })
 }
 
 /**
@@ -135,7 +136,7 @@ export function searchCandidatesApi(payload) {
  * 返回: { profile: {...} }
  */
 export function getCandidateProfileApi(id) {
-  return get(`/api/search/candidates/${id}`)
+  return get(`/api/search/candidates/${id}`, {}, { silent: true, skipAuthRedirect: true })
 }
 
 // ===== 朋友圈相关 =====
@@ -373,8 +374,8 @@ export function getFeaturedFeedApi({ limit = 15, seed, cursor } = {}) {
 }
 
 // 资料点赞/取消点赞
-export function toggleProfileLikeApi(profileId) {
-  return post(`/api/explore/profiles/${profileId}/like`)
+export function toggleProfileLikeApi(profileId, liked, requestId = createMembershipRequestId()) {
+  return post(`/api/explore/profiles/${profileId}/like`, { ...(typeof liked === 'boolean' ? { liked } : {}), requestId }, { silent: true })
 }
 
 // 资料点赞人列表
@@ -388,8 +389,8 @@ export function getProfileCommentsApi(profileId) {
 }
 
 // 发表资料评论（支持回复）
-export function addProfileCommentApi(profileId, content, replyToUserId) {
-  return post(`/api/explore/profiles/${profileId}/comments`, { content, replyToUserId })
+export function addProfileCommentApi(profileId, content, replyToUserId, requestId = createMembershipRequestId()) {
+  return post(`/api/explore/profiles/${profileId}/comments`, { content, replyToUserId, requestId }, { silent: true })
 }
 export default {
   loginApi,

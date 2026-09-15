@@ -2,20 +2,26 @@
 	// import { setupRouteGuard } from '@/utils/guard.js'
 	import { validateTokenApi, heartbeatPresenceApi, offlinePresenceApi } from '@/api/index.js'
 	import { getToken, getUserInfo, removeToken, removeUserInfo, setUserInfo } from '@/utils/auth.js'
-	import { refreshUnreadBadge, startUnreadBadgePolling, stopUnreadBadgePolling } from '@/utils/unreadBadge.js'
+	import { refreshUnreadBadge, startUnreadBadgePolling, stopUnreadBadgePolling, resetUnreadBadgeState } from '@/utils/unreadBadge.js'
 	import { installPushListeners, registerCurrentDevice } from '@/utils/pushNotifications.js'
 	import { configurePresenceApiMethods, pausePresence, resumePresence, startPresence, stopPresence } from '@/utils/presence.js'
 	import { bootstrapLocale } from '@/utils/localeRuntime.js'
-	import { getTabSwitchTarget, hideNativeTabBar } from '@/utils/tabBarState.js'
+	import { getSessionRestoreTarget, hideNativeTabBar } from '@/utils/tabBarState.js'
 
 	configurePresenceApiMethods({ heartbeatPresenceApi, offlinePresenceApi })
+	let badgeAppVisible = false
+	function onBadgeSessionChanged() {
+		resetUnreadBadgeState()
+		if (badgeAppVisible && getToken()) startUnreadBadgePolling()
+	}
 
 	export default {
 		globalData: {
 			restoringSession: false
 		},
-		onLaunch: async function() {
+		onLaunch: async function(options = {}) {
 			hideNativeTabBar()
+			uni.$on?.('auth-session-changed', onBadgeSessionChanged)
 			console.log('App Launch')
 			// 安装路由守卫（拦截所有页面跳转，未登录则强制跳到登录页）
 			// setupRouteGuard()
@@ -34,10 +40,10 @@
 				registerCurrentDevice()
 				refreshUnreadBadge()
 				await startPresence()
-				// H5 switchTab to the current page fires onHide without another onShow.
-				// Session restoration may already be running on the rendered homepage.
+				// H5 may restore the session before the entry page enters the stack.
+				// Preserve that entry instead of queuing a switchTab back to itself.
 				const pages = getCurrentPages()
-				const homeTarget = getTabSwitchTarget(pages[pages.length - 1]?.route, 'pages/index/index360')
+				const homeTarget = getSessionRestoreTarget(pages[pages.length - 1]?.route, options?.path)
 				if (homeTarget) uni.switchTab({ url: homeTarget })
 			} catch (error) {
 				// 不记录 Token，只记录服务端状态，方便定位重启后会话失效的原因。
@@ -58,9 +64,9 @@
 		},
 		onShow: function() {
 			console.log('App Show')
+			badgeAppVisible = true
 			resumePresence()
 			if (getToken()) {
-				refreshUnreadBadge()
 				startUnreadBadgePolling()
 				registerCurrentDevice()
 				if (!this.globalData.restoringSession) void startPresence()
@@ -68,6 +74,7 @@
 		},
 		onHide: function() {
 			console.log('App Hide')
+			badgeAppVisible = false
 			stopUnreadBadgePolling()
 			pausePresence()
 		}

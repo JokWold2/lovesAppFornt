@@ -1,4 +1,6 @@
 import { blessingDeckMessages } from './blessingDeckMessages.js'
+import { membershipMessages } from './membershipMessages.js'
+import { feedStateMessages } from './feedStateMessages.js'
 
 export const SUPPORTED_LOCALES = ['zh-Hans', 'zh-Hant', 'en', 'ru', 'ja', 'ko']
 const countryLocales = { CN: 'zh-Hans', HK: 'zh-Hant', MO: 'zh-Hant', TW: 'zh-Hant', US: 'en', RU: 'ru', JP: 'ja', KR: 'ko' }
@@ -11,12 +13,12 @@ const authMessages = {
   ko: { restoring: '로그인 상태를 복원하는 중...', country: '중국', loginTitle: '계정 로그인', registerTitle: '이메일 가입', email: '이메일을 입력하세요', password: '비밀번호를 입력하세요', emailForRegister: '이메일을 입력하세요', verificationCode: '인증 코드를 입력하세요', sendCode: '인증 코드 보내기', confirmPassword: '비밀번호를 다시 입력하세요', passwordHint: '8~20자. 숫자, 대문자, 소문자, 기호 중 두 가지 이상을 사용하세요.', login: '로그인', register: '계정 만들기', forgotPassword: '비밀번호를 잊으셨나요?', agreedPrefix: '다음을 읽고 동의합니다: ', moreMethods: '다른 로그인 방법', codeLogin: '인증 코드 로그인', noAccount: '계정이 없으신가요? ', registerLink: '가입', hasAccount: '이미 계정이 있으신가요? ', backToLogin: '로그인으로 돌아가기', needAgreement: '개인정보 처리방침을 읽고 동의해 주세요', loginSuccess: '로그인했습니다', loginFailed: '로그인에 실패했습니다', googleOnlyAndroid: 'Google 로그인은 Android 앱에서 이용할 수 있습니다', googleSuccess: 'Google 로그인에 성공했습니다', passwordMismatch: '비밀번호가 일치하지 않습니다', registerSuccess: '가입이 완료되었습니다. 로그인해 주세요.', forgotPasswordTodo: '비밀번호 찾기로 이동합니다' }
 }
 const navigationMessages = {
-  'zh-Hans': { home: '首页', messages: '消息', moments: '朋友圈', login: '登录', account: '个人中心' },
-  'zh-Hant': { home: '首頁', messages: '消息', moments: '朋友圈', login: '登入', account: '個人中心' },
-  en: { home: 'Home', messages: 'Messages', moments: 'Moments', login: 'Sign in', account: 'Account' },
-  ru: { home: 'Главная', messages: 'Сообщения', moments: 'Лента', login: 'Вход', account: 'Аккаунт' },
-  ja: { home: 'ホーム', messages: 'メッセージ', moments: 'モーメント', login: 'ログイン', account: 'アカウント' },
-  ko: { home: '홈', messages: '메시지', moments: '모먼트', login: '로그인', account: '내 계정' }
+  'zh-Hans': { home: '首页', likes: '点赞', messages: '消息', moments: '朋友圈', login: '登录', account: '个人中心' },
+  'zh-Hant': { home: '首頁', likes: '按讚', messages: '消息', moments: '朋友圈', login: '登入', account: '個人中心' },
+  en: { home: 'Home', likes: 'Likes', messages: 'Messages', moments: 'Moments', login: 'Sign in', account: 'Account' },
+  ru: { home: 'Главная', likes: 'Симпатии', messages: 'Сообщения', moments: 'Лента', login: 'Вход', account: 'Аккаунт' },
+  ja: { home: 'ホーム', likes: 'いいね', messages: 'メッセージ', moments: 'モーメント', login: 'ログイン', account: 'アカウント' },
+  ko: { home: '홈', likes: '좋아요', messages: '메시지', moments: '모먼트', login: '로그인', account: '내 계정' }
 }
 const legacyIndexMessages = {
   'zh-Hans': { welcomeSubtitle: '幸福相遇・启航美好人生', newUserBadge: '新用户', blessing: '祝福', analysisTools: '分析工具', notifications: '消息', searchCandidates: '搜索候选人', careManagement: '照护管理', familyManagement: '家庭管理', newUser: '新用户', blessingPolicy: '祝福守则', register: '立即注册', helperManual: '助手手册', memberManual: '会员手册', contact: '联系客服' },
@@ -953,5 +955,9 @@ export function translate(locale, key, params = {}) {
   const value = direct ?? alt ?? fallbackValue
   return typeof value === 'string' ? value.replace(/\{(\w+)\}/g, (_, name) => params[name] ?? '') : key
 }
-for (const locale of SUPPORTED_LOCALES) messages[locale].deck = blessingDeckMessages[locale]
+for (const locale of SUPPORTED_LOCALES) {
+  messages[locale].deck = blessingDeckMessages[locale]
+  messages[locale].membership = membershipMessages[locale]
+  messages[locale].feedState = feedStateMessages[locale]
+}
 export { messages }

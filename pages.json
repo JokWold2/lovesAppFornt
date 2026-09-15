@@ -59,6 +59,8 @@
 				"navigationBarTitleText": "消息"
 			}
 		},
+		{ "path": "pages/likes/likes", "style": { "navigationBarTitleText": "点赞", "navigationStyle": "custom", "enablePullDownRefresh": true } },
+		{ "path": "pages/membership/upgrade", "style": { "navigationBarTitleText": "永久会员", "navigationStyle": "custom" } },
 		{
 			"path": "pages/notice/interactionMessages",
 			"style": {
@@ -177,6 +179,12 @@
 				"text": "首頁",
 				"iconPath": "static/tabbar/home-no.png",
 				"selectedIconPath": "static/tabbar/home-active.png"
+			},
+			{
+				"pagePath": "pages/likes/likes",
+				"text": "点赞",
+				"iconPath": "static/img/like.png",
+				"selectedIconPath": "static/img/like_act.png"
 			},
 			{
 				"pagePath": "pages/notice/notice",
