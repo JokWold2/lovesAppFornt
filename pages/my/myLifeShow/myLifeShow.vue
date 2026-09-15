@@ -1,5 +1,5 @@
 <template>
-  <view class="container app-h5-min-screen">
+  <view class="container app-h5-min-screen liquid-tab-page">
     <!-- 加载状态 -->
     <view v-if="loading" class="loading-container">
       <text class="loading-text">{{ t('life.loading') }}</text>
@@ -56,7 +56,7 @@
     <view class="signature" @click="editSignature">
       <text v-if="!editingBio" @click.stop="editSignature">{{ userInfo.bio || t('life.defaultBio') }}</text>
       <input v-else class="bio-input" v-model="bioDraft" :focus="true" confirm-type="done" maxlength="50"
-        :placeholder="t('life.bioPlaceholder')" @confirm="saveBio" @blur="saveBio" />
+        :placeholder="t('life.bioPlaceholder')" @confirm="saveBio" @focus="navigationInputActive = true" @blur="navigationInputActive = false; saveBio()" />
     </view>
     <view style="position: relative;">
       <view style=" position: absolute; top: -100rpx; left: 40rpx;width: 176rpx;height: 90rpx;" @click="goToSearch">
@@ -170,7 +170,7 @@
               <view class="comment-input-inner">
                 <input class="comment-input" v-model="item.commentDraft" :focus="item.showCommentInput"
                   confirm-type="send" :placeholder="item.replyTarget ? `${t('life.reply')} ${item.replyTarget.email}` : t('life.saySomething')"
-                  @confirm="submitComment(item)" />
+                  @confirm="submitComment(item)" @focus="navigationInputActive = true" @blur="navigationInputActive = false" />
                 <text class="comment-send-btn" @click="submitComment(item)">{{ t('life.send') }}</text>
               </view>
             </view>
@@ -180,7 +180,7 @@
     </view>
 
     <!-- 底部发布按钮 -->
-    <view class="fab-container app-h5-fixed-bottom" @click="goToEdit">
+    <view v-show="navigationVisible" class="fab-container" @click="goToEdit">
       <FloatingActionButton text="+" />
       <!-- <view class="fab" @click="goToEdit">
         <text class="fab-icon">+</text>
@@ -189,6 +189,12 @@
 
     <!-- 底部安全区域占位 -->
     <view class="footer-spacer"></view>
+    <LiquidGlassTabBar
+      active-route="pages/my/myLifeShow/myLifeShow"
+      :input-active="navigationInputActive"
+      :hidden="coverExpanded || showLikesSheet || showFacebookPhotoPicker"
+      @visibility-change="navigationVisible = $event"
+    />
     <ProfileLikesSheet :visible="showLikesSheet" :likes="receivedLikes" :total="receivedLikeTotal" @close="showLikesSheet = false" />
     <view v-if="coverExpanded" class="cover-preview-mask" @tap="closeCoverPreview">
       <image class="cover-preview-image" :src="profilePhotos[currentCoverIndex]" mode="aspectFit" @tap.stop />
@@ -240,12 +246,15 @@ import LightningButton from '@/components/common/LightningButton.vue'
 import FloatingActionButton from '@/components/common/FloatingActionButton.vue'
 import ProfileDetailSections from '@/components/profile/ProfileDetailSections.vue'
 import ProfileLikesSheet from '@/components/profile/ProfileLikesSheet.vue'
+import LiquidGlassTabBar from '@/components/navigation/LiquidGlassTabBar.vue'
 import { t, updateTabBarLocale } from '@/utils/localeRuntime.js'
 import { requestFacebookPhotoAccess } from '@/utils/facebookAuth.js'
 import { normalizeFacebookPhotos, toggleFacebookPhotoSelection } from '@/utils/facebookPhotoSelection.js'
 // import loading2 from '@/static/loading/loading2.vue'
 // 状态
 const loading = ref(false)
+const navigationInputActive = ref(false)
+const navigationVisible = ref(true)
 const moments = ref([])
 const profileData = ref(null)
 const profilePhotos = ref([])
@@ -798,6 +807,7 @@ function getUserInfo() {
 }
 
 onShow(() => {
+  navigationInputActive.value = false
   updateTabBarLocale()
   getUserInfo()     // 本地缓存先展示，避免首屏空白
   loadUserProfile() // 再用后端最新数据覆盖，保证回显准确
@@ -811,11 +821,10 @@ onShow(() => {
   min-height: 100vh;
   /* #endif */
   background-color: #f5f5f5;
-  padding-bottom: calc(160rpx + env(safe-area-inset-bottom));
+  padding-bottom: 96px;
+  padding-bottom: calc(96px + constant(safe-area-inset-bottom));
+  padding-bottom: calc(96px + env(safe-area-inset-bottom));
 }
-/* #ifdef H5 */
-.container { padding-bottom: calc(160rpx + env(safe-area-inset-bottom)); }
-/* #endif */
 
 .loading-container {
   display: flex;
@@ -1425,13 +1434,12 @@ onShow(() => {
 /* --- 底部发布按钮 --- */
 .fab-container {
   position: fixed;
-  --app-fixed-bottom-base: 60rpx;
+  bottom: 96px;
+  bottom: calc(96px + constant(safe-area-inset-bottom));
+  bottom: calc(96px + env(safe-area-inset-bottom));
   right: 40rpx;
-//   z-index: 100;
+  z-index: 70;
 }
-/* #ifndef H5 */
-.fab-container { bottom: 60rpx; }
-/* #endif */
 
 .fab {
   width: 100rpx;
@@ -1453,7 +1461,7 @@ onShow(() => {
 
 /* 底部安全区域占位 */
 .footer-spacer {
-  height: calc(100rpx + var(--safe-area-inset-bottom));
+  height: 64px;
 }
 </style>
 <style scoped>

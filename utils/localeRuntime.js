@@ -1,6 +1,6 @@
 import { ref, watch } from 'vue'
 import { createLocaleState } from './localeState.js'
-import { isTabBarRoute } from './tabBarState.js'
+import { activateLiquidTabBar, isTabBarRoute } from './tabBarState.js'
 import { getLocaleBootstrapApi, saveLocalePreferenceApi } from '@/api/index.js'
 
 const adapter = {
@@ -27,11 +27,11 @@ function isCurrentTabBarPage() {
 
 export function updateTabBarLocale() {
   if (!isCurrentTabBarPage()) return false
+  const pages = getCurrentPages()
+  activateLiquidTabBar(pages[pages.length - 1]?.route)
 
-  const items = ['navigation.home', 'navigation.messages', 'navigation.moments']
-  items.forEach((key, index) => {
-    try { uni.setTabBarItem({ index, text: t(key) }) } catch (_) { /* tabBar 尚未创建时由后续 watch 再次同步 */ }
-  })
+  // LiquidGlassTabBar labels react directly to the locale. Native item updates
+  // are unsupported on WeChat custom tab bars and would produce SDK errors.
   return true
 }
 

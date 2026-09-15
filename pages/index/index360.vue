@@ -1,5 +1,5 @@
 <template>
-	<view class="container app-h5-min-screen">
+	<view class="container app-h5-min-screen liquid-tab-page" :class="{ 'is-card-home': model === 'recommend' && currentEntryIndex === 1 && blessingViewMode === 'cards' }" :style="{ '--blessing-header-height': recommendationHeaderHeight + 'px' }">
 		<!-- 状态栏占位 -->
 		<!-- <view
 			class="status-bar"
@@ -353,8 +353,33 @@
 				</view>
 			</view>
 
-			<!-- 帖子信息流 (随机资料卡片) -->
-			<view class="feed-container" v-if="currentEntryIndex == 1">
+			<!-- 祝福：同一份资料数据可切换卡片和原列表。 -->
+			<view class="blessing-section" v-if="currentEntryIndex === 1">
+				<view class="blessing-toolbar">
+					<text class="blessing-heading">{{ t('home.blessing') }}</text>
+					<view class="blessing-view-switch">
+						<button :class="{ selected: blessingViewMode === 'cards' }" :aria-label="t('deck.cardMode')" :aria-pressed="blessingViewMode === 'cards'" :disabled="blessingActionBusy" @click="setBlessingViewMode('cards')"><uni-icons type="images" size="17" :color="blessingViewMode === 'cards' ? '#1c1c1e' : '#77787d'" /><text>{{ t('deck.cards') }}</text></button>
+						<button :class="{ selected: blessingViewMode === 'list' }" :aria-label="t('deck.listMode')" :aria-pressed="blessingViewMode === 'list'" :disabled="blessingActionBusy" @click="setBlessingViewMode('list')"><uni-icons type="list" size="17" :color="blessingViewMode === 'list' ? '#1c1c1e' : '#77787d'" /><text>{{ t('deck.list') }}</text></button>
+					</view>
+				</view>
+				<BlessingCardDeck
+					v-show="blessingViewMode === 'cards'"
+					:items="deckProfiles"
+					:active="blessingViewMode === 'cards'"
+					:loading="loading"
+					:loading-more="loadingMore"
+					:has-more="hasMore"
+					:error="profileLoadError"
+					:revision="blessingRevision"
+					:like-profile="likeBlessingProfile"
+					@dismiss="dismissBlessingCard"
+					@open="openBlessingProfile"
+					@busy-change="blessingActionBusy = $event"
+					@refresh="loadFeed({ isRefresh: true })"
+					@retry="retryProfileFeed"
+					@load-more="loadFeed({ isRefresh: false })"
+				/>
+				<view v-show="blessingViewMode === 'list'" class="feed-container blessing-list">
 				<!-- 首次加载中 -->
 				<view
 					v-if="loading && profiles.length === 0"
@@ -368,7 +393,8 @@
 					v-if="!loading && profiles.length === 0"
 					class="empty-state"
 				>
-					<text class="empty-text">{{ t('home.noRecommendation') }}</text>
+					<text class="empty-text">{{ profileLoadError ? t('home.loadFailed') : t('home.noRecommendation') }}</text>
+					<button v-if="profileLoadError" class="blessing-retry" @click="retryProfileFeed">{{ t('deck.retry') }}</button>
 				</view>
 
 				<view
@@ -421,7 +447,7 @@
 					<!-- 帖子底部操作栏 -->
 					<view class="post-actions">
 						<view class="actions-left">
-							<view class="action-btn" @click="toggleLike(item)">
+							<view class="action-btn" :class="{ 'is-like-busy': item.likeBusy }" @click="toggleLike(item)">
 								<text class="action-icon">{{
 									item.isLiked ? "❤️" : "🤍"
 								}}</text>
@@ -529,10 +555,12 @@
 				>
 					<text>{{ t('home.noMore') }}</text>
 				</view>
+				<view v-if="profileLoadError && profiles.length" class="blessing-retry" @click="retryProfileFeed">{{ t('deck.moreFailed') }}</view>
+				</view>
 			</view>
 			<!-- <AuctionActivity v-if="currentEntryIndex == 2" /> -->
 			<!-- 右下角悬浮按钮：改为回到顶部 -->
-			<view class="fab-button app-h5-fixed-bottom" @click="scrollToTop">
+			<view v-if="currentEntryIndex !== 1 || blessingViewMode === 'list'" class="fab-button app-h5-fixed-bottom" @click="scrollToTop">
 				<uni-icons type="arrow-up" size="28" color="#000"></uni-icons>
 			</view>
 		</view>
@@ -540,12 +568,13 @@
 		<AuctionActivity v-if="model === 'activity'" />
 		<!-- 底部安全区留白 -->
 		<view class="safe-area-bottom"></view>
+		<LiquidGlassTabBar active-route="pages/index/index360" />
 	</view>
 </template>
 
 <script setup>
 import { ref, onMounted, computed, nextTick, watch } from "vue";
-import { onPullDownRefresh, onReachBottom, onPageScroll, onShow } from "@dcloudio/uni-app";
+import { onPullDownRefresh, onReachBottom, onPageScroll, onShow, onResize } from "@dcloudio/uni-app";
 import {
 	getExploreFeedApi,
 	getFeaturedFeedApi,
@@ -553,6 +582,7 @@ import {
 	toggleLikeMomentApi,
 	addCommentApi,
 	toggleProfileLikeApi,
+	getProfileLikesApi,
 	getProfileCommentsApi,
 	addProfileCommentApi,
 } from "@/api/index.js";
@@ -561,6 +591,9 @@ import { ensureTokenValid } from "@/utils/guard.js";
 import AntiqueCollection from "./components/Antiquecollection.vue";
 import AuctionActivity from "./components/Auctionactivity.vue";
 import MarketPreviewSection from "@/components/market/MarketPreviewSection.vue";
+import BlessingCardDeck from '@/components/profile/BlessingCardDeck.vue';
+import LiquidGlassTabBar from '@/components/navigation/LiquidGlassTabBar.vue';
+import { createProfileLikeActions, getDeckCandidates, getProfilePhotos, mergeProfileBatch } from '@/utils/blessingDeck.js';
 import {
 	createLatestRequestGuard,
 	commentDisplayName,
@@ -576,6 +609,14 @@ onShow(() => updateTabBarLocale())
 const statusBarHeight = ref(44);
 const model = ref("recommend");
 const userInfo = ref({});
+const blessingViewMode = ref('cards');
+const blessingActionBusy = ref(false);
+const blessingRevision = ref(0);
+const reviewedProfileIds = ref([]);
+const profileLoadError = ref(false);
+let profileRetryRefresh = true;
+const profileRequestGuard = createLatestRequestGuard();
+const profileLikeActions = createProfileLikeActions({ read: getProfileLikesApi, toggle: toggleProfileLikeApi });
 const recommendationHeaderFixed = ref(false);
 const recommendationHeaderHeight = ref(0);
 
@@ -625,6 +666,7 @@ onMounted(async () => {
 });
 
 watch(currentLocale, updatePageTitle);
+onResize(measureRecommendationHeader);
 
 // ------- 回到顶部 -------
 function scrollToTop() {
@@ -640,6 +682,39 @@ const loadedImageIds = ref(new Set());
 const loading = ref(false);
 const loadingMore = ref(false);
 const hasMore = ref(true);
+const deckProfiles = computed(() => getDeckCandidates(profiles.value, reviewedProfileIds.value, userInfo.value?.id ?? userInfo.value?.userId));
+
+function setBlessingViewMode(mode) {
+	if (blessingActionBusy.value) return;
+	blessingViewMode.value = mode;
+	uni.pageScrollTo({ scrollTop: 0, duration: 0 });
+	measureRecommendationHeader();
+}
+
+function openBlessingProfile(profile) {
+	uni.navigateTo({
+		url: `/pages/searchPerson/personShow/personShow?id=${encodeURIComponent(profile.profileId)}`,
+		fail: () => uni.showToast({ title: t('home.actionFailed'), icon: 'none' })
+	});
+}
+
+function syncProfileLikeState(profile) {
+	for (const item of profiles.value) if (String(item.profileId) === String(profile.profileId)) { item.isLiked = profile.isLiked; item.likeCount = profile.likeCount; }
+	for (const item of featuredItems.value) if (item.type === 'blessing' && String(item.id) === String(profile.profileId)) { item.isLiked = profile.isLiked; item.likeCount = profile.likeCount; }
+}
+
+async function likeBlessingProfile(profile) {
+	const result = await profileLikeActions.ensureLiked(profile);
+	syncProfileLikeState(profile);
+	return result;
+}
+
+function retryProfileFeed() { return loadFeed({ isRefresh: profileRetryRefresh }); }
+
+function dismissBlessingCard({ profileId, revision }) {
+	if (revision !== blessingRevision.value) return;
+	if (!reviewedProfileIds.value.includes(String(profileId))) reviewedProfileIds.value = [...reviewedProfileIds.value, String(profileId)];
+}
 
 // ------- 精选混排瀑布流数据 -------
 const featuredItems = ref([]);
@@ -692,12 +767,8 @@ function getFullImageUrl(path) {
 }
 
 function getMainImage(item) {
-	if (item.photos && item.photos.length > 0)
-		return getFullImageUrl(
-			item.photos[1] ? item.photos[1] : item.photos[0],
-		);
-	if (item.avatarUrl) return getFullImageUrl(item.avatarUrl);
-	return "";
+	const photos = getProfilePhotos(item, config.baseURL);
+	return photos[1] || photos[0] || '';
 }
 
 function isImageLoaded(profileId) {
@@ -740,11 +811,14 @@ function formatLocation(item) {
 }
 
 async function loadFeed({ isRefresh }) {
+	if (isRefresh && blessingActionBusy.value) { uni.stopPullDownRefresh(); return; }
+	if (!isRefresh && (loading.value || loadingMore.value || !hasMore.value)) return;
+	const requestId = profileRequestGuard.begin();
+	profileLoadError.value = false;
 	if (isRefresh) {
 		loading.value = true;
-		loadedImageIds.value = new Set();
+		loadingMore.value = false;
 	} else {
-		if (loadingMore.value || !hasMore.value) return;
 		loadingMore.value = true;
 	}
 
@@ -753,6 +827,7 @@ async function loadFeed({ isRefresh }) {
 			? []
 			: profiles.value.map((p) => p.profileId);
 		const res = await getExploreFeedApi({ limit: 15, excludeIds });
+		if (!profileRequestGuard.isCurrent(requestId)) return;
 
 		const newItems = (res.profiles || []).map((p) => ({
 			...p,
@@ -764,18 +839,28 @@ async function loadFeed({ isRefresh }) {
 		}));
 
 		if (isRefresh) {
-			profiles.value = newItems;
+			profiles.value = mergeProfileBatch([], newItems);
+			loadedImageIds.value = new Set();
+			reviewedProfileIds.value = [];
+			blessingRevision.value++;
 		} else {
-			profiles.value = profiles.value.concat(newItems);
+			const merged = mergeProfileBatch(profiles.value, newItems);
+			if (merged.length === profiles.value.length) res.hasMore = false;
+			profiles.value = merged;
 		}
 		hasMore.value = !!res.hasMore;
 	} catch (e) {
+		if (!profileRequestGuard.isCurrent(requestId)) return;
+		profileLoadError.value = true;
+		profileRetryRefresh = isRefresh;
 		console.error("加载推荐失败", e);
 		uni.showToast({ title: t('home.loadFailed'), icon: "none" });
 	} finally {
-		loading.value = false;
-		loadingMore.value = false;
-		uni.stopPullDownRefresh();
+		if (profileRequestGuard.isCurrent(requestId)) {
+			loading.value = false;
+			loadingMore.value = false;
+			uni.stopPullDownRefresh();
+		}
 	}
 }
 
@@ -865,33 +950,30 @@ onPullDownRefresh(() => {
 
 onPageScroll(({ scrollTop }) => {
 	recommendationHeaderFixed.value =
-		model.value === "recommend" && scrollTop > 8;
+		model.value === "recommend" && !(currentEntryIndex.value === 1 && blessingViewMode.value === 'cards') && scrollTop > 8;
 });
 
 onReachBottom(() => {
+	if (model.value !== 'recommend') return;
 	if (currentEntryIndex.value === 0) {
 		loadFeaturedFeed({ isRefresh: false });
-	} else if (currentEntryIndex.value === 1) {
+	} else if (currentEntryIndex.value === 1 && blessingViewMode.value === 'list') {
 		loadFeed({ isRefresh: false });
 	}
 });
 
 // ------- 点赞 -------
 async function toggleLike(item) {
-	const prevLiked = item.isLiked;
-	const prevCount = item.likeCount || 0;
-	item.isLiked = !prevLiked;
-	item.likeCount = prevCount + (item.isLiked ? 1 : -1);
-
+	if (profileLikeActions.isBusy(item.profileId)) return;
+	item.likeBusy = true;
 	try {
-		const res = await toggleProfileLikeApi(item.profileId);
-		item.isLiked = res.isLiked;
-		item.likeCount = res.likeCount;
+		await profileLikeActions.toggle(item);
+		syncProfileLikeState(item);
 	} catch (e) {
 		console.error("点赞失败", e);
-		item.isLiked = prevLiked;
-		item.likeCount = prevCount;
 		uni.showToast({ title: t('home.actionFailed'), icon: "none" });
+	} finally {
+		item.likeBusy = false;
 	}
 }
 
@@ -922,6 +1004,13 @@ function getFeaturedAddCommentApi(item) {
 }
 
 async function toggleFeaturedLike(item) {
+	if (item.type === 'blessing') {
+		if (profileLikeActions.isBusy(item.id)) return;
+		const profile = { profileId: item.id, isLiked: item.isLiked, likeCount: item.likeCount };
+		try { await profileLikeActions.toggle(profile); syncProfileLikeState(profile); }
+		catch (_) { uni.showToast({ title: t('home.actionFailed'), icon: 'none' }); }
+		return;
+	}
 	const likeApi = getFeaturedLikeApi(item);
 	if (!likeApi) return;
 
@@ -1069,6 +1158,13 @@ const originalEntries = computed(() => [
 
 const currentEntryIndex = ref(1);
 
+watch(() => [deckProfiles.value.length, loading.value, loadingMore.value, currentEntryIndex.value, blessingViewMode.value, model.value], () => {
+	if (model.value === 'recommend' && currentEntryIndex.value === 1 && blessingViewMode.value === 'cards'
+		&& deckProfiles.value.length <= 3 && hasMore.value && !loading.value && !loadingMore.value && !profileLoadError.value) {
+		loadFeed({ isRefresh: false });
+	}
+}, { flush: 'post' });
+
 const handleEntryClick = (index, url) => {
 	if (index >= 4) {
 		uni.navigateTo({
@@ -1077,6 +1173,8 @@ const handleEntryClick = (index, url) => {
 		return;
 	}
 	currentEntryIndex.value = index;
+	recommendationHeaderFixed.value = false;
+	measureRecommendationHeader();
 	if (
 		index === 0 &&
 		featuredItems.value.length === 0 &&
@@ -1606,6 +1704,33 @@ $gray-bg: #f5f6f8;
 .safe-area-bottom {
 	height: env(safe-area-inset-bottom);
 }
+.container.liquid-tab-page {
+	padding-bottom: calc(104px + env(safe-area-inset-bottom));
+}
+.blessing-section {
+	padding: 0 12px;
+	--blessing-card-height: max(280px, min(680px, calc(100vh - var(--window-top, 0px) - var(--blessing-header-height, 180px) - 180px - env(safe-area-inset-bottom))));
+	/* #ifdef H5 */
+	--blessing-card-height: max(280px, min(680px, calc(var(--app-layout-viewport-height, 100dvh) - var(--window-top, 0px) - var(--blessing-header-height, 180px) - 180px - env(safe-area-inset-bottom))));
+	/* #endif */
+}
+.blessing-toolbar { max-width: 460px; margin: 0 auto 4px; min-height: 48px; display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.blessing-heading { font-size: 16px; font-weight: 600; letter-spacing: .5px; color: #28292d; padding-left: 5px; }
+.blessing-view-switch { display: flex; padding: 3px; border-radius: 24px; background: #e9e9ec; }
+.blessing-view-switch button { min-width: 66px; height: 38px; margin: 0; padding: 0 11px; display: flex; align-items: center; justify-content: center; gap: 5px; border-radius: 22px; font-size: 12px; line-height: 1.2; color: #77787d; background: transparent; transition: background 180ms; }
+.blessing-view-switch button::after { border: none; }
+.blessing-view-switch button.selected { color: #1c1c1e; background: #fff; box-shadow: 0 1px 4px rgba(15,15,20,.08); }
+.blessing-view-switch button[disabled] { opacity: .55; }
+.blessing-list { padding: 8px 0 0; }
+.blessing-retry { margin: 10px auto; padding: 10px 16px; width: fit-content; font-size: 13px; color: #46484e; text-align: center; background: #f1f2f4; border-radius: 20px; }
+.is-like-busy { opacity: .5; pointer-events: none; }
+.container.is-card-home { background: #f5f5f7; overflow-x: hidden; }
+.is-card-home .recommendation-sticky-header, .is-card-home .header-nav { background: #f5f5f7; }
+.is-card-home .header-nav { padding-top: 12px; padding-bottom: 7px; }
+.is-card-home .search-container, .is-card-home .filter-icon-box, .is-card-home .safe-area-bottom { display: none; }
+.is-card-home .scroll-tabs-wrapper { padding-top: 4px; padding-bottom: 4px; background: transparent; }
+.fab-button { --app-fixed-bottom-base: calc(108px + env(safe-area-inset-bottom)); bottom: calc(108px + env(safe-area-inset-bottom)); }
+@media (prefers-reduced-motion: reduce) { .blessing-view-switch button { transition: none; } }
 </style>
 <style scoped>
 /* #ifndef H5 */

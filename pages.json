@@ -16,6 +16,7 @@
 			"path": "pages/index/index360",
 			"style": {
 				"navigationBarTitleText": "幸福人生",
+				"navigationBarBackgroundColor": "#f5f5f7",
 				"enablePullDownRefresh": true,
 				"onReachBottomDistance": 100
 			}
@@ -163,6 +164,9 @@
 		"backgroundColor": "#fff6df"
 	},
 	"tabBar": {
+		// #ifdef MP-WEIXIN
+		"custom": true,
+		// #endif
 		"color": "#888888",
 		"selectedColor": "#fff6df",
 		"backgroundColor": "#FFFFFF",
