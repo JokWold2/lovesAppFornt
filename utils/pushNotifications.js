@@ -37,6 +37,6 @@ export function installPushListeners() {
   const api = pushApi()
   if (!api || listenersInstalled) return
   listenersInstalled = true
-  api.addEventListener('receive', () => { uni.showToast({ title: '你收到一条新消息', icon: 'none' }); refreshUnreadBadge() }, false)
-  api.addEventListener('click', message => { uni.navigateTo({ url: readPushRoute(message?.payload || {}) }); refreshUnreadBadge() }, false)
+  api.addEventListener('receive', () => { uni.showToast({ title: '你收到一条新消息', icon: 'none' }); refreshUnreadBadge({ force: true }) }, false)
+  api.addEventListener('click', message => { uni.navigateTo({ url: readPushRoute(message?.payload || {}) }); refreshUnreadBadge({ force: true }) }, false)
 }

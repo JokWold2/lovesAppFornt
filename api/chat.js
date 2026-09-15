@@ -1,10 +1,10 @@
 import { del, get, post, request } from '@/utils/request.js'
 import { config } from '@/utils/config.js'
 
-export const createChatRequestApi = (payload) => post('/api/chat-requests', payload)
+export const createChatRequestApi = (payload) => post('/api/chat-requests', payload, { silent: true })
 export const getChatRequestsApi = () => get('/api/chat-requests')
 export const getChatRequestCandidatesApi = (params) => get('/api/chat-requests/candidates', params)
-export const getChatRequestStatusApi = (targetUserId) => get(`/api/chat-requests/status/${targetUserId}`)
+export const getChatRequestStatusApi = (targetUserId) => get(`/api/chat-requests/status/${targetUserId}`, {}, { silent: true })
 export const approveChatRequestApi = (id, payload) => post(`/api/chat-requests/${id}/approve`, payload)
 export const rejectChatRequestApi = (id, payload) => post(`/api/chat-requests/${id}/reject`, payload)
 export const getChatGroupsApi = () => get('/api/chat-groups')

@@ -35,7 +35,7 @@
         >
           <view class="liquid-tabbar-icon-wrap" :style="itemMagnification(index)">
             <uni-icons :type="item.icon" :size="23" :color="selectedIndex === index ? '#17191c' : '#54585e'" />
-            <text v-if="index === 1 && snapshot.unreadText" class="liquid-tabbar-badge">{{ snapshot.unreadText }}</text>
+            <text v-if="badgeText(item.route)" class="liquid-tabbar-badge">{{ badgeText(item.route) }}</text>
           </view>
           <text class="liquid-tabbar-label">{{ labels[index] }}</text>
         </button>
@@ -54,7 +54,7 @@
 import { computed, getCurrentInstance, nextTick, onActivated, onBeforeUnmount, onDeactivated, onMounted, ref, watch } from 'vue'
 import { onHide, onShow } from '@dcloudio/uni-app'
 import { t } from '@/utils/localeRuntime.js'
-import { TAB_BAR_ITEMS, activateLiquidTabBar, getTabBarIndex, getTabSwitchTarget, isLiquidTabBarVisible, tabBarState } from '@/utils/tabBarState.js'
+import { TAB_BAR_ITEMS, activateLiquidTabBar, getTabBarIndex, getTabSwitchTarget, isLiquidTabBarVisible, isLikesTab, isMessageTab, tabBarState } from '@/utils/tabBarState.js'
 import { createLensMap, createLensMotion, dragLensPosition } from '@/utils/liquidLens.js'
 
 const props = defineProps({
@@ -83,6 +83,11 @@ let resizeObserver = null
 let mouseElement = null
 const motion = createLensMotion({ update: value => { lensPosition.value = value } })
 const labels = computed(() => TAB_BAR_ITEMS.map(item => t(item.labelKey)))
+function badgeText(route) {
+  if (isLikesTab(route)) return snapshot.value.likesUnreadText
+  if (isMessageTab(route)) return snapshot.value.unreadText
+  return ''
+}
 const visible = computed(() => !props.hidden && isLiquidTabBarVisible({
   route: props.activeRoute,
   pageVisible: pageVisible.value,
@@ -99,6 +104,7 @@ const selectionEffectStyle = computed(() => opticsReady.value ? {
   WebkitBackdropFilter: `url(#${glassFilterId}-selection) saturate(1.25)`
 } : {})
 const selectionStyle = computed(() => ({
+  width: `${100 / TAB_BAR_ITEMS.length}%`,
   transform: `translateX(${lensPosition.value * 100}%) scale(${!reducedMotion && dragging.value ? '1.1, 1.1' : !reducedMotion && settling.value ? '1.04, 1.02' : '1, 1'})`
 }))
 
@@ -427,7 +433,6 @@ onBeforeUnmount(() => {
 }
 .liquid-tabbar-selection {
   position: relative;
-  width: 33.333333%;
   height: 100%;
   border: 1px solid rgba(255, 255, 255, 0.86);
   border-radius: 32px;
@@ -496,20 +501,22 @@ onBeforeUnmount(() => {
 .is-selected .liquid-tabbar-label { font-weight: 600; }
 .liquid-tabbar-badge {
   position: absolute;
-  top: -4px;
-  left: 17px;
-  min-width: 16px;
-  height: 16px;
+  top: -5px;
+  left: 16px;
+  min-width: 18px;
+  height: 18px;
   padding: 0 4px;
   border: 1.5px solid rgba(255, 255, 255, 0.96);
   border-radius: 10px;
   box-sizing: border-box;
-  background: #272b31;
+  background: #e53935;
   color: #fff;
-  font-size: 9px;
+  font-size: 10px;
   font-weight: 600;
-  line-height: 13px;
+  line-height: 15px;
   text-align: center;
+  white-space: nowrap;
+  pointer-events: none;
 }
 @supports ((-webkit-backdrop-filter: blur(1px)) or (backdrop-filter: blur(1px))) {
   .liquid-tabbar { background: rgba(246, 247, 248, 0.08); }

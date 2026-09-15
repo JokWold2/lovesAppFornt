@@ -98,6 +98,8 @@
 import { computed, ref, watch } from "vue";
 import { onHide, onShow, onUnload } from "@dcloudio/uni-app";
 import { getNotificationsApi } from "@/api/notifications.js";
+import { getToken } from '@/utils/auth.js';
+import { interactionSummary as notificationSummary } from '@/utils/interactionNavigation.js';
 import { getChatGroupsApi, getChatRequestsApi } from "@/api/chat.js";
 import { refreshUnreadBadge } from "@/utils/unreadBadge.js";
 import GroupAvatar from "@/components/chat/GroupAvatar.vue";
@@ -117,15 +119,10 @@ const isAdmin = Number(uni.getStorageSync("USER_INFO")?.accountLevel) === 5;
 const interactions = computed(() =>
 	notifications.value.filter((item) => item.type !== "chat_request"),
 );
-const interactionUnread = computed(
-	() => interactions.value.filter((item) => !item.is_read).length,
-);
+// The preview list is paginated; unread totals must come from the summary API.
+const interactionUnread = ref(0);
 const latest = computed(() => interactions.value[0]);
-const interactionSummary = computed(() =>
-	latest.value
-		? `${latest.value.actor_name || latest.value.actor_email || t('inbox.user')} ${latest.value.type.includes("comment") ? t('inbox.commented') : t('inbox.liked')}`
-		: t('inbox.noInteractions'),
-);
+const interactionSummary = computed(() => notificationSummary(latest.value, t));
 const interactionDate = computed(() =>
 	latest.value?.created_at
 		? new Date(latest.value.created_at).toLocaleDateString()
@@ -193,11 +190,13 @@ function openRequestReviews() {
 	uni.navigateTo({ url: "/pages/notice/chatRequestReview" });
 }
 async function load() {
+	const sessionToken = getToken();
 	try {
 		const [noticeData, groupData] = await Promise.all([
 			getNotificationsApi({ page: 1, pageSize: 50 }),
 			getChatGroupsApi(),
 		]);
+		if (sessionToken !== getToken()) return;
 		notifications.value = noticeData?.notifications || [];
 		chatGroups.value = groupData?.groups || [];
 		if (isAdmin) {
@@ -207,7 +206,10 @@ async function load() {
 					item.status === "pending" || item.status === "processing",
 			);
 		}
-		await refreshUnreadBadge();
+		const unread = await refreshUnreadBadge();
+		if (sessionToken === getToken() && Number.isFinite(Number(unread?.interactionUnread))) {
+			interactionUnread.value = Math.max(0, Math.floor(Number(unread.interactionUnread)));
+		}
 	} catch (error) {
 		console.error("加载消息失败", error);
 	}

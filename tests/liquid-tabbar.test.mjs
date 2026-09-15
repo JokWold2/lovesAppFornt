@@ -80,8 +80,10 @@ test('native tab hiding is repeated on cached-page activation and unavailable AP
 test('unread changes update custom badges on details and tabs without using unsupported native badge APIs', async () => {
   const unreadSource = await readFile(new URL('../utils/unreadBadge.js', import.meta.url), 'utf8')
   const apiModule = asModuleUrl('export async function getUnreadCountApi() { return globalThis.__liquidTabTestUnreadData }')
+  const authModule = asModuleUrl("export const getToken = () => 'test-session'")
   const unread = await import(asModuleUrl(unreadSource
     .replace("'@/api/notifications.js'", JSON.stringify(apiModule))
+    .replace("'./auth.js'", JSON.stringify(authModule))
     .replace("'./unreadBadgeState.js'", JSON.stringify(asModuleUrl(badgeSource)))
     .replace("'./tabBarState.js'", JSON.stringify(stateModuleUrl))))
   const originalUni = globalThis.uni
@@ -94,13 +96,15 @@ test('unread changes update custom badges on details and tabs without using unsu
   }
   globalThis.getCurrentPages = () => [{ route }]
   try {
-    globalThis.__liquidTabTestUnreadData = { totalUnread: 5 }
+    globalThis.__liquidTabTestUnreadData = { totalUnread: 5, profileLikeUnread: 120 }
     await unread.refreshUnreadBadge()
     assert.equal(navigation.tabBarState.read().unreadText, '5')
+    assert.equal(navigation.tabBarState.read().likesUnreadText, '99+')
     assert.deepEqual(calls, [])
     globalThis.__liquidTabTestUnreadData = { totalUnread: 0 }
     await unread.refreshUnreadBadge()
     assert.equal(navigation.tabBarState.read().unreadText, '')
+    assert.equal(navigation.tabBarState.read().likesUnreadText, '')
     route = 'pages/notice/notice'
     globalThis.__liquidTabTestUnreadData = { totalUnread: 130 }
     await unread.refreshUnreadBadge()
