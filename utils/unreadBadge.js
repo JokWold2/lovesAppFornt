@@ -1,21 +1,14 @@
 import { getUnreadCountApi } from '@/api/notifications.js'
-import { formatUnreadBadge, shouldUpdateTabBarBadge } from './unreadBadgeState.js'
+import { tabBarState } from './tabBarState.js'
 
 let pollingTimer = null
-
-function isCurrentTabBarPage() {
-  if (typeof getCurrentPages !== 'function') return true
-  const pages = getCurrentPages()
-  return shouldUpdateTabBarBadge(pages[pages.length - 1]?.route)
-}
 
 export async function refreshUnreadBadge() {
   try {
     const data = await getUnreadCountApi()
-    const text = formatUnreadBadge(data?.totalUnread)
-    if (!isCurrentTabBarPage()) return data
-    if (text) uni.setTabBarBadge({ index: 1, text })
-    else uni.removeTabBarBadge({ index: 1 })
+    tabBarState.setUnreadCount(data?.totalUnread)
+    // Every tab renders the shared badge. WeChat rejects native badge calls
+    // when tabBar.custom is enabled, including removeTabBarBadge on launch.
     return data
   } catch (error) {
     console.warn('刷新消息未读数失败', error)

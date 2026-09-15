@@ -2,6 +2,11 @@
 <html lang="zh-CN">
 	<head>
 		<meta charset="UTF-8" />
+		<!-- Critical CSS must precede the app bundle: never paint the native H5 bar. -->
+		<style>
+			uni-tabbar { display: none !important; }
+			uni-app, uni-page, uni-page-wrapper { --window-bottom: 0px !important; }
+		</style>
 		<script>
 			var coverSupport = 'CSS' in window && typeof CSS.supports === 'function' && (CSS.supports('top: env(a)') ||
 				CSS.supports('top: constant(a)'))

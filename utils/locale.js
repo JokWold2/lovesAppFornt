@@ -1,3 +1,5 @@
+import { blessingDeckMessages } from './blessingDeckMessages.js'
+
 export const SUPPORTED_LOCALES = ['zh-Hans', 'zh-Hant', 'en', 'ru', 'ja', 'ko']
 const countryLocales = { CN: 'zh-Hans', HK: 'zh-Hant', MO: 'zh-Hant', TW: 'zh-Hant', US: 'en', RU: 'ru', JP: 'ja', KR: 'ko' }
 const authMessages = {
@@ -951,4 +953,5 @@ export function translate(locale, key, params = {}) {
   const value = direct ?? alt ?? fallbackValue
   return typeof value === 'string' ? value.replace(/\{(\w+)\}/g, (_, name) => params[name] ?? '') : key
 }
+for (const locale of SUPPORTED_LOCALES) messages[locale].deck = blessingDeckMessages[locale]
 export { messages }

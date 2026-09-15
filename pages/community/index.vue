@@ -29,7 +29,7 @@
 					:duration="500"
 					:circular="true"
 					:indicator-dots="true"
-					:indicator-active-color="#667eea"
+					indicator-active-color="#667eea"
 					indicator-color="rgba(255,255,255,0.6)"
 					:current="currentNoticeIndex"
 					@change="onNoticeChange"

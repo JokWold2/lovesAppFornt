@@ -6,6 +6,7 @@
 	import { installPushListeners, registerCurrentDevice } from '@/utils/pushNotifications.js'
 	import { configurePresenceApiMethods, pausePresence, resumePresence, startPresence, stopPresence } from '@/utils/presence.js'
 	import { bootstrapLocale } from '@/utils/localeRuntime.js'
+	import { getTabSwitchTarget, hideNativeTabBar } from '@/utils/tabBarState.js'
 
 	configurePresenceApiMethods({ heartbeatPresenceApi, offlinePresenceApi })
 
@@ -14,6 +15,7 @@
 			restoringSession: false
 		},
 		onLaunch: async function() {
+			hideNativeTabBar()
 			console.log('App Launch')
 			// 安装路由守卫（拦截所有页面跳转，未登录则强制跳到登录页）
 			// setupRouteGuard()
@@ -32,7 +34,11 @@
 				registerCurrentDevice()
 				refreshUnreadBadge()
 				await startPresence()
-				uni.switchTab({ url: '/pages/index/index360' })
+				// H5 switchTab to the current page fires onHide without another onShow.
+				// Session restoration may already be running on the rendered homepage.
+				const pages = getCurrentPages()
+				const homeTarget = getTabSwitchTarget(pages[pages.length - 1]?.route, 'pages/index/index360')
+				if (homeTarget) uni.switchTab({ url: homeTarget })
 			} catch (error) {
 				// 不记录 Token，只记录服务端状态，方便定位重启后会话失效的原因。
 				console.warn('启动登录状态校验失败', {

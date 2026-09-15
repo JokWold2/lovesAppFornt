@@ -1,5 +1,5 @@
 <template>
-	<view class="page app-h5-min-screen">
+	<view class="page app-h5-min-screen liquid-tab-page">
 		<view class="header" :class="{ 'search-open': searchOpen }">
 			<view class="header-title-wrap"
 				><text class="page-title">{{ t('navigation.messages') }}</text></view
@@ -18,6 +18,8 @@
 					:focus="searchOpen"
 					:placeholder="t('inbox.search')"
 					confirm-type="search"
+					@focus="navigationInputActive = true"
+					@blur="navigationInputActive = false"
 				/>
 				<uni-icons
 					v-if="searchOpen"
@@ -89,6 +91,7 @@
 		<view v-if="hasSearchKeyword && !hasSearchResults" class="search-empty"
 			>{{ t('inbox.noMatching') }}</view
 		>
+		<LiquidGlassTabBar active-route="pages/notice/notice" :input-active="navigationInputActive" />
 	</view>
 </template>
 <script setup>
@@ -98,6 +101,7 @@ import { getNotificationsApi } from "@/api/notifications.js";
 import { getChatGroupsApi, getChatRequestsApi } from "@/api/chat.js";
 import { refreshUnreadBadge } from "@/utils/unreadBadge.js";
 import GroupAvatar from "@/components/chat/GroupAvatar.vue";
+import LiquidGlassTabBar from '@/components/navigation/LiquidGlassTabBar.vue';
 import { presentGroupName } from "@/utils/chatGroupPresentation.js";
 import { formatConversationTime } from "@/utils/chatMessagePresentation.js";
 import { hasUnreadMessages } from "@/utils/unreadBadgeState.js";
@@ -108,6 +112,7 @@ const notifications = ref([]),
 	requests = ref([]);
 const searchOpen = ref(false),
 	searchKeyword = ref("");
+const navigationInputActive = ref(false);
 const isAdmin = Number(uni.getStorageSync("USER_INFO")?.accountLevel) === 5;
 const interactions = computed(() =>
 	notifications.value.filter((item) => item.type !== "chat_request"),
@@ -218,6 +223,7 @@ function stopMessagePolling() {
 	}
 }
 onShow(() => {
+	navigationInputActive.value = false;
 	updateTabBarLocale();
 	uni.setNavigationBarTitle({ title: t('navigation.messages') });
 	load();
@@ -234,6 +240,9 @@ watch(currentLocale, () => uni.setNavigationBarTitle({ title: t('navigation.mess
 	/* #endif */
 	background: #fff;
 	color: #171822;
+	padding-bottom: 96px;
+	padding-bottom: calc(96px + constant(safe-area-inset-bottom));
+	padding-bottom: calc(96px + env(safe-area-inset-bottom));
 }
 .header {
 	display: flex;

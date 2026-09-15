@@ -5,7 +5,9 @@ import test from 'node:test'
 const root = new URL('../', import.meta.url)
 
 test('publishes a dedicated data-deletion instruction page', async () => {
-  const pages = JSON.parse(await readFile(new URL('pages.json', root), 'utf8'))
+  // uni-app pages.json supports conditional-compilation comment lines.
+  const pagesSource = await readFile(new URL('pages.json', root), 'utf8')
+  const pages = JSON.parse(pagesSource.replace(/^\s*\/\/.*$/gm, ''))
   assert.ok(pages.pages.some(page => page.path === 'pages/legal/dataDeletion'))
   const page = await readFile(new URL('pages/legal/dataDeletion.vue', root), 'utf8')
   assert.match(page, /dataDeletion/)
