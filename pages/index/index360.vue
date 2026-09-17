@@ -39,7 +39,7 @@
 				<view
 					class="nav-tab"
 					:class="{ active: model === 'tutorial' }"
-					@click="model = 'tutorial'"
+					@click="setHomeModel('tutorial')"
 				>
 					<text class="tab-text">{{ t('home.tutorial') }}</text>
 					<view class="tab-line" v-if="model === 'tutorial'"></view>
@@ -47,7 +47,7 @@
 				<view
 					class="nav-tab"
 					:class="{ active: model === 'recommend' }"
-					@click="model = 'recommend'"
+					@click="setHomeModel('recommend')"
 				>
 					<text class="tab-text">{{ t('home.recommend') }}</text>
 					<view class="tab-line" v-if="model === 'recommend'"></view>
@@ -55,7 +55,7 @@
 				<view
 					class="nav-tab"
 					:class="{ active: model === 'activity' }"
-					@click="model = 'activity'"
+					@click="setHomeModel('activity')"
 				>
 					<text class="tab-text">{{ t('home.activity') }}</text>
 					<view class="tab-line" v-if="model === 'activity'"></view>
@@ -72,7 +72,7 @@
 			</view>
 			<view v-if="model === 'recommend'">
 			<!-- 搜索栏 -->
-			<view class="search-container">
+			<view v-if="membership?.canSearch" class="search-container" @click="openSearch">
 				<view class="search-box">
 					<text class="search-placeholder">{{ t('home.search') }}</text>
 				</view>
@@ -89,6 +89,7 @@
 						<view
 							class="tab-pill"
 							v-for="(item, index) in originalEntries"
+							v-show="!item.searchOnly || membership?.canSearch"
 							:key="index"
 							:class="{ active: currentEntryIndex === index }"
 							@click="handleEntryClick(index, item.page)"
@@ -113,19 +114,12 @@
 			<MarketPreviewSection v-if="currentEntryIndex === 3" category="second_hand" :title="t('home.secondHand')" />
 			<!-- 精选混排信息流 -->
 			<view class="feed-container" v-if="currentEntryIndex === 0">
-				<view
-					v-if="featuredLoading && featuredItems.length === 0"
-					class="loading-container"
-				>
-					<text class="loading-text">{{ t('home.loading') }}</text>
-				</view>
-
-				<view
-					v-if="!featuredLoading && featuredItems.length === 0"
-					class="empty-state"
-				>
-					<text class="empty-text">{{ t('home.noFeatured') }}</text>
-				</view>
+				<FeedContentState
+					v-if="visibleFeaturedItems.length === 0"
+					kind="featured"
+					:status="featuredLoading || featuredLoadingMore ? 'loading' : (featuredLoadError ? 'error' : 'empty')"
+					@action="retryFeaturedFeed"
+				/>
 
 				<view class="waterfall-grid">
 					<view
@@ -345,8 +339,9 @@
 				<view v-if="featuredLoadingMore" class="load-more-tip">
 					<text>{{ t('home.loadingMore') }}</text>
 				</view>
+				<button v-if="featuredLoadError && visibleFeaturedItems.length" class="blessing-retry" :disabled="featuredLoading || featuredLoadingMore" @click="retryFeaturedFeed">{{ t('deck.moreFailed') }}</button>
 				<view
-					v-if="!featuredHasMore && featuredItems.length > 0"
+					v-if="!featuredHasMore && visibleFeaturedItems.length > 0"
 					class="load-more-tip"
 				>
 					<text>{{ t('home.noMore') }}</text>
@@ -362,6 +357,10 @@
 						<button :class="{ selected: blessingViewMode === 'list' }" :aria-label="t('deck.listMode')" :aria-pressed="blessingViewMode === 'list'" :disabled="blessingActionBusy" @click="setBlessingViewMode('list')"><uni-icons type="list" size="17" :color="blessingViewMode === 'list' ? '#1c1c1e' : '#77787d'" /><text>{{ t('deck.list') }}</text></button>
 					</view>
 				</view>
+				<button class="blessing-quota" :class="{ 'has-error': membershipLoadError }" :disabled="membershipLoading" @click="onMembershipQuotaTap">
+					<uni-icons v-if="membershipLoadError" type="refreshempty" size="16" color="#87713b" />
+					<text>{{ remainingQuota }}</text>
+				</button>
 				<BlessingCardDeck
 					v-show="blessingViewMode === 'cards'"
 					:items="deckProfiles"
@@ -371,39 +370,33 @@
 					:has-more="hasMore"
 					:error="profileLoadError"
 					:revision="blessingRevision"
-					:like-profile="likeBlessingProfile"
+					:decide-profile="decideBlessingProfile"
+					:handle-error="handleMembershipError"
+					:rewind-available="!!membership?.rewind?.available"
+					:rewind-busy="rewindBusy"
 					@dismiss="dismissBlessingCard"
 					@open="openBlessingProfile"
-					@busy-change="blessingActionBusy = $event"
+					@busy-change="onBlessingBusyChange"
+					@rewind="rewindBlessingCard"
 					@refresh="loadFeed({ isRefresh: true })"
 					@retry="retryProfileFeed"
 					@load-more="loadFeed({ isRefresh: false })"
 				/>
 				<view v-show="blessingViewMode === 'list'" class="feed-container blessing-list">
-				<!-- 首次加载中 -->
-				<view
-					v-if="loading && profiles.length === 0"
-					class="loading-container"
-				>
-					<text class="loading-text">{{ t('home.loading') }}</text>
-				</view>
-
-				<!-- 空状态 -->
-				<view
-					v-if="!loading && profiles.length === 0"
-					class="empty-state"
-				>
-					<text class="empty-text">{{ profileLoadError ? t('home.loadFailed') : t('home.noRecommendation') }}</text>
-					<button v-if="profileLoadError" class="blessing-retry" @click="retryProfileFeed">{{ t('deck.retry') }}</button>
-				</view>
+				<FeedContentState
+					v-if="deckProfiles.length === 0"
+					kind="blessing"
+					:status="loading || loadingMore ? 'loading' : (profileLoadError ? 'error' : 'empty')"
+					@action="retryProfileFeed"
+				/>
 
 				<view
 					class="post-card"
-					v-for="item in profiles"
+					v-for="item in deckProfiles"
 					:key="item.profileId"
 				>
 					<!-- 帖子头部: 用户信息 -->
-					<view class="post-header">
+					<view class="post-header" @click="openBlessingProfile(item)">
 						<view class="post-avatar">
 							<image
 								v-if="item.avatarUrl"
@@ -430,7 +423,7 @@
 					</view>
 
 					<!-- 帖子图片 -->
-					<view class="post-media" v-if="getMainImage(item)">
+					<view class="post-media" v-if="getMainImage(item)" @click="openBlessingProfile(item)">
 						<view v-if="!isImageLoaded(item.profileId)" class="media-skeleton">
 							<view class="skeleton-line skeleton-line-wide"></view>
 							<view class="skeleton-line skeleton-line-short"></view>
@@ -550,17 +543,17 @@
 					<text>{{ t('home.loadingMore') }}</text>
 				</view>
 				<view
-					v-if="!hasMore && profiles.length > 0"
+					v-if="!hasMore && deckProfiles.length > 0"
 					class="load-more-tip"
 				>
 					<text>{{ t('home.noMore') }}</text>
 				</view>
-				<view v-if="profileLoadError && profiles.length" class="blessing-retry" @click="retryProfileFeed">{{ t('deck.moreFailed') }}</view>
+				<button v-if="profileLoadError && deckProfiles.length" class="blessing-retry" :disabled="loading || loadingMore" @click="retryProfileFeed">{{ t('deck.moreFailed') }}</button>
 				</view>
 			</view>
 			<!-- <AuctionActivity v-if="currentEntryIndex == 2" /> -->
 			<!-- 右下角悬浮按钮：改为回到顶部 -->
-			<view v-if="currentEntryIndex !== 1 || blessingViewMode === 'list'" class="fab-button app-h5-fixed-bottom" @click="scrollToTop">
+			<view v-if="(currentEntryIndex === 0 && visibleFeaturedItems.length) || (currentEntryIndex === 1 && blessingViewMode === 'list' && deckProfiles.length) || currentEntryIndex > 1" class="fab-button app-h5-fixed-bottom" @click="scrollToTop">
 				<uni-icons type="arrow-up" size="28" color="#000"></uni-icons>
 			</view>
 		</view>
@@ -573,7 +566,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted, computed, nextTick, watch } from "vue";
+import { ref, onMounted, onBeforeUnmount, computed, nextTick, watch } from "vue";
 import { onPullDownRefresh, onReachBottom, onPageScroll, onShow, onResize } from "@dcloudio/uni-app";
 import {
 	getExploreFeedApi,
@@ -582,7 +575,7 @@ import {
 	toggleLikeMomentApi,
 	addCommentApi,
 	toggleProfileLikeApi,
-	getProfileLikesApi,
+	getCandidateProfileApi,
 	getProfileCommentsApi,
 	addProfileCommentApi,
 } from "@/api/index.js";
@@ -592,8 +585,12 @@ import AntiqueCollection from "./components/Antiquecollection.vue";
 import AuctionActivity from "./components/Auctionactivity.vue";
 import MarketPreviewSection from "@/components/market/MarketPreviewSection.vue";
 import BlessingCardDeck from '@/components/profile/BlessingCardDeck.vue';
+import FeedContentState from '@/components/feedback/FeedContentState.vue';
 import LiquidGlassTabBar from '@/components/navigation/LiquidGlassTabBar.vue';
-import { createProfileLikeActions, getDeckCandidates, getProfilePhotos, mergeProfileBatch } from '@/utils/blessingDeck.js';
+import { getProfilePhotos, mergeProfileBatch } from '@/utils/blessingDeck.js';
+import { createBlessingOperations, filterBlessingCandidates, filterFeaturedBlessings, reconcileBlessingExclusions } from '@/utils/blessingInteractions.js';
+import { getMembershipApi, decideBlessingApi, rewindBlessingApi } from '@/api/membership.js';
+import { createMembershipRequestId, handleMembershipError, notifyBlessingChanged, openMembershipUpgrade } from '@/utils/membership.js';
 import {
 	createLatestRequestGuard,
 	commentDisplayName,
@@ -603,7 +600,16 @@ import {
 } from "@/utils/featuredFeed.js";
 import { currentLocale, t, updateTabBarLocale } from '@/utils/localeRuntime.js';
 
-onShow(() => updateTabBarLocale())
+let homeShown = false;
+onShow(() => {
+	updateTabBarLocale();
+	refreshMembership().catch(() => {});
+	if (homeShown && !blessingActionBusy.value && !rewindBusy.value) {
+		loadFeed({ isRefresh: true });
+		if (featuredItems.value.length) loadFeaturedFeed({ isRefresh: true });
+	}
+	homeShown = true;
+});
 
 // 状态栏高度适配
 const statusBarHeight = ref(44);
@@ -613,10 +619,47 @@ const blessingViewMode = ref('cards');
 const blessingActionBusy = ref(false);
 const blessingRevision = ref(0);
 const reviewedProfileIds = ref([]);
+const localDecisionVersions = new Map();
+let localDecisionVersion = 0;
+const pendingProfileIds = new Set();
 const profileLoadError = ref(false);
 let profileRetryRefresh = true;
 const profileRequestGuard = createLatestRequestGuard();
-const profileLikeActions = createProfileLikeActions({ read: getProfileLikesApi, toggle: toggleProfileLikeApi });
+const membership = ref(null);
+const membershipLoadError = ref(false);
+const membershipLoading = ref(false);
+const rewindBusy = ref(false);
+const activeProfileId = ref(null);
+const cardSnapshots = new Map();
+const operations = createBlessingOperations({ decide: decideBlessingApi, rewind: rewindBlessingApi, refreshMembership, createRequestId: createMembershipRequestId });
+let membershipRevision = 0;
+async function refreshMembership() {
+	const revision = ++membershipRevision;
+	membershipLoadError.value = false;
+	membershipLoading.value = true;
+	try {
+		const data = await getMembershipApi();
+		if (revision === membershipRevision) membership.value = data;
+		return data;
+	} catch (error) {
+		if (revision === membershipRevision) { membership.value = null; membershipLoadError.value = true; }
+		throw error;
+	} finally {
+		if (revision === membershipRevision) membershipLoading.value = false;
+	}
+}
+
+const remainingQuota = computed(() => {
+	if (!membership.value?.usage) return t(membershipLoadError.value ? 'deck.quotaRetry' : 'deck.quotaLoading');
+	const amount = value => value === null ? t('deck.unlimited') : String(value ?? '—');
+	return t('deck.quota', { likes: amount(membership.value.usage.like?.remaining), rewinds: amount(membership.value.usage.rewind?.remaining) });
+});
+
+function onMembershipQuotaTap() {
+	if (membershipLoading.value) return;
+	if (!membership.value || membershipLoadError.value) refreshMembership().catch(() => {});
+	else openMembershipUpgrade();
+}
 const recommendationHeaderFixed = ref(false);
 const recommendationHeaderHeight = ref(0);
 
@@ -682,10 +725,10 @@ const loadedImageIds = ref(new Set());
 const loading = ref(false);
 const loadingMore = ref(false);
 const hasMore = ref(true);
-const deckProfiles = computed(() => getDeckCandidates(profiles.value, reviewedProfileIds.value, userInfo.value?.id ?? userInfo.value?.userId));
+const deckProfiles = computed(() => filterBlessingCandidates(profiles.value, reviewedProfileIds.value, userInfo.value?.id ?? userInfo.value?.userId, activeProfileId.value));
 
 function setBlessingViewMode(mode) {
-	if (blessingActionBusy.value) return;
+	if (blessingActionBusy.value || rewindBusy.value) return;
 	blessingViewMode.value = mode;
 	uni.pageScrollTo({ scrollTop: 0, duration: 0 });
 	measureRecommendationHeader();
@@ -699,21 +742,83 @@ function openBlessingProfile(profile) {
 }
 
 function syncProfileLikeState(profile) {
-	for (const item of profiles.value) if (String(item.profileId) === String(profile.profileId)) { item.isLiked = profile.isLiked; item.likeCount = profile.likeCount; }
-	for (const item of featuredItems.value) if (item.type === 'blessing' && String(item.id) === String(profile.profileId)) { item.isLiked = profile.isLiked; item.likeCount = profile.likeCount; }
+	for (const item of profiles.value) if (String(item.profileId) === String(profile.profileId)) { item.isLiked = profile.isLiked; item.likeCount = profile.likeCount; item.mutual = profile.mutual; }
+	for (const item of featuredItems.value) if (item.type === 'blessing' && String(item.id) === String(profile.profileId)) { item.isLiked = profile.isLiked; item.likeCount = profile.likeCount; item.mutual = profile.mutual; }
 }
 
-async function likeBlessingProfile(profile) {
-	const result = await profileLikeActions.ensureLiked(profile);
-	syncProfileLikeState(profile);
+function setHomeModel(mode) {
+	if (!blessingActionBusy.value && !rewindBusy.value) model.value = mode;
+}
+
+async function decideBlessingProfile(profile, decision) {
+	activeProfileId.value = profile.profileId;
+	cardSnapshots.set(String(profile.profileId), { ...profile });
+	const result = await operations.decide(profile, decision, 'card');
+	refreshMembership().catch(() => {});
 	return result;
 }
 
-function retryProfileFeed() { return loadFeed({ isRefresh: profileRetryRefresh }); }
+function onBlessingBusyChange(busy) {
+	blessingActionBusy.value = busy;
+	if (!busy) activeProfileId.value = null;
+}
 
-function dismissBlessingCard({ profileId, revision }) {
+function retryProfileFeed() {
+	if (loading.value || loadingMore.value) return;
+	if (!membership.value && !membershipLoading.value) refreshMembership().catch(() => {});
+	return loadFeed({ isRefresh: profileLoadError.value ? profileRetryRefresh : true });
+}
+
+function dismissBlessingCard({ profileId, direction, revision, result }) {
 	if (revision !== blessingRevision.value) return;
-	if (!reviewedProfileIds.value.includes(String(profileId))) reviewedProfileIds.value = [...reviewedProfileIds.value, String(profileId)];
+	activeProfileId.value = null;
+	notifyBlessingChanged({ ...result, profileId, decision: direction, source: 'card' });
+}
+
+function onBlessingChanged(change = {}) {
+	if (change.profileId != null) {
+		const id = String(change.profileId);
+		localDecisionVersions.set(id, ++localDecisionVersion);
+		syncProfileLikeState(change);
+		if (change.rewound) reviewedProfileIds.value = reviewedProfileIds.value.filter(value => value !== id);
+		else if (change.isLiked || change.decision === 'pass') reviewedProfileIds.value = [...new Set([...reviewedProfileIds.value, id])];
+	}
+	refreshMembership().catch(() => {});
+}
+uni.$on('blessing:changed', onBlessingChanged);
+onBeforeUnmount(() => uni.$off('blessing:changed', onBlessingChanged));
+
+async function rewindBlessingCard() {
+	if (blessingActionBusy.value || rewindBusy.value || loading.value || loadingMore.value || !membership.value?.rewind?.available) return;
+	rewindBusy.value = true;
+	try {
+		const { result, membership: freshMembership } = await operations.rewind(membership.value.rewind.actionId);
+		membership.value = freshMembership;
+		activeProfileId.value = null;
+		let restored = cardSnapshots.get(String(result.profileId)) || profiles.value.find(item => String(item.profileId) === String(result.profileId));
+		if (!restored) {
+			try {
+				const response = await getCandidateProfileApi(result.profileId);
+				const p = response.profile;
+				if (p) restored = { ...p, profileId: p.id, userId: p.user_id, displayName: [p.native_first_name || p.en_first_name, p.native_last_name || p.en_last_name].filter(Boolean).join(' '), avatarUrl: p.avatar_url, birthYear: p.birth_year, subRegion: p.sub_region, bio: p.bio || p.Selfintroduction };
+			} catch (_) { /* A refresh can recover a restored profile if details are temporarily unavailable. */ }
+		}
+		if (restored) profiles.value = [{ ...restored, ...result, showComments: false, comments: restored.comments || [], commentDraft: '' }, ...profiles.value.filter(item => String(item.profileId) !== String(result.profileId))];
+		blessingRevision.value++;
+		notifyBlessingChanged({ ...result, rewound: true, source: 'card' });
+		if (!restored) { rewindBusy.value = false; await loadFeed({ isRefresh: true }); }
+	} catch (error) {
+		if (!handleMembershipError(error)) uni.showToast({ title: t('deck.rewindFailed'), icon: 'none' });
+		refreshMembership().catch(() => {});
+	} finally { rewindBusy.value = false; }
+}
+
+async function openSearch() {
+	try {
+		const latest = await refreshMembership();
+		if (!latest.canSearch) return openMembershipUpgrade('search');
+		uni.navigateTo({ url: '/pages/searchPerson/searchPerson' });
+	} catch (error) { if (!handleMembershipError(error)) uni.showToast({ title: t('home.actionFailed'), icon: 'none' }); }
 }
 
 // ------- 精选混排瀑布流数据 -------
@@ -723,8 +828,10 @@ const featuredSeed = ref("");
 const featuredCursor = ref("");
 const featuredLoading = ref(false);
 const featuredLoadingMore = ref(false);
+const featuredLoadError = ref(false);
 const featuredHasMore = ref(true);
 const featuredRequestGuard = createLatestRequestGuard();
+const visibleFeaturedItems = computed(() => filterFeaturedBlessings(featuredItems.value, reviewedProfileIds.value));
 let featuredCommittedState = {
 	seed: "",
 	cursor: "",
@@ -750,7 +857,7 @@ const featuredColumns = computed(() => {
 		return imageHeight + summaryHeight + titleHeight + actionHeight + paddingHeight;
 	};
 
-	for (const item of featuredItems.value) {
+	for (const item of visibleFeaturedItems.value) {
 		const targetColumn =
 			columns[0].height <= columns[1].height ? columns[0] : columns[1];
 		targetColumn.items.push(item);
@@ -811,9 +918,10 @@ function formatLocation(item) {
 }
 
 async function loadFeed({ isRefresh }) {
-	if (isRefresh && blessingActionBusy.value) { uni.stopPullDownRefresh(); return; }
+	if (isRefresh && (blessingActionBusy.value || rewindBusy.value)) { uni.stopPullDownRefresh(); return; }
 	if (!isRefresh && (loading.value || loadingMore.value || !hasMore.value)) return;
 	const requestId = profileRequestGuard.begin();
+	const decisionsBeforeRequest = localDecisionVersion;
 	profileLoadError.value = false;
 	if (isRefresh) {
 		loading.value = true;
@@ -838,10 +946,10 @@ async function loadFeed({ isRefresh }) {
 			commentDraft: "",
 		}));
 
+		reviewedProfileIds.value = reconcileBlessingExclusions(reviewedProfileIds.value, newItems, reviewedProfileIds.value.filter(id => (localDecisionVersions.get(id) || 0) > decisionsBeforeRequest));
 		if (isRefresh) {
 			profiles.value = mergeProfileBatch([], newItems);
 			loadedImageIds.value = new Set();
-			reviewedProfileIds.value = [];
 			blessingRevision.value++;
 		} else {
 			const merged = mergeProfileBatch(profiles.value, newItems);
@@ -875,12 +983,21 @@ function mergeFeaturedItems(items) {
 	);
 }
 
+let featuredRetryRefresh = true;
+function retryFeaturedFeed() {
+	if (featuredLoading.value || featuredLoadingMore.value) return;
+	if (!membership.value && !membershipLoading.value) refreshMembership().catch(() => {});
+	return loadFeaturedFeed({ isRefresh: featuredLoadError.value ? featuredRetryRefresh : true });
+}
+
 async function loadFeaturedFeed({ isRefresh }) {
 	if (!isRefresh && (featuredLoading.value || featuredLoadingMore.value || !featuredHasMore.value)) {
 		return;
 	}
 
 	const requestId = featuredRequestGuard.begin();
+	const decisionsBeforeRequest = localDecisionVersion;
+	featuredLoadError.value = false;
 
 	if (isRefresh) {
 		featuredLoading.value = true;
@@ -901,6 +1018,7 @@ async function loadFeaturedFeed({ isRefresh }) {
 		});
 		if (!featuredRequestGuard.isCurrent(requestId)) return;
 		const items = (res.items || []).map(normalizeFeaturedItem);
+		reviewedProfileIds.value = reconcileBlessingExclusions(reviewedProfileIds.value, items.filter(item => item.type === 'blessing').map(item => ({ profileId: item.id, isLiked: item.isLiked })), reviewedProfileIds.value.filter(id => (localDecisionVersions.get(id) || 0) > decisionsBeforeRequest));
 
 		featuredItems.value = isRefresh ? items : mergeFeaturedItems(items);
 		featuredSeed.value = res.seed || featuredSeed.value;
@@ -914,6 +1032,8 @@ async function loadFeaturedFeed({ isRefresh }) {
 		};
 	} catch (e) {
 		if (!featuredRequestGuard.isCurrent(requestId)) return;
+		featuredLoadError.value = true;
+		featuredRetryRefresh = isRefresh;
 		featuredSeed.value = featuredCommittedState.seed;
 		featuredCursor.value = featuredCommittedState.cursor;
 		featuredHasMore.value = featuredCommittedState.hasMore;
@@ -939,6 +1059,7 @@ function openFeaturedItem(item) {
 }
 
 onPullDownRefresh(() => {
+	refreshMembership().catch(() => {});
 	if (currentEntryIndex.value === 0) {
 		loadFeaturedFeed({ isRefresh: true });
 	} else if (currentEntryIndex.value === 1) {
@@ -963,17 +1084,22 @@ onReachBottom(() => {
 });
 
 // ------- 点赞 -------
-async function toggleLike(item) {
-	if (profileLikeActions.isBusy(item.profileId)) return;
+async function toggleLike(item, source = 'list') {
+	const id = String(item.profileId);
+	if (pendingProfileIds.has(id) || blessingActionBusy.value || rewindBusy.value) return;
+	pendingProfileIds.add(id);
 	item.likeBusy = true;
 	try {
-		await profileLikeActions.toggle(item);
-		syncProfileLikeState(item);
+		const result = item.isLiked
+			? await toggleProfileLikeApi(item.profileId, false)
+			: await operations.decide(item, 'like', source);
+		notifyBlessingChanged({ ...result, profileId: item.profileId, source });
 	} catch (e) {
 		console.error("点赞失败", e);
-		uni.showToast({ title: t('home.actionFailed'), icon: "none" });
+		if (!handleMembershipError(e)) uni.showToast({ title: t('home.actionFailed'), icon: "none" });
 	} finally {
 		item.likeBusy = false;
+		pendingProfileIds.delete(id);
 	}
 }
 
@@ -1005,10 +1131,8 @@ function getFeaturedAddCommentApi(item) {
 
 async function toggleFeaturedLike(item) {
 	if (item.type === 'blessing') {
-		if (profileLikeActions.isBusy(item.id)) return;
 		const profile = { profileId: item.id, isLiked: item.isLiked, likeCount: item.likeCount };
-		try { await profileLikeActions.toggle(profile); syncProfileLikeState(profile); }
-		catch (_) { uni.showToast({ title: t('home.actionFailed'), icon: 'none' }); }
+		await toggleLike(profile, 'featured');
 		return;
 	}
 	const likeApi = getFeaturedLikeApi(item);
@@ -1071,25 +1195,27 @@ function cancelFeaturedReply(item) {
 
 async function submitFeaturedComment(item) {
 	const submitApi = getFeaturedAddCommentApi(item);
-	if (!submitApi) return;
+	if (!submitApi || item.commentSubmitting) return;
 
 	const text = (item.commentDraft || "").trim();
 	if (!text) return;
+	item.commentSubmitting = true;
 	try {
-		const res = await submitApi(
-			item.id,
-			text,
-			item.replyTarget?.userId,
-		);
+		const res = item.type === 'blessing'
+			? await submitApi(item.id, text, item.replyTarget?.userId, commentRequestId(item, text))
+			: await submitApi(item.id, text, item.replyTarget?.userId);
 		item.comments.push(res.comment);
 		item.commentCount = (item.commentCount || 0) + 1;
 		item.commentDraft = "";
 		item.replyTarget = null;
 		item.showComments = false;
+		item.commentRequest = null;
+		if (item.type === 'blessing') refreshMembership().catch(() => {});
 	} catch (e) {
 		console.error("发表精选评论失败", e);
-		uni.showToast({ title: t('home.commentFailed'), icon: "none" });
-	}
+		if (e?.code) item.commentRequest = null;
+		if (item.type !== 'blessing' || !handleMembershipError(e)) uni.showToast({ title: t('home.commentFailed'), icon: "none" });
+	} finally { item.commentSubmitting = false; }
 }
 
 // ------- 评论 -------
@@ -1130,21 +1256,32 @@ function cancelReply(item) {
 
 async function submitComment(item) {
 	const text = (item.commentDraft || "").trim();
-	if (!text) return;
+	if (!text || item.commentSubmitting) return;
+	item.commentSubmitting = true;
 	try {
 		const res = await addProfileCommentApi(
 			item.profileId,
 			text,
 			item.replyTarget?.userId,
+			commentRequestId(item, text),
 		);
 		item.comments.push(res.comment);
 		item.commentCount = (item.commentCount || 0) + 1;
 		item.commentDraft = "";
 		item.replyTarget = null;
+		item.commentRequest = null;
+		refreshMembership().catch(() => {});
 	} catch (e) {
 		console.error("评论失败", e);
-		uni.showToast({ title: t('home.commentFailed'), icon: "none" });
-	}
+		if (e?.code) item.commentRequest = null;
+		if (!handleMembershipError(e)) uni.showToast({ title: t('home.commentFailed'), icon: "none" });
+	} finally { item.commentSubmitting = false; }
+}
+
+function commentRequestId(item, text) {
+	const fingerprint = JSON.stringify([text, item.replyTarget?.userId || null]);
+	if (item.commentRequest?.fingerprint !== fingerprint) item.commentRequest = { fingerprint, id: createMembershipRequestId() };
+	return item.commentRequest.id;
 }
 
 const originalEntries = computed(() => [
@@ -1152,21 +1289,29 @@ const originalEntries = computed(() => [
 	{ name: t('home.blessing'), page: "/pages/wishes/index" },
 	{ name: t('home.antique'), page: "/pages/market/marketList?category=antique" },
 	{ name: t('home.secondHand'), page: "/pages/market/marketList?category=second_hand" },
-	{ name: t('home.searchPeople'), page: "/pages/searchPerson/searchPerson" },
+	{ name: t('home.searchPeople'), page: "/pages/searchPerson/searchPerson", searchOnly: true },
 	{ name: '社区', page: "/pages/community/index" },
 	{ name: '需求市场', page: "/pages/demandhall/index" },
 ]);
 
 const currentEntryIndex = ref(1);
 
+watch(() => [visibleFeaturedItems.value.length, featuredLoading.value, featuredLoadingMore.value, currentEntryIndex.value, model.value], () => {
+	if (model.value === 'recommend' && currentEntryIndex.value === 0 && visibleFeaturedItems.value.length === 0
+		&& featuredHasMore.value && !featuredLoading.value && !featuredLoadingMore.value && !featuredLoadError.value) loadFeaturedFeed({ isRefresh: false });
+}, { flush: 'post' });
+
 watch(() => [deckProfiles.value.length, loading.value, loadingMore.value, currentEntryIndex.value, blessingViewMode.value, model.value], () => {
-	if (model.value === 'recommend' && currentEntryIndex.value === 1 && blessingViewMode.value === 'cards'
-		&& deckProfiles.value.length <= 3 && hasMore.value && !loading.value && !loadingMore.value && !profileLoadError.value) {
+	const needsMore = blessingViewMode.value === 'cards' ? deckProfiles.value.length <= 3 : deckProfiles.value.length === 0;
+	if (model.value === 'recommend' && currentEntryIndex.value === 1 && needsMore
+		&& hasMore.value && !loading.value && !loadingMore.value && !profileLoadError.value && !rewindBusy.value) {
 		loadFeed({ isRefresh: false });
 	}
 }, { flush: 'post' });
 
 const handleEntryClick = (index, url) => {
+	if (blessingActionBusy.value || rewindBusy.value) return;
+	if (url === '/pages/searchPerson/searchPerson') { openSearch(); return; }
 	if (index >= 4) {
 		uni.navigateTo({
 			url: url,
@@ -1407,15 +1552,6 @@ $gray-bg: #f5f6f8;
 	display: flex;
 	flex-direction: column;
 	gap: 24rpx;
-}
-
-.loading-container,
-.empty-state {
-	display: flex;
-	justify-content: center;
-	padding: 100rpx 0;
-	color: $text-sub;
-	font-size: 28rpx;
 }
 
 .load-more-tip {
@@ -1717,13 +1853,19 @@ $gray-bg: #f5f6f8;
 }
 .blessing-toolbar { max-width: 460px; margin: 0 auto 4px; min-height: 48px; display: flex; align-items: center; justify-content: space-between; gap: 12px; }
 .blessing-heading { font-size: 16px; font-weight: 600; letter-spacing: .5px; color: #28292d; padding-left: 5px; }
+.blessing-quota { max-width: 460px; width: 100%; min-height: 44px; padding: 8px 12px; margin: 0 auto 8px; display: flex; align-items: center; justify-content: center; gap: 6px; border: 0; border-radius: 14px; font-size: 12px; line-height: 1.6; color: #87713b; background: transparent; }
+.blessing-quota::after { border: 0; }
+.blessing-quota.has-error { background: #faf6e9; }
+.blessing-quota[disabled] { color: #8b8983; background: transparent; }
 .blessing-view-switch { display: flex; padding: 3px; border-radius: 24px; background: #e9e9ec; }
 .blessing-view-switch button { min-width: 66px; height: 38px; margin: 0; padding: 0 11px; display: flex; align-items: center; justify-content: center; gap: 5px; border-radius: 22px; font-size: 12px; line-height: 1.2; color: #77787d; background: transparent; transition: background 180ms; }
 .blessing-view-switch button::after { border: none; }
 .blessing-view-switch button.selected { color: #1c1c1e; background: #fff; box-shadow: 0 1px 4px rgba(15,15,20,.08); }
 .blessing-view-switch button[disabled] { opacity: .55; }
 .blessing-list { padding: 8px 0 0; }
-.blessing-retry { margin: 10px auto; padding: 10px 16px; width: fit-content; font-size: 13px; color: #46484e; text-align: center; background: #f1f2f4; border-radius: 20px; }
+.blessing-retry { margin: 12px auto; padding: 12px 18px; max-width: 320px; min-height: 44px; font-size: 13px; line-height: 1.5; color: #6c592e; text-align: center; background: #faf6e9; border: 0; border-radius: 22px; transition: transform 140ms cubic-bezier(.23,1,.32,1); }
+.blessing-retry::after { border: 0; }
+.blessing-retry:active { transform: scale(.97); }
 .is-like-busy { opacity: .5; pointer-events: none; }
 .container.is-card-home { background: #f5f5f7; overflow-x: hidden; }
 .is-card-home .recommendation-sticky-header, .is-card-home .header-nav { background: #f5f5f7; }

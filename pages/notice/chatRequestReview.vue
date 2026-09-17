@@ -27,7 +27,7 @@ const requests = ref([]), reviewRequest = ref(null), rejectRequest = ref(null), 
 const defaultAvatar = '/static/logo.png'
 const pendingRequests = computed(() => requests.value.filter(item => item.status === 'pending'))
 function formatTime(value) { return value ? new Date(value).toLocaleString() : '' }
-async function load() { const data = await getChatRequestsApi(); requests.value = data?.requests || []; await refreshUnreadBadge() }
+async function load() { const data = await getChatRequestsApi(); requests.value = data?.requests || []; await refreshUnreadBadge({ force: true }) }
 function openReject(request) { rejectRequest.value = request; rejectReason.value = '' }
 async function reject() { if (!rejectReason.value.trim()) return uni.showToast({ title: t('review.rejectReasonRequired'), icon: 'none' }); try { await rejectChatRequestApi(rejectRequest.value.id, { reviewMessage: rejectReason.value.trim() }); rejectRequest.value = null; await load() } catch (error) { uni.showToast({ title: error?.error || t('review.rejectFailed'), icon: 'none' }) } }
 async function approve(payload) { try { const result = await approveChatRequestApi(reviewRequest.value.id, payload); reviewRequest.value = null; await load(); uni.navigateTo({ url: `/pages/chat/chatRoom?id=${result.groupId}` }) } catch (error) { uni.showToast({ title: error?.error || t('review.approveFailed'), icon: 'none' }) } }

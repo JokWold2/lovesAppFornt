@@ -15,11 +15,15 @@ export function getToken() {
 
 export function setToken(token) {
   if (!token) return
+  const previous = getToken()
   uni.setStorageSync(config.tokenKey, token)
+  if (previous !== token) uni.$emit?.('auth-session-changed')
 }
 
 export function removeToken() {
+  const previous = getToken()
   uni.removeStorageSync(config.tokenKey)
+  if (previous) uni.$emit?.('auth-session-changed')
 }
 
 export function getPresenceSessionId() {

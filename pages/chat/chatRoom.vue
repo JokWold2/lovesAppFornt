@@ -334,7 +334,7 @@ async function load({ silent = false } = {}) {
 		forceScrollAfterLoad = false;
 		forceScrollReason = null;
 		hasLoadedInitialMessages = true;
-		refreshUnreadBadge().catch((error) =>
+		refreshUnreadBadge({ force: true }).catch((error) =>
 			console.warn("刷新未读角标失败", error),
 		);
 	} catch (error) {

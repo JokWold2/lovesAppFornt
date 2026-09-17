@@ -49,6 +49,7 @@ export function featuredItemImage(item = {}) {
  * @returns {string}
  */
 export function featuredItemRoute(item = {}) {
+	if (item.type === 'blessing' && item.id) return `/pages/searchPerson/personShow/personShow?id=${encodeURIComponent(item.id)}`
 	if (item.type === 'moment' && item.id) return `/pages/moments/momentDetail?id=${item.id}`
   if (item.type !== 'antique' && item.type !== 'second_hand') return ''
   if (item.marketCategory !== 'antique' && item.marketCategory !== 'second_hand') return ''

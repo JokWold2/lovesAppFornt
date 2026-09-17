@@ -7,7 +7,7 @@
       </view>
       <view
         class="deck-moving"
-        :class="{ 'is-dragging': dragging, 'is-leaving': leaving }"
+        :class="{ 'is-dragging': dragging, 'is-leaving': leaving, 'is-resetting': resetting }"
         :style="cardStyle"
       >
       <view
@@ -45,12 +45,8 @@
         <view v-if="photos.length > 1" class="deck-photo-dots">
           <view v-for="(_, index) in photos" :key="index" class="deck-photo-dot" :class="{ active: index === photoIndex }"></view>
         </view>
-        <view v-if="photos.length > 1" class="deck-photo-controls" @touchstart.stop @mousedown.stop>
-          <button class="photo-control" :aria-label="t('deck.previousPhoto')" @click.stop="changePhoto(-1)"><uni-icons type="left" color="#fff" size="20" /></button>
-          <button class="photo-control" :aria-label="t('deck.nextPhoto')" @click.stop="changePhoto(1)"><uni-icons type="right" color="#fff" size="20" /></button>
-        </view>
-        <view class="deck-stamp deck-stamp-like" :style="{ opacity: likeOpacity }">LIKE</view>
-        <view class="deck-stamp deck-stamp-pass" :style="{ opacity: passOpacity }">NOPE</view>
+        <view class="deck-stamp deck-stamp-like" :style="{ opacity: likeOpacity }">{{ t('deck.stampLike') }}</view>
+        <view class="deck-stamp deck-stamp-pass" :style="{ opacity: passOpacity }">{{ t('deck.stampPass') }}</view>
       </view>
       <!-- Keep profile controls outside the photo gesture surface on WeChat. -->
       <view class="deck-caption">
@@ -65,24 +61,32 @@
           <text v-if="current.occupation" class="deck-occupation">{{ current.occupation }}</text>
           <text v-if="current.bio" class="deck-bio">{{ current.bio }}</text>
         </view>
-        <button class="deck-detail" :aria-label="t('deck.viewProfile')" :disabled="busy" @click.stop="openDetail">
+        <button class="deck-detail" :aria-label="t('deck.viewProfile')" :disabled="busy || rewindBusy" @click.stop="openDetail">
           <view class="deck-detail-arrow" aria-hidden="true"></view>
         </button>
       </view>
       </view>
+      <!-- This button is outside the swipe surface: stopping touchstart also
+           prevents native tap behavior on non-H5 platforms. Keep one tap target. -->
+      <button class="deck-rewind" :disabled="busy || loading || rewindBusy || !rewindAvailable" :aria-label="t('deck.rewind')" @click.stop="emit('rewind')">
+        <view class="deck-rewind-arrow" aria-hidden="true"></view>
+      </button>
       <view class="deck-actions" @touchstart.stop @mousedown.stop>
-        <button class="deck-action deck-action-pass" :disabled="busy || loading" :aria-label="t('deck.pass')" @click="decide('pass')"><uni-icons type="closeempty" size="32" color="#fff" /></button>
-        <text class="deck-action-caption" aria-live="polite">{{ busy ? t('deck.saving') : t('deck.swipeHint') }}</text>
-        <button class="deck-action deck-action-like" :disabled="busy || loading" :aria-label="t('deck.like')" @click="decide('like')"><uni-icons type="heart-filled" size="32" color="#ff453a" /></button>
+        <button class="deck-action deck-action-pass" :disabled="busy || loading || rewindBusy" :aria-label="t('deck.pass')" @click="decide('pass')"><uni-icons type="closeempty" size="32" color="#fff" /></button>
+        <text class="deck-action-caption" aria-live="polite">{{ busy || rewindBusy ? t('deck.saving') : t('deck.swipeHint') }}</text>
+        <button class="deck-action deck-action-like" :disabled="busy || loading || rewindBusy" :aria-label="t('deck.like')" @click="decide('like')"><uni-icons type="heart-filled" size="32" color="#ff453a" /></button>
       </view>
     </view>
-    <view v-else class="deck-empty" aria-live="polite">
-      <view v-if="loading || loadingMore" class="deck-spinner"></view>
-      <uni-icons v-else type="person" size="48" color="#95969a" />
-      <text class="deck-empty-title">{{ loading || loadingMore ? t('home.loading') : (error ? t('home.loadFailed') : t('deck.caughtUp')) }}</text>
-      <text v-if="!loading && !loadingMore" class="deck-empty-hint">{{ error ? t('deck.retryHint') : t('deck.emptyHint') }}</text>
-      <button v-if="!loading && !loadingMore" class="deck-reload" @click="emit(error ? 'retry' : (hasMore ? 'load-more' : 'refresh'))">{{ error ? t('deck.retry') : t('deck.newRound') }}</button>
-    </view>
+    <FeedContentState
+      v-else
+      class="deck-empty"
+      kind="blessing"
+      :status="loading || loadingMore ? 'loading' : (error ? 'error' : 'empty')"
+      :disabled="rewindBusy"
+      @action="emit(error ? 'retry' : (hasMore ? 'load-more' : 'refresh'))"
+    >
+      <button v-if="rewindAvailable && !loading && !loadingMore" class="deck-empty-rewind" :disabled="rewindBusy" @click="emit('rewind')">{{ rewindBusy ? t('deck.saving') : t('deck.rewind') }}</button>
+    </FeedContentState>
     <view v-if="actionError" class="deck-error" role="status">{{ actionError }}</view>
     <view v-else-if="current && error" class="deck-more-error" @click="emit('retry')">{{ t('deck.moreFailed') }}</view>
   </view>
@@ -93,6 +97,7 @@ import { computed, nextTick, onBeforeUnmount, ref, watch } from 'vue'
 import { onHide } from '@dcloudio/uni-app'
 import { config } from '@/utils/config.js'
 import { t } from '@/utils/localeRuntime.js'
+import FeedContentState from '@/components/feedback/FeedContentState.vue'
 import { createPhotoTapGesture, getProfileAge, getProfilePhotos, getSwipeDecision } from '@/utils/blessingDeck.js'
 
 const props = defineProps({
@@ -103,9 +108,13 @@ const props = defineProps({
   error: Boolean,
   active: { type: Boolean, default: true },
   revision: { type: Number, default: 0 },
-  likeProfile: { type: Function, required: true }
+  likeProfile: { type: Function, default: null },
+  decideProfile: { type: Function, default: null },
+  handleError: { type: Function, default: () => false },
+  rewindAvailable: Boolean,
+  rewindBusy: Boolean
 })
-const emit = defineEmits(['dismiss', 'open', 'refresh', 'retry', 'load-more', 'busy-change'])
+const emit = defineEmits(['dismiss', 'open', 'refresh', 'retry', 'load-more', 'busy-change', 'rewind'])
 const current = computed(() => props.items[0] || null)
 const photos = computed(() => getProfilePhotos(current.value, config.baseURL))
 const photoIndex = ref(0)
@@ -117,6 +126,9 @@ const imageLoaded = ref(false)
 const imageFailed = ref(false)
 const dragging = ref(false)
 const leaving = ref(false)
+// Keep replacement cards still until the next interaction, including on reused
+// mini-program views. A changing key only recreates the element on H5.
+const resetting = ref(true)
 const busy = ref(false)
 const offset = ref({ x: 0, y: 0 })
 const actionError = ref('')
@@ -135,6 +147,7 @@ watch(photo, () => { imageLoaded.value = false; imageFailed.value = false })
 watch(() => [current.value?.profileId, props.revision], () => {
   generation++
   clearTimeout(leaveTimer)
+  resetting.value = true
   busy.value = false
   leaving.value = false
   photoIndex.value = 0
@@ -144,11 +157,11 @@ watch(() => [current.value?.profileId, props.revision], () => {
 watch(() => props.active, active => { if (!active) cancelGesture() })
 
 function changePhoto(direction) {
-  if (busy.value || !photos.value.length) return
+  if (busy.value || props.rewindBusy || !photos.value.length) return
   photoIndex.value = (photoIndex.value + direction + photos.value.length) % photos.value.length
 }
 function openDetail() {
-  if (busy.value || !current.value) return
+  if (busy.value || props.rewindBusy || !current.value) return
   emit('open', current.value)
 }
 function point(event) {
@@ -156,9 +169,10 @@ function point(event) {
   return { x: touch.clientX ?? touch.pageX, y: touch.clientY ?? touch.pageY }
 }
 function startGesture(event, photoDirection) {
-  if (busy.value || props.loading || !props.active || !current.value) return
+  if (busy.value || props.rewindBusy || props.loading || !props.active || !current.value) return
   const start = point(event)
   if (!Number.isFinite(start.x) || !Number.isFinite(start.y)) return
+  resetting.value = false
   gesture = { ...start, time: Date.now(), axis: null }
   photoTap.start({ ...start, direction: photoDirection, time: gesture.time })
   actionError.value = ''
@@ -234,16 +248,21 @@ function onMouseMove(event) { if (mouseActive) moveGesture(event) }
 function onMouseUp(event) { if (mouseActive) endGesture(event) }
 function onMouseLeave(event) { if (mouseActive) endGesture(event, false) }
 async function decide(direction) {
-  if (busy.value || props.loading || !props.active || !current.value) return
+  if (busy.value || props.rewindBusy || props.loading || !props.active || !current.value) return
   const profile = current.value
   const requestGeneration = generation
   const revision = props.revision
   busy.value = true
+  resetting.value = false
   actionError.value = ''
   dragging.value = false
   offset.value = { x: direction === 'like' ? 24 : -24, y: 0 }
   try {
-    if (direction === 'like') {
+    let saved = null
+    if (props.decideProfile) {
+      saved = await props.decideProfile(profile, direction)
+      if (direction === 'like' && !saved?.isLiked) throw new Error('Like was not saved')
+    } else if (direction === 'like') {
       const saved = await props.likeProfile(profile)
       if (!saved?.isLiked) throw new Error('Like was not saved')
     }
@@ -252,17 +271,18 @@ async function decide(direction) {
     offset.value = { x: direction === 'like' ? 900 : -900, y: 0 }
     leaveTimer = setTimeout(async () => {
       if (requestGeneration !== generation) return
-      emit('dismiss', { profileId: profile.profileId, direction, revision })
+      resetting.value = true
+      emit('dismiss', { profileId: profile.profileId, direction, revision, result: saved })
       await nextTick()
       leaving.value = false
       offset.value = { x: 0, y: 0 }
       busy.value = false
     }, 260)
-  } catch (_) {
+  } catch (error) {
     if (requestGeneration !== generation) return
     offset.value = { x: 0, y: 0 }
     busy.value = false
-    actionError.value = t('deck.likeFailed')
+    if (!props.handleError(error)) actionError.value = t('deck.likeFailed')
   }
 }
 onHide(cancelGesture)
@@ -271,6 +291,14 @@ onBeforeUnmount(() => { generation++; clearTimeout(leaveTimer); cancelGesture();
 
 <style scoped lang="scss">
 .blessing-deck { width: 100%; max-width: 460px; margin: 0 auto; }
+.deck-rewind { position: absolute; z-index: 5; top: 28px; right: 16px; display: flex; align-items: center; justify-content: center; width: 44px; height: 44px; margin: 0; padding: 0; border-radius: 50%; border: 1px solid rgba(242,214,139,.7); background: rgba(24,24,26,.52); }
+.deck-rewind::after { border: none; }
+.deck-rewind-arrow { position: relative; width: 24px; height: 24px; pointer-events: none; }
+.deck-rewind-arrow::before { content: ''; position: absolute; inset: 3px; border: 2px solid #f2d68b; border-left-color: transparent; border-radius: 50%; transform: rotate(-35deg); }
+.deck-rewind-arrow::after { content: ''; position: absolute; top: 2px; left: 2px; width: 7px; height: 7px; border-left: 2px solid #f2d68b; border-bottom: 2px solid #f2d68b; }
+.deck-rewind[disabled] { opacity: .4; }
+.deck-empty-rewind { padding: 10px 22px; min-height: 44px; font-size: 13px; line-height: 1.5; border-radius: 24px; color: #795d1e; background: transparent; transition: transform 140ms cubic-bezier(.23,1,.32,1); }
+.deck-empty-rewind:active { transform: scale(.97); }
 .deck-stage { position: relative; height: var(--blessing-card-height, 540px); min-height: 280px; margin: 8px 0 12px; }
 .deck-card, .deck-back { position: absolute; inset: 0; border-radius: 28px; overflow: hidden; background: #242529; }
 .deck-back-far { transform: translateY(12px) scale(.94); background: #d7d7da; }
@@ -279,6 +307,7 @@ onBeforeUnmount(() => { generation++; clearTimeout(leaveTimer); cancelGesture();
 .deck-card { z-index: 2; touch-action: pan-y; user-select: none; -webkit-user-select: none; box-shadow: 0 10px 28px rgba(18,19,22,.1); }
 .deck-moving.is-dragging { transition: none; cursor: grabbing; }
 .deck-moving.is-leaving { transition: transform 260ms ease-in; pointer-events: none; }
+.deck-moving.is-resetting { transition: none; }
 .deck-photo { width: 100%; height: 100%; position: absolute; inset: 0; pointer-events: none; }
 .deck-photo-fallback, .deck-image-loading { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 14px; color: #bfc0c3; font-size: 14px; background: #303136; }
 .deck-image-loading { background: linear-gradient(110deg, #303136 25%, #45464a 45%, #303136 65%); background-size: 220% 100%; animation: shimmer 1.6s linear infinite; }
@@ -288,9 +317,7 @@ onBeforeUnmount(() => { generation++; clearTimeout(leaveTimer); cancelGesture();
 .deck-photo-dots { position: absolute; top: 12px; left: 18px; right: 18px; display: flex; gap: 4px; pointer-events: none; }
 .deck-photo-dot { height: 3px; flex: 1; border-radius: 4px; background: rgba(255,255,255,.28); }
 .deck-photo-dot.active { background: #fff; }
-.deck-photo-controls { position: absolute; z-index: 2; top: 28px; right: 12px; display: flex; gap: 4px; }
-.photo-control { display: flex; align-items: center; justify-content: center; width: 44px; height: 44px; padding: 0; border-radius: 50%; background: rgba(20,20,22,.25); }
-.photo-control::after, .deck-detail::after, .deck-action::after, .deck-reload::after { border: none; }
+.deck-detail::after, .deck-action::after, .deck-empty-rewind::after { border: none; }
 .deck-stamp { position: absolute; z-index: 2; top: 66px; font-size: 34px; font-weight: 800; letter-spacing: 3px; border: 3px solid; border-radius: 8px; padding: 3px 10px; pointer-events: none; }
 .deck-stamp-like { left: 24px; color: #52f0b4; transform: rotate(-14deg); }
 .deck-stamp-pass { right: 24px; color: #ff766e; transform: rotate(14deg); }
@@ -314,15 +341,10 @@ onBeforeUnmount(() => { generation++; clearTimeout(leaveTimer); cancelGesture();
 .deck-action:active { transform: scale(.92); }
 .deck-action[disabled] { opacity: .45; }
 .deck-action-caption { max-width: 125px; font-size: 11px; line-height: 1.7; text-align: center; color: rgba(255,255,255,.75); }
-.deck-empty { min-height: var(--blessing-card-height, 480px); display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 14px; padding: 24px; box-sizing: border-box; border-radius: 28px; background: #f0f1f3; color: #66686d; }
-.deck-empty-title { font-size: 18px; font-weight: 600; color: #292a2e; text-align: center; }
-.deck-empty-hint { font-size: 13px; line-height: 1.7; text-align: center; }
-.deck-reload { margin: 8px 0 0; min-height: 44px; padding: 0 24px; background: #25262a; border-radius: 24px; color: #fff; font-size: 14px; line-height: 44px; }
+.deck-empty { min-height: 340px; margin: 8px 0 12px; border-radius: 28px; background: #fff; }
 .deck-error, .deck-more-error { padding: 10px 12px; font-size: 13px; line-height: 1.6; text-align: center; color: #b93128; }
 .deck-more-error { color: #686b72; }
-.deck-spinner { width: 26px; height: 26px; border-radius: 50%; border: 2px solid #d6d7da; border-top-color: #35363a; animation: spin .8s linear infinite; }
-@keyframes spin { to { transform: rotate(360deg); } }
 @keyframes shimmer { to { background-position: -220% 0; } }
 @media (max-height: 720px) { .deck-caption { bottom: 96px; } .deck-bio { display: none; } .deck-actions { bottom: 16px; } .deck-action { width: 54px; height: 54px; flex-basis: 54px; } .deck-name { font-size: 25px; } }
-@media (prefers-reduced-motion: reduce) { .deck-moving, .deck-action { transition-duration: .01ms; } .deck-spinner, .deck-image-loading { animation: none; } }
+@media (prefers-reduced-motion: reduce) { .deck-moving, .deck-action, .deck-empty-rewind { transition-duration: .01ms; } .deck-image-loading { animation: none; } .deck-empty-rewind:active { transform: none; } }
 </style>

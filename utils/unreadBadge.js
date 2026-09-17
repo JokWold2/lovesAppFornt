@@ -1,28 +1,28 @@
 import { getUnreadCountApi } from '@/api/notifications.js'
+import { getToken } from './auth.js'
 import { tabBarState } from './tabBarState.js'
+import { createUnreadBadgeController } from './unreadBadgeState.js'
 
-let pollingTimer = null
+const unreadBadge = createUnreadBadgeController({
+  readToken: getToken,
+  fetchSummary: getUnreadCountApi,
+  onSummary: data => tabBarState.setUnreadSummary(data)
+})
 
-export async function refreshUnreadBadge() {
-  try {
-    const data = await getUnreadCountApi()
-    tabBarState.setUnreadCount(data?.totalUnread)
-    // Every tab renders the shared badge. WeChat rejects native badge calls
-    // when tabBar.custom is enabled, including removeTabBarBadge on launch.
-    return data
-  } catch (error) {
-    console.warn('刷新消息未读数失败', error)
-    return null
-  }
+export function refreshUnreadBadge(options) {
+  // Every tab renders shared state. Native badge APIs are unsupported when
+  // WeChat tabBar.custom is enabled and must not be used here.
+  return unreadBadge.refresh(options)
 }
 
-export function startUnreadBadgePolling(interval = 30000) {
-  if (pollingTimer) return
-  pollingTimer = setInterval(() => { refreshUnreadBadge() }, interval)
+export function startUnreadBadgePolling(interval = 5000) {
+  return unreadBadge.start(interval)
 }
 
 export function stopUnreadBadgePolling() {
-  if (!pollingTimer) return
-  clearInterval(pollingTimer)
-  pollingTimer = null
+  unreadBadge.stop()
+}
+
+export function resetUnreadBadgeState() {
+  unreadBadge.reset()
 }
