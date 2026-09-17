@@ -6,7 +6,7 @@
       <view v-for="item in items" :key="item.id" class="interaction-item" @click="openItem(item)">
         <image v-if="item.actor_avatar_url" class="avatar" :src="item.actor_avatar_url" mode="aspectFill" />
         <view v-else class="avatar placeholder">{{ t('inbox.user').slice(0, 1) }}</view>
-        <view class="content"><text class="title">{{ item.actor_name || item.actor_email || t('inbox.user') }} {{ typeLabel(item) }}</text><text v-if="item.content" class="text">{{ item.content }}</text><text class="time">{{ formatTime(item.created_at) }}</text><view v-if="item.type.endsWith('_comment')" class="reply">{{ t('moment.reply') }}</view></view>
+        <view class="content"><text class="title">{{ item.actor_name || item.actor_email || t('inbox.user') }} {{ typeLabel(item) }}</text><text v-if="item.content" class="text">{{ item.content }}</text><text class="time">{{ formatTime(item.created_at) }}</text><view v-if="item.type?.includes('_comment')" class="reply">{{ t('moment.reply') }}</view></view>
         <image v-if="item.target_image_url" class="thumbnail" :src="item.target_image_url" mode="aspectFill" />
       </view>
     </view>
@@ -20,7 +20,12 @@ import { refreshUnreadBadge } from '@/utils/unreadBadge.js'
 import { interactionRoute } from '@/utils/interactionNavigation.js'
 import { currentLocale, t } from '@/utils/localeRuntime.js'
 const items = ref([]), loading = ref(true)
-function typeLabel(item) { return item.type?.includes('comment') ? t('inbox.commented') : t('inbox.liked') }
+// 需求市场的通知类型与点赞/评论不同，单独给出文案，避免被显示成“赞了你”。
+function typeLabel(item) {
+  if (item.type === 'demand_hall_application') return t('inbox.demandHallApplied')
+  if (item.type === 'demand_hall_application_result' || item.type === 'demand_hall_order') return t('inbox.demandHallUpdated')
+  return item.type?.includes('comment') ? t('inbox.commented') : t('inbox.liked')
+}
 function formatTime(value) { return value ? new Date(value).toLocaleString() : '' }
 function openItem(item) { const route = interactionRoute(item); if (route) uni.navigateTo({ url: route }) }
 async function load() { loading.value = true; try { const data = await getNotificationsApi({ page: 1, pageSize: 50 }); items.value = (data?.notifications || []).filter(item => item.type !== 'chat_request'); const unreadIds = items.value.filter(item => !item.is_read).map(item => item.id); if (unreadIds.length) await markNotificationsReadApi(unreadIds); await refreshUnreadBadge() } catch (error) { uni.showToast({ title: t('inbox.loadChatFailed'), icon: 'none' }) } finally { loading.value = false } }

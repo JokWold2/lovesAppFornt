@@ -1154,6 +1154,7 @@ const originalEntries = computed(() => [
 	{ name: t('home.secondHand'), page: "/pages/market/marketList?category=second_hand" },
 	{ name: t('home.searchPeople'), page: "/pages/searchPerson/searchPerson" },
 	{ name: '社区', page: "/pages/community/index" },
+	{ name: '需求市场', page: "/pages/demandhall/index" },
 ]);
 
 const currentEntryIndex = ref(1);

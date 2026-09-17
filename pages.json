@@ -154,6 +154,22 @@
 				"navigationBarTitleText": "社区",
 				"enablePullDownRefresh": false
 			}
+		},
+		{
+			"path": "pages/demandhall/index",
+			"style": {
+				"navigationBarTitleText": "需求市场",
+				"navigationBarTextStyle": "white",
+				"enablePullDownRefresh": false
+			}
+		},
+		{
+			"path": "pages/demandhall/detail",
+			"style": {
+				"navigationBarTitleText": "信息详情",
+				"navigationBarBackgroundColor": "#ff6b35",
+				"navigationBarTextStyle": "white"
+			}
 		}
 
 	],
@@ -164,9 +180,7 @@
 		"backgroundColor": "#fff6df"
 	},
 	"tabBar": {
-		// #ifdef MP-WEIXIN
 		"custom": true,
-		// #endif
 		"color": "#888888",
 		"selectedColor": "#fff6df",
 		"backgroundColor": "#FFFFFF",

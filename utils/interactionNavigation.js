@@ -3,6 +3,11 @@ import { marketFeedRoute } from './marketNavigation.js'
 export function interactionRoute(notification) {
   // 社区帖子暂无详情页，互动提醒统一进入社区列表
   if (notification?.target_type === 'community_post') return '/pages/community/index'
+  // 需求市场的报名 / 选定通知直接进入信息详情；托管交易通知回到板块列表
+  if (notification?.target_type === 'demand_hall_post' && notification.target_id) {
+    return `/pages/demandhall/detail?id=${encodeURIComponent(notification.target_id)}`
+  }
+  if (notification?.target_type === 'demand_hall_order') return '/pages/demandhall/index'
   if (!notification?.market_category || !notification?.market_post_id) return ''
   const baseRoute = marketFeedRoute(notification.market_category, notification.market_post_id)
   if (notification.type !== 'market_comment') return baseRoute

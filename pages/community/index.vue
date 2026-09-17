@@ -1,33 +1,40 @@
 <template>
-	<view class="container">
-		<!-- 顶部标题 -->
-		<view class="page-header">
-			<view class="header-left" @click="goHome">
-				<uni-icons type="back" size="20" color="#fff"></uni-icons>
+	<view class="container app-h5-min-screen">
+		<!-- 顶部导航栏：与首页统一为白底导航 -->
+		<view class="header-nav">
+			<view class="nav-left" @click="goHome">
+				<uni-icons type="back" size="22" color="#333"></uni-icons>
 			</view>
-			<text class="header-title">社区</text>
-			<view class="header-right" @click="goMessages">
-				<uni-icons type="chat-filled" size="20" color="#fff"></uni-icons>
+			<view class="nav-center">
+				<view class="nav-tab active">
+					<text class="tab-text">社区</text>
+					<view class="tab-line"></view>
+				</view>
+			</view>
+			<view class="nav-right" @click="goMessages">
+				<uni-icons type="chat" size="26" color="#333"></uni-icons>
 				<view v-if="unreadCount > 0" class="header-badge">{{ unreadCount > 99 ? '99+' : unreadCount }}</view>
 			</view>
 		</view>
 
 		<!-- 搜索栏 -->
-		<view class="search-bar">
-			<view class="search-input-wrap">
-				<uni-icons type="search" size="18" color="#999"></uni-icons>
-				<input
-					class="search-input"
-					placeholder="搜索话题、帖子、用户..."
-					confirm-type="search"
-					@confirm="onSearchConfirm"
-					@input="onSearchInput"
-					@focus="showSearchPanel = true"
-					v-model="searchKeyword"
-				/>
-				<uni-icons v-if="searchKeyword" type="clear" size="16" color="#ccc" @click="clearSearch"></uni-icons>
+		<view class="search-container">
+			<view class="search-bar">
+				<view class="search-box">
+					<uni-icons type="search" size="16" color="#b0b0b0"></uni-icons>
+					<input
+						class="search-input"
+						placeholder="搜索话题、帖子、用户..."
+						confirm-type="search"
+						@confirm="onSearchConfirm"
+						@input="onSearchInput"
+						@focus="showSearchPanel = true"
+						v-model="searchKeyword"
+					/>
+					<uni-icons v-if="searchKeyword" type="clear" size="16" color="#c0c0c0" @click="clearSearch"></uni-icons>
+				</view>
+				<text class="search-cancel" v-if="showSearchPanel" @click="closeSearchPanel">取消</text>
 			</view>
-			<text class="search-cancel" v-if="showSearchPanel" @click="closeSearchPanel">取消</text>
 		</view>
 
 		<!-- 搜索面板：历史记录 + 热门标签 -->
@@ -35,7 +42,7 @@
 			<view class="panel-section" v-if="searchHistory.length">
 				<view class="panel-title-row">
 					<text class="panel-title">搜索历史</text>
-					<uni-icons type="trash" size="16" color="#999" @click="clearHistory"></uni-icons>
+					<uni-icons type="trash" size="16" color="#b0b0b0" @click="clearHistory"></uni-icons>
 				</view>
 				<view class="history-list">
 					<text
@@ -54,7 +61,7 @@
 						v-for="(tag, i) in tags"
 						:key="i"
 						@click="applyHistoryKeyword(tag)"
-					>🔥{{ tag }}</text>
+					>#{{ tag }}</text>
 				</view>
 			</view>
 		</view>
@@ -66,37 +73,34 @@
 			class="content-scroll"
 			refresher-enabled
 			:refresher-triggered="refreshing"
-			refresher-background="#f5f5f5"
+			refresher-background="#ffffff"
 			@refresherrefresh="onRefresh"
 			@scrolltolower="onLoadMore"
 			lower-threshold="120"
 			@scroll="onScroll"
 			:scroll-top="scrollTopTarget"
 		>
-			<!-- 轮播公告 -->
-			<view class="notice-carousel">
-				<swiper
-					class="swiper-wrapper"
-					:autoplay="true"
-					:interval="3500"
-					:duration="500"
-					:circular="true"
-					:indicator-dots="true"
-					indicator-active-color="#fff"
-					indicator-color="rgba(255,255,255,0.5)"
-					:current="currentNoticeIndex"
-					@change="onNoticeChange"
-				>
-					<swiper-item v-for="notice in notices" :key="notice.id">
-						<view class="notice-item" @click="onNoticeClick(notice)">
-							<view class="notice-icon">
-								<uni-icons type="sound-filled" size="18" color="#fff"></uni-icons>
-							</view>
-							<text class="notice-text">{{ notice.title }}</text>
-							<uni-icons type="right" size="14" color="rgba(255,255,255,0.85)"></uni-icons>
+			<!-- 公告栏：仅文字横向滚动，图标和箭头固定不动 -->
+			<view class="notice-carousel" @click="onNoticeClick(activeNotice)">
+				<view class="notice-item">
+					<view class="notice-icon">
+						<uni-icons type="sound-filled" size="16" color="#1a1a1a"></uni-icons>
+					</view>
+					<view class="notice-viewport">
+						<view class="notice-track" :style="{ transform: `translateX(-${activeNoticeIndex * 100}%)` }">
+							<text class="notice-text" v-for="notice in notices" :key="notice.id">{{ notice.title }}</text>
 						</view>
-					</swiper-item>
-				</swiper>
+					</view>
+					<uni-icons type="right" size="14" color="#999999"></uni-icons>
+				</view>
+				<view class="notice-dots" v-if="notices.length > 1">
+					<view
+						class="notice-dot"
+						v-for="(n, i) in notices"
+						:key="n.id"
+						:class="{ active: i === activeNoticeIndex }"
+					></view>
+				</view>
 			</view>
 
 			<!-- 社区概览数据条 -->
@@ -129,13 +133,12 @@
 					v-for="cat in categories"
 					:key="cat.name"
 					:class="{ active: activeCategory === cat.name }"
-					:style="activeCategory === cat.name ? { background: `linear-gradient(135deg, ${cat.color}, ${shade(cat.color)})` } : {}"
 					@click="switchCategory(cat.name)"
 				>
 					<uni-icons
 						:type="cat.icon"
 						size="16"
-						:color="activeCategory === cat.name ? '#fff' : cat.color"
+						:color="activeCategory === cat.name ? '#1a1a1a' : '#999999'"
 					></uni-icons>
 					<text class="category-name-text" :class="{ 'text-active': activeCategory === cat.name }">{{ cat.name }}</text>
 					<view class="category-count" v-if="categoryCount(cat.name) > 0">{{ categoryCount(cat.name) }}</view>
@@ -167,7 +170,7 @@
 					:class="{ active: activeTab === tab.key }"
 					@click="switchTab(tab.key)"
 				>
-					<uni-icons v-if="tab.icon" :type="tab.icon" size="14" :color="activeTab === tab.key ? '#fff' : '#999'"></uni-icons>
+					<uni-icons v-if="tab.icon" :type="tab.icon" size="14" :color="activeTab === tab.key ? '#1a1a1a' : '#77787d'"></uni-icons>
 					<text class="tab-label">{{ tab.label }}</text>
 				</view>
 			</view>
@@ -213,7 +216,7 @@
 									<view v-if="item.isEssence" class="essence-tag">精华</view>
 								</view>
 								<view class="meta-row">
-									<text class="category-pill" :style="{ color: categoryColor(item.category) }">{{ item.category }}</text>
+									<text class="category-pill">{{ item.category }}</text>
 									<text class="time">{{ formatTime(item.createTime) }}</text>
 								</view>
 							</view>
@@ -251,23 +254,23 @@
 						<view class="post-footer">
 							<view class="action-bar">
 								<view class="action-item">
-									<uni-icons type="eye" size="15" color="#999"></uni-icons>
+									<uni-icons type="eye" size="15" color="#999999"></uni-icons>
 									<text class="action-text">{{ formatNumber(item.viewCount) }}</text>
 								</view>
 								<view class="action-item" @click.stop="toggleComments(item)">
-									<uni-icons :type="item.showComments ? 'chatbubble-filled' : 'chatbubble'" size="15" :color="item.showComments ? '#667eea' : '#999'"></uni-icons>
+									<uni-icons :type="item.showComments ? 'chatbubble-filled' : 'chatbubble'" size="15" :color="item.showComments ? '#1a1a1a' : '#999999'"></uni-icons>
 									<text class="action-text" :class="{ 'color-primary': item.showComments }">{{ item.replyCount || 0 }}</text>
 								</view>
 								<view class="action-item" @click.stop="toggleLike(item)">
-									<uni-icons :type="item.liked ? 'heart-filled' : 'heart'" size="15" :color="item.liked ? '#ff5c5c' : '#999'"></uni-icons>
+									<uni-icons :type="item.liked ? 'heart-filled' : 'heart'" size="15" :color="item.liked ? '#e5484d' : '#999999'"></uni-icons>
 									<text class="action-text" :class="{ 'color-red': item.liked }">{{ formatNumber(item.likeCount) }}</text>
 								</view>
 								<view class="action-item" @click.stop="toggleCollect(item)">
-									<uni-icons :type="item.collected ? 'star-filled' : 'star'" size="15" :color="item.collected ? '#ffb400' : '#999'"></uni-icons>
+									<uni-icons :type="item.collected ? 'star-filled' : 'star'" size="15" :color="item.collected ? '#1a1a1a' : '#999999'"></uni-icons>
 									<text class="action-text" :class="{ 'color-gold': item.collected }">收藏</text>
 								</view>
 								<view class="action-item" @click.stop="sharePost(item)">
-									<uni-icons type="redo" size="15" color="#999"></uni-icons>
+									<uni-icons type="redo" size="15" color="#999999"></uni-icons>
 									<text class="action-text">分享</text>
 								</view>
 							</view>
@@ -294,7 +297,7 @@
 											<text class="comment-time">{{ formatTime(floor.createTime) }}</text>
 											<text class="comment-action-btn" @click="openReplyBox(item, floor)">回复</text>
 											<view class="comment-like" @click="toggleCommentLike(floor)">
-												<uni-icons :type="floor.liked ? 'heart-filled' : 'heart'" size="12" :color="floor.liked ? '#ff5c5c' : '#bbb'"></uni-icons>
+												<uni-icons :type="floor.liked ? 'heart-filled' : 'heart'" size="12" :color="floor.liked ? '#e5484d' : '#bbb'"></uni-icons>
 												<text v-if="floor.likeCount > 0" :class="{ 'color-red': floor.liked }">{{ floor.likeCount }}</text>
 											</view>
 										</view>
@@ -314,7 +317,7 @@
 												<text class="comment-time">{{ formatTime(reply.createTime) }}</text>
 												<text class="comment-action-btn" @click="openReplyBox(item, reply)">回复</text>
 												<view class="comment-like" @click="toggleCommentLike(reply)">
-													<uni-icons :type="reply.liked ? 'heart-filled' : 'heart'" size="12" :color="reply.liked ? '#ff5c5c' : '#bbb'"></uni-icons>
+													<uni-icons :type="reply.liked ? 'heart-filled' : 'heart'" size="12" :color="reply.liked ? '#e5484d' : '#bbb'"></uni-icons>
 													<text v-if="reply.likeCount > 0" :class="{ 'color-red': reply.liked }">{{ reply.likeCount }}</text>
 												</view>
 											</view>
@@ -358,12 +361,12 @@
 
 		<!-- 回到顶部 -->
 		<view class="back-to-top" v-if="showBackToTop && !showSearchPanel" @click="scrollToTop">
-			<uni-icons type="arrow-up" size="20" color="#667eea"></uni-icons>
+			<uni-icons type="arrow-up" size="20" color="#1a1a1a"></uni-icons>
 		</view>
 
 		<!-- 底部发布按钮 -->
 		<view class="publish-btn" v-if="!showSearchPanel" @click="publishPost">
-			<uni-icons type="plus" size="22" color="#fff"></uni-icons>
+			<uni-icons type="plus" size="22" color="#1a1a1a"></uni-icons>
 			<text>发布</text>
 		</view>
 
@@ -461,7 +464,7 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted, nextTick } from "vue";
+import { ref, computed, onMounted, onUnmounted, nextTick } from "vue";
 import {
 	getCommunityHotTagsApi,
 	getCommunityStatsApi,
@@ -580,27 +583,10 @@ function switchCategory(name) {
 	uni.vibrateShort?.({ fail: () => {} });
 }
 
-function categoryColor(name) {
-	return categories.value.find(c => c.name === name)?.color || "#999";
-}
-
 // 分类数量来自后端统计接口的 categoryCounts
 function categoryCount(name) {
 	if (name === "全部") return totalCount.value;
 	return categoryCounts.value[name] || 0;
-}
-
-function shade(hex) {
-	// 简单生成渐变第二色（加深），用于分类高亮背景
-	try {
-		const n = parseInt(hex.replace("#", ""), 16);
-		let r = Math.max(0, (n >> 16) - 25);
-		let g = Math.max(0, ((n >> 8) & 0xff) - 25);
-		let b = Math.max(0, (n & 0xff) - 25);
-		return `rgb(${r},${g},${b})`;
-	} catch (e) {
-		return hex;
-	}
 }
 
 /* ============ 话题标签 ============ */
@@ -763,7 +749,6 @@ function toggleExpand(item) {
 }
 
 /* ============ 轮播公告 ============ */
-const currentNoticeIndex = ref(0);
 const notices = ref([
 	{ id: 1, title: "📢 社区新规：请遵守文明发帖，共同维护社区秩序", type: "rule" },
 	{ id: 2, title: "🎉 社区活动：本周六晚8点线上技术分享，欢迎参加！", type: "activity" },
@@ -771,11 +756,27 @@ const notices = ref([
 	{ id: 4, title: "🎊 恭喜用户「张三」成为本月最佳贡献者！", type: "honor" }
 ]);
 
-function onNoticeChange(e) {
-	currentNoticeIndex.value = e.detail.current;
+const activeNoticeIndex = ref(0);
+const activeNotice = computed(() => notices.value[activeNoticeIndex.value] || notices.value[0] || { title: "" });
+let noticeTimer = null;
+
+function startNoticeRotation() {
+	stopNoticeRotation();
+	if (notices.value.length < 2) return;
+	noticeTimer = setInterval(() => {
+		activeNoticeIndex.value = (activeNoticeIndex.value + 1) % notices.value.length;
+	}, 4000);
+}
+
+function stopNoticeRotation() {
+	if (noticeTimer) {
+		clearInterval(noticeTimer);
+		noticeTimer = null;
+	}
 }
 
 function onNoticeClick(notice) {
+	if (!notice?.title) return;
 	uni.showToast({ title: notice.title.slice(0, 12) + "...", icon: "none" });
 }
 
@@ -1180,50 +1181,86 @@ function goMessages() {
 onMounted(() => {
 	loadAll();
 	loadUnreadCount();
+	startNoticeRotation();
 });
+
+onUnmounted(stopNoticeRotation);
 </script>
 
 <style lang="scss" scoped>
+// 与首页 index360 统一的品牌色板
+$brand-yellow: #ffce00;
+$bg-color: #ffffff;
+$text-main: #1a1a1a;
+$text-sub: #999999;
+$gray-bg: #f5f6f8;
+$line-color: #f2f2f4;
+
 .container {
 	display: flex;
 	flex-direction: column;
 	height: 100vh;
-	background-color: #f5f5f5;
+	background-color: $bg-color;
 	position: relative;
 }
 
-/* 顶部 */
-.page-header {
+/* ---------- 顶部导航栏（对齐首页） ---------- */
+.header-nav {
 	display: flex;
 	align-items: center;
 	justify-content: space-between;
-	padding: 20rpx 24rpx;
-	background: linear-gradient(95deg, #667eea 0%, #764ba2 100%);
-	box-shadow: 0 2rpx 10rpx rgba(0, 0, 0, 0.1);
+	padding: 20rpx 30rpx;
+	background-color: $bg-color;
 	flex-shrink: 0;
 
-	.header-left,
-	.header-right {
-		width: 60rpx;
+	.nav-left,
+	.nav-right {
+		width: 70rpx;
 		display: flex;
 		align-items: center;
 		position: relative;
 	}
 
-	.header-right {
+	.nav-right {
 		justify-content: flex-end;
 	}
 
-	.header-title {
-		font-size: 36rpx;
-		font-weight: bold;
-		color: #fff;
+	.nav-center {
+		flex: 1;
+		display: flex;
+		justify-content: center;
+		align-items: center;
+	}
+
+	.nav-tab {
+		display: flex;
+		flex-direction: column;
+		align-items: center;
+		position: relative;
+		padding-bottom: 10rpx;
+
+		.tab-text {
+			font-size: 34rpx;
+			font-weight: bold;
+			color: $text-main;
+		}
+
+		.tab-line {
+			position: absolute;
+			bottom: 0;
+			left: 50%;
+			transform: translateX(-50%);
+			width: 40rpx;
+			height: 6rpx;
+			border-radius: 4rpx;
+			background-color: $brand-yellow;
+		}
 	}
 
 	.header-badge {
 		position: absolute;
-		top: -10rpx;
-		right: -4rpx;
+		top: -8rpx;
+		right: -6rpx;
 		min-width: 30rpx;
 		height: 30rpx;
 		padding: 0 6rpx;
@@ -1234,47 +1271,51 @@ onMounted(() => {
 		display: flex;
 		align-items: center;
 		justify-content: center;
-		border: 2rpx solid #764ba2;
+		border: 2rpx solid $bg-color;
 	}
 }
 
-/* 搜索栏 */
-.search-bar {
-	display: flex;
-	align-items: center;
-	padding: 16rpx 24rpx;
-	background-color: #fff;
-	box-shadow: 0 2rpx 5rpx rgba(0, 0, 0, 0.05);
+/* ---------- 搜索栏（对齐首页胶囊灰底） ---------- */
+.search-container {
+	padding: 10rpx 30rpx 20rpx;
+	background-color: $bg-color;
 	flex-shrink: 0;
 
-	.search-input-wrap {
-		flex: 1;
+	.search-bar {
 		display: flex;
 		align-items: center;
-		background: #f2f3f7;
+	}
+
+	.search-box {
+		flex: 1;
+		height: 72rpx;
+		background-color: $gray-bg;
 		border-radius: 36rpx;
-		padding: 14rpx 24rpx;
+		display: flex;
+		align-items: center;
 		gap: 12rpx;
+		padding: 0 26rpx;
 	}
 
 	.search-input {
 		flex: 1;
-		font-size: 26rpx;
+		font-size: 27rpx;
+		color: $text-main;
 	}
 
 	.search-cancel {
 		margin-left: 20rpx;
 		font-size: 28rpx;
-		color: #667eea;
+		color: $text-main;
 		flex-shrink: 0;
 	}
 }
 
-/* 搜索面板 */
+/* ---------- 搜索面板 ---------- */
 .search-panel {
 	flex: 1;
-	background: #fff;
-	padding: 24rpx;
+	background: $bg-color;
+	padding: 8rpx 30rpx;
 	overflow-y: auto;
 
 	.panel-section {
@@ -1290,7 +1331,7 @@ onMounted(() => {
 
 	.panel-title {
 		font-size: 26rpx;
-		color: #999;
+		color: $text-sub;
 		font-weight: 600;
 		margin-bottom: 16rpx;
 		display: block;
@@ -1303,74 +1344,106 @@ onMounted(() => {
 	}
 
 	.history-chip {
-		background: #f2f3f7;
-		color: #555;
+		background: $gray-bg;
+		color: #555555;
 		font-size: 24rpx;
-		padding: 12rpx 24rpx;
-		border-radius: 28rpx;
+		padding: 12rpx 26rpx;
+		border-radius: 30rpx;
 
 		&.hot {
-			background: rgba(102, 126, 234, 0.08);
-			color: #667eea;
+			background: rgba(255, 206, 0, 0.22);
+			color: $text-main;
+			font-weight: 600;
 		}
 	}
 }
 
-/* 主滚动区 */
+/* ---------- 主滚动区 ---------- */
 .content-scroll {
 	flex: 1;
 	overflow: hidden;
 }
 
 .scroll-bottom-spacer {
-	height: 140rpx;
+	height: 180rpx;
 }
 
-/* 公告轮播 */
+/* ---------- 公告轮播 ---------- */
 .notice-carousel {
-	margin: 20rpx 24rpx;
-	height: 84rpx;
+	margin: 4rpx 30rpx 20rpx;
 	border-radius: 16rpx;
 	overflow: hidden;
-	box-shadow: 0 4rpx 12rpx rgba(102, 126, 234, 0.25);
-
-	.swiper-wrapper {
-		width: 100%;
-		height: 100%;
-	}
+	background-color: $gray-bg;
+	position: relative;
 
 	.notice-item {
 		display: flex;
 		align-items: center;
 		height: 84rpx;
-		padding: 0 24rpx;
-		background: linear-gradient(95deg, #667eea 0%, #764ba2 100%);
-		gap: 14rpx;
+		padding: 0 26rpx;
+		gap: 16rpx;
 
 		.notice-icon {
+			width: 40rpx;
+			height: 40rpx;
+			border-radius: 50%;
+			background-color: $brand-yellow;
+			display: flex;
+			align-items: center;
+			justify-content: center;
 			flex-shrink: 0;
 		}
 
-		.notice-text {
+		.notice-viewport {
 			flex: 1;
-			font-size: 26rpx;
-			color: #fff;
-			white-space: nowrap;
 			overflow: hidden;
-			text-overflow: ellipsis;
+			min-width: 0;
 		}
+
+		.notice-track {
+			display: flex;
+			width: max-content;
+			transition: transform 0.5s ease-in-out;
+		}
+
+		.notice-text {
+			font-size: 26rpx;
+			color: $text-main;
+			white-space: nowrap;
+			padding-right: 80rpx;
+			flex-shrink: 0;
+		}
+	}
+
+	.notice-dots {
+		position: absolute;
+		bottom: 8rpx;
+		right: 56rpx;
+		display: flex;
+		gap: 8rpx;
+	}
+
+	.notice-dot {
+		width: 8rpx;
+		height: 8rpx;
+		border-radius: 4rpx;
+		background: #d8d8dc;
+		transition: all 0.3s;
+	}
+
+	.notice-dot.active {
+		width: 16rpx;
+		background: $brand-yellow;
 	}
 }
 
-/* 数据条 */
+/* ---------- 数据条 ---------- */
 .stats-bar {
 	display: flex;
 	align-items: center;
-	margin: 0 24rpx 20rpx;
-	background: #fff;
-	border-radius: 16rpx;
-	padding: 22rpx 0;
-	box-shadow: 0 2rpx 10rpx rgba(0, 0, 0, 0.04);
+	margin: 0 30rpx 20rpx;
+	padding-bottom: 22rpx;
+	border-bottom: 1rpx solid $line-color;
 
 	.stats-item {
 		flex: 1;
@@ -1383,96 +1456,104 @@ onMounted(() => {
 	.stats-num {
 		font-size: 30rpx;
 		font-weight: 700;
-		color: #333;
+		color: $text-main;
 
 		&.accent {
-			color: #667eea;
+			color: $text-main;
+			background-color: $brand-yellow;
+			padding: 4rpx 20rpx;
+			border-radius: 22rpx;
+			font-size: 26rpx;
+			font-weight: bold;
+			line-height: 1.3;
 		}
 	}
 
 	.stats-label {
 		font-size: 22rpx;
-		color: #999;
+		color: $text-sub;
 	}
 
 	.stats-divider {
 		width: 1px;
 		height: 40rpx;
-		background: #eee;
+		background: #eeeef0;
 	}
 }
 
-/* 分类导航 */
+/* ---------- 分类导航（首页 tab-pill 风格） ---------- */
 .category-nav {
 	white-space: nowrap;
-	padding: 0 24rpx 20rpx;
+	padding: 0 30rpx 20rpx;
 
 	.category-item {
 		display: inline-flex;
 		align-items: center;
 		gap: 8rpx;
-		padding: 14rpx 26rpx;
-		background-color: #fff;
-		border-radius: 30rpx;
-		margin-right: 16rpx;
-		box-shadow: 0 2rpx 8rpx rgba(0, 0, 0, 0.05);
+		height: 64rpx;
+		padding: 0 30rpx;
+		background-color: $gray-bg;
+		border-radius: 32rpx;
+		margin-right: 20rpx;
 		position: relative;
-		transition: all 0.25s ease;
+		transition: background 0.2s ease;
 
 		&.active {
-			box-shadow: 0 6rpx 16rpx rgba(102, 126, 234, 0.3);
-			transform: translateY(-2rpx);
+			background-color: $brand-yellow;
 		}
 
 		.category-name-text {
-			font-size: 26rpx;
-			color: #333;
+			font-size: 28rpx;
+			color: $text-main;
+			font-weight: 500;
+			white-space: nowrap;
 
 			&.text-active {
-				color: #fff;
-				font-weight: 600;
+				font-weight: bold;
 			}
 		}
 
 		.category-count {
-			font-size: 18rpx;
-			color: #bbb;
+			font-size: 20rpx;
+			color: $text-sub;
 			margin-left: 4rpx;
+		}
+
+		&.active .category-count {
+			color: rgba(26, 26, 26, 0.6);
 		}
 	}
 }
 
-/* 话题标签 */
+/* ---------- 话题标签 ---------- */
 .tags-container {
 	display: flex;
 	flex-wrap: wrap;
-	padding: 0 24rpx 20rpx;
+	padding: 0 30rpx 20rpx;
 	gap: 14rpx;
 
 	.tag-item {
-		background-color: #fff;
+		background-color: $gray-bg;
 		border-radius: 28rpx;
-		padding: 10rpx 24rpx;
+		padding: 10rpx 26rpx;
 		font-size: 24rpx;
-		color: #666;
-		box-shadow: 0 2rpx 6rpx rgba(0, 0, 0, 0.04);
+		color: #666666;
 
 		&.active {
-			background: rgba(102, 126, 234, 0.1);
-			color: #667eea;
+			background: $brand-yellow;
+			color: $text-main;
 			font-weight: 600;
 		}
 	}
 }
 
-/* Tab 切换条 */
+/* ---------- Tab 切换条（分段控件风格） ---------- */
 .tab-bar {
 	display: flex;
-	background-color: #fff;
-	margin: 0 24rpx 20rpx;
-	border-radius: 16rpx;
-	padding: 8rpx;
-	box-shadow: 0 2rpx 10rpx rgba(0, 0, 0, 0.04);
+	background-color: #e9e9ec;
+	margin: 0 30rpx 24rpx;
+	border-radius: 24rpx;
+	padding: 4rpx;
 
 	.slider-tab {
 		flex: 1;
@@ -1480,33 +1561,32 @@ onMounted(() => {
 		align-items: center;
 		justify-content: center;
 		gap: 8rpx;
-		padding: 16rpx 0;
-		border-radius: 12rpx;
-		transition: all 0.25s ease;
+		height: 66rpx;
+		border-radius: 20rpx;
+		transition: background 0.2s ease;
 
 		.tab-label {
 			font-size: 26rpx;
 			font-weight: 600;
-			color: #999;
+			color: #77787d;
 		}
 
 		&.active {
-			background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-			box-shadow: 0 4rpx 12rpx rgba(102, 126, 234, 0.35);
+			background: #fff;
+			box-shadow: 0 1px 4px rgba(15, 15, 20, 0.08);
 
 			.tab-label {
-				color: #fff;
+				color: $text-main;
 			}
 		}
 	}
 }
 
-/* 骨架屏 */
+/* ---------- 骨架屏 ---------- */
 .skeleton-card {
 	background: #fff;
 	border-radius: 20rpx;
-	padding: 28rpx;
-	margin: 0 24rpx 20rpx;
+	padding: 26rpx;
 
 	.skeleton-header {
 		display: flex;
@@ -1515,10 +1595,10 @@ onMounted(() => {
 	}
 
 	.skeleton-avatar {
-		width: 84rpx;
-		height: 84rpx;
+		width: 80rpx;
+		height: 80rpx;
 		border-radius: 50%;
-		background: #eee;
+		background: #eeeef0;
 		margin-right: 20rpx;
 		animation: shimmer 1.4s infinite ease-in-out;
 	}
@@ -1529,7 +1609,7 @@ onMounted(() => {
 
 	.skeleton-line {
 		height: 24rpx;
-		background: #eee;
+		background: #eeeef0;
 		border-radius: 8rpx;
 		margin-bottom: 14rpx;
 		animation: shimmer 1.4s infinite ease-in-out;
@@ -1549,7 +1629,7 @@ onMounted(() => {
 	50% { opacity: 0.5; }
 }
 
-/* 空状态 */
+/* ---------- 空状态 ---------- */
 .empty-state {
 	display: flex;
 	flex-direction: column;
@@ -1560,7 +1640,7 @@ onMounted(() => {
 	.empty-text {
 		font-size: 30rpx;
 		font-weight: 500;
-		color: #666;
+		color: #666666;
 		margin: 24rpx 0 10rpx;
 		text-align: center;
 		padding: 0 48rpx;
@@ -1568,44 +1648,45 @@ onMounted(() => {
 
 	.empty-hint {
 		font-size: 24rpx;
-		color: #999;
+		color: $text-sub;
 	}
 
 	.empty-reset-btn {
 		margin-top: 32rpx;
-		padding: 14rpx 40rpx;
-		background: rgba(102, 126, 234, 0.1);
-		color: #667eea;
-		border-radius: 30rpx;
+		padding: 14rpx 44rpx;
+		background: $brand-yellow;
+		color: $text-main;
+		border-radius: 32rpx;
 		font-size: 26rpx;
+		font-weight: 600;
 	}
 }
 
-/* 帖子列表 */
+/* ---------- 帖子列表 ---------- */
 .post-list {
-	padding: 0 24rpx;
+	padding: 0 30rpx;
 }
 
 .post-item {
-	margin-bottom: 20rpx;
+	margin-bottom: 40rpx;
 }
 
 .post-card {
 	background-color: #fff;
 	border-radius: 20rpx;
-	padding: 26rpx 28rpx;
-	box-shadow: 0 4rpx 16rpx rgba(0, 0, 0, 0.04);
+	box-shadow: 0 2rpx 16rpx rgba(0, 0, 0, 0.05);
+	overflow: hidden;
 
 	.post-header {
 		display: flex;
 		align-items: center;
-		margin-bottom: 18rpx;
+		padding: 26rpx 26rpx 0;
 
 		.avatar-img {
-			width: 80rpx;
-			height: 80rpx;
+			width: 70rpx;
+			height: 70rpx;
 			border-radius: 50%;
-			background-color: #f0f0f0;
+			background-color: #e8e8e8;
 			flex-shrink: 0;
 		}
 
@@ -1622,23 +1703,27 @@ onMounted(() => {
 		}
 
 		.username {
-			font-size: 30rpx;
-			color: #333;
-			font-weight: 600;
+			font-size: 32rpx;
+			color: $text-main;
+			font-weight: bold;
+			overflow: hidden;
+			text-overflow: ellipsis;
+			white-space: nowrap;
 		}
 
 		.vip-tag {
 			font-size: 18rpx;
-			color: #fff;
-			background: linear-gradient(135deg, #f56c6c 0%, #4facfe 100%);
+			color: $text-main;
+			background: $brand-yellow;
 			padding: 3rpx 10rpx;
 			border-radius: 8rpx;
+			font-weight: 600;
 		}
 
 		.essence-tag {
 			font-size: 18rpx;
 			color: #fff;
-			background: linear-gradient(135deg, #ffb020, #ff7a45);
+			background: #1a1a1a;
 			padding: 3rpx 10rpx;
 			border-radius: 8rpx;
 		}
@@ -1653,18 +1738,26 @@ onMounted(() => {
 		.category-pill {
 			font-size: 22rpx;
 			font-weight: 600;
+			color: $text-main;
+			background: rgba(255, 206, 0, 0.35);
+			padding: 2rpx 14rpx;
+			border-radius: 16rpx;
 		}
 
 		.time {
 			font-size: 22rpx;
-			color: #bbb;
+			color: $text-sub;
 		}
+	}
+
+	.post-body {
+		padding: 20rpx 26rpx 0;
 	}
 
 	.post-content {
 		font-size: 28rpx;
-		color: #444;
-		line-height: 1.75;
+		color: #333333;
+		line-height: 1.7;
 		white-space: pre-wrap;
 		word-break: break-word;
 
@@ -1679,7 +1772,7 @@ onMounted(() => {
 	.expand-toggle {
 		display: inline-block;
 		font-size: 24rpx;
-		color: #667eea;
+		color: #8a6d00;
 		margin-top: 8rpx;
 	}
 
@@ -1724,21 +1817,21 @@ onMounted(() => {
 		display: flex;
 		flex-wrap: wrap;
 		gap: 10rpx;
-		margin-top: 18rpx;
+		margin: 18rpx 26rpx 0;
 
 		.post-tag {
-			background: rgba(102, 126, 234, 0.08);
-			color: #667eea;
+			background: $gray-bg;
+			color: #666666;
 			font-size: 22rpx;
-			padding: 6rpx 16rpx;
+			padding: 6rpx 18rpx;
 			border-radius: 20rpx;
 		}
 	}
 
 	.post-footer {
-		padding-top: 18rpx;
+		padding: 18rpx 26rpx 22rpx;
 		margin-top: 18rpx;
-		border-top: 1px solid #f5f5f5;
+		border-top: 1rpx solid $line-color;
 
 		.action-bar {
 			display: flex;
@@ -1750,32 +1843,36 @@ onMounted(() => {
 			align-items: center;
 			gap: 6rpx;
 			font-size: 24rpx;
-			color: #999;
+			color: $text-sub;
+
+			.action-text {
+				font-size: 24rpx;
+				color: $text-sub;
+			}
 
 			.color-red {
-				color: #ff5c5c;
+				color: #e5484d;
 			}
 
 			.color-gold {
-				color: #ffb400;
+				color: $text-main;
+				font-weight: 600;
 			}
 		}
 	}
 }
 
-/* 评论面板 */
+/* ---------- 评论面板 ---------- */
 .comments-panel {
-	margin-top: 18rpx;
-	padding-top: 18rpx;
-	border-top: 1px solid #f5f5f5;
-	background: #fafafc;
-	border-radius: 12rpx;
+	margin: 0 26rpx 22rpx;
 	padding: 18rpx 20rpx;
+	background: #f7f7f7;
+	border-radius: 12rpx;
 
 	.comments-empty {
 		text-align: center;
 		font-size: 24rpx;
-		color: #bbb;
+		color: $text-sub;
 		padding: 16rpx 0;
 	}
 
@@ -1783,7 +1880,7 @@ onMounted(() => {
 		padding: 4rpx 0;
 
 		& + .comment-floor {
-			border-top: 1px solid #f0f0f2;
+			border-top: 1rpx solid #eeeef0;
 		}
 	}
 
@@ -1793,7 +1890,7 @@ onMounted(() => {
 		padding: 14rpx 0;
 
 		& + .comment-row {
-			border-top: 1px solid #f0f0f2;
+			border-top: 1rpx solid #eeeef0;
 		}
 	}
 
@@ -1801,7 +1898,7 @@ onMounted(() => {
 	.reply-list {
 		margin: 4rpx 0 4rpx 72rpx;
 		padding-left: 18rpx;
-		border-left: 2rpx solid #ececf2;
+		border-left: 2rpx solid #e6e6e9;
 
 		.comment-row {
 			padding: 10rpx 0;
@@ -1834,19 +1931,19 @@ onMounted(() => {
 
 	.comment-username {
 		font-size: 25rpx;
-		color: #667eea;
+		color: #576b95;
 		font-weight: 600;
 	}
 
 	.comment-replyto {
 		font-size: 22rpx;
-		color: #999;
+		color: $text-sub;
 	}
 
 	.comment-content {
 		display: block;
 		font-size: 26rpx;
-		color: #444;
+		color: #333333;
 		line-height: 1.6;
 		margin-top: 6rpx;
 		word-break: break-word;
@@ -1861,12 +1958,12 @@ onMounted(() => {
 
 	.comment-time {
 		font-size: 21rpx;
-		color: #bbb;
+		color: $text-sub;
 	}
 
 	.comment-action-btn {
 		font-size: 22rpx;
-		color: #999;
+		color: #666666;
 	}
 
 	.comment-like {
@@ -1874,14 +1971,14 @@ onMounted(() => {
 		align-items: center;
 		gap: 4rpx;
 		font-size: 21rpx;
-		color: #bbb;
+		color: $text-sub;
 	}
 
 	.comment-toggle-all {
 		display: block;
 		text-align: center;
 		font-size: 24rpx;
-		color: #667eea;
+		color: #8a6d00;
 		padding: 16rpx 0 6rpx;
 	}
 
@@ -1891,7 +1988,7 @@ onMounted(() => {
 		gap: 16rpx;
 		margin-top: 14rpx;
 		padding-top: 14rpx;
-		border-top: 1px solid #f0f0f2;
+		border-top: 1rpx solid #eeeef0;
 	}
 
 	.comment-input-fake {
@@ -1900,15 +1997,16 @@ onMounted(() => {
 		border-radius: 30rpx;
 		padding: 12rpx 24rpx;
 		font-size: 24rpx;
-		color: #bbb;
+		color: #b0b0b0;
 	}
 }
 
 .color-primary {
-	color: #667eea !important;
+	color: $text-main !important;
+	font-weight: 600;
 }
 
-/* 回复弹出框 */
+/* ---------- 回复弹出框 ---------- */
 .reply-mask {
 	align-items: flex-end;
 	background: rgba(0, 0, 0, 0.15);
@@ -1926,19 +2024,19 @@ onMounted(() => {
 		justify-content: space-between;
 		align-items: center;
 		font-size: 22rpx;
-		color: #667eea;
+		color: #666666;
 		margin-bottom: 12rpx;
 	}
 
 	.reply-target-clear {
-		color: #bbb;
+		color: $text-sub;
 	}
 
 	.reply-input-row {
 		display: flex;
 		align-items: center;
 		gap: 16rpx;
-		background: #f2f3f7;
+		background: $gray-bg;
 		border-radius: 36rpx;
 		padding: 8rpx 10rpx 8rpx 28rpx;
 	}
@@ -1951,11 +2049,11 @@ onMounted(() => {
 
 	.reply-send-btn {
 		flex-shrink: 0;
-		background: linear-gradient(135deg, #667eea, #764ba2);
-		color: #fff;
+		background: $brand-yellow;
+		color: $text-main;
 		font-size: 24rpx;
 		font-weight: 600;
-		padding: 14rpx 28rpx;
+		padding: 14rpx 30rpx;
 		border-radius: 30rpx;
 
 		&.disabled {
@@ -1969,53 +2067,56 @@ onMounted(() => {
 	text-align: center;
 	padding: 32rpx 0;
 	font-size: 24rpx;
-	color: #bbb;
+	color: $text-sub;
 	display: flex;
 	align-items: center;
 	justify-content: center;
 	gap: 8rpx;
 }
 
-/* 回到顶部 */
+/* ---------- 回到顶部 ---------- */
 .back-to-top {
 	position: fixed;
 	right: 30rpx;
-	bottom: 220rpx;
-	width: 80rpx;
-	height: 80rpx;
+	--app-fixed-bottom-base: calc(env(safe-area-inset-bottom) + 250rpx);
+	bottom: calc(var(--app-fixed-bottom-base) + var(--app-viewport-bottom-offset, 0px));
+	width: 84rpx;
+	height: 84rpx;
 	border-radius: 50%;
 	background: #fff;
 	display: flex;
 	align-items: center;
 	justify-content: center;
 	box-shadow: 0 6rpx 20rpx rgba(0, 0, 0, 0.12);
+	border: 1rpx solid $line-color;
 	z-index: 90;
 }
 
-/* 发布按钮 */
+/* ---------- 发布按钮（首页 FAB 风格） ---------- */
 .publish-btn {
 	position: fixed;
 	right: 30rpx;
-	bottom: 100rpx;
+	--app-fixed-bottom-base: calc(env(safe-area-inset-bottom) + 100rpx);
+	bottom: calc(var(--app-fixed-bottom-base) + var(--app-viewport-bottom-offset, 0px));
 	display: flex;
 	align-items: center;
 	justify-content: center;
 	gap: 8rpx;
-	width: 140rpx;
-	height: 88rpx;
-	background: linear-gradient(95deg, #667eea 0%, #764ba2 100%);
-	border-radius: 50rpx;
-	box-shadow: 0 8rpx 20rpx rgba(102, 126, 234, 0.4);
+	width: 150rpx;
+	height: 92rpx;
+	background-color: $brand-yellow;
+	border-radius: 46rpx;
+	box-shadow: 0 8rpx 20rpx rgba(255, 206, 0, 0.45);
 	z-index: 90;
 
 	text {
 		font-size: 26rpx;
-		color: #fff;
-		font-weight: 600;
+		color: $text-main;
+		font-weight: 700;
 	}
 }
 
-/* 发布弹窗 */
+/* ---------- 发布弹窗 ---------- */
 .modal-mask {
 	position: fixed;
 	inset: 0;
@@ -2038,26 +2139,30 @@ onMounted(() => {
 		align-items: center;
 		justify-content: space-between;
 		padding: 26rpx 28rpx;
-		border-bottom: 1px solid #f2f2f2;
+		border-bottom: 1rpx solid $line-color;
 
 		.modal-title {
 			font-size: 30rpx;
-			font-weight: 600;
-			color: #333;
+			font-weight: bold;
+			color: $text-main;
 		}
 
 		.modal-cancel {
 			font-size: 28rpx;
-			color: #999;
+			color: $text-sub;
 		}
 
 		.modal-submit {
-			font-size: 28rpx;
-			color: #667eea;
+			font-size: 26rpx;
+			color: $text-main;
 			font-weight: 600;
+			background: $brand-yellow;
+			padding: 8rpx 26rpx;
+			border-radius: 30rpx;
 
 			&.disabled {
-				color: #ccc;
+				background: $gray-bg;
+				color: #c0c0c0;
 			}
 		}
 	}
@@ -2072,13 +2177,14 @@ onMounted(() => {
 		min-height: 180rpx;
 		font-size: 28rpx;
 		line-height: 1.6;
+		color: $text-main;
 	}
 
 	.char-count {
 		display: block;
 		text-align: right;
 		font-size: 22rpx;
-		color: #bbb;
+		color: $text-sub;
 		margin: 8rpx 0 24rpx;
 	}
 
@@ -2089,7 +2195,7 @@ onMounted(() => {
 	.form-label {
 		display: block;
 		font-size: 26rpx;
-		color: #666;
+		color: #666666;
 		margin-bottom: 16rpx;
 		font-weight: 600;
 	}
@@ -2101,15 +2207,15 @@ onMounted(() => {
 	}
 
 	.form-category-chip {
-		padding: 12rpx 26rpx;
-		background: #f2f3f7;
-		border-radius: 28rpx;
+		padding: 12rpx 28rpx;
+		background: $gray-bg;
+		border-radius: 30rpx;
 		font-size: 24rpx;
-		color: #666;
+		color: #666666;
 
 		&.active {
-			background: rgba(102, 126, 234, 0.12);
-			color: #667eea;
+			background: $brand-yellow;
+			color: $text-main;
 			font-weight: 600;
 		}
 	}
@@ -2160,7 +2266,7 @@ onMounted(() => {
 
 		text {
 			font-size: 20rpx;
-			color: #bbb;
+			color: $text-sub;
 		}
 	}
 }
