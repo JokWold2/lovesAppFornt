@@ -53,6 +53,36 @@ export const getCommunityCommentRepliesApi = (id, rootCommentId, params = {}) =>
 // 点赞 / 取消点赞评论
 export const toggleCommunityCommentLikeApi = (commentId) => post(`/api/community/comments/${commentId}/like`)
 
+/* ============ 话题广场 ============ */
+
+/**
+ * 话题广场列表
+ * @param {Object} params { page, pageSize, keyword, sort }
+ *   sort: hot(帖子数 + 关注数) | latest(话题创建时间) | following(我关注的)
+ */
+export const getCommunityTopicsApi = (params = {}) => get('/api/community/topics', params)
+
+// 广场顶部横向热门区：Top N 最热话题，返回项带 rank 角标
+export const getCommunityHotTopicsApi = (params = {}) => get('/api/community/topics/hot', params)
+
+// 话题详情信息条（帖子数 / 关注数 / 是否已关注），帖子流复用 getCommunityPostsApi({ tag })
+export const getCommunityTopicApi = (name) => get('/api/community/topics/detail', { name })
+
+// 关注 / 取消关注话题，返回服务端权威的关注状态与关注人数
+export const toggleCommunityTopicFollowApi = (name) => post('/api/community/topics/follow', { name })
+
+// 自建话题（创建后立即生效，可在发帖时当标签使用）
+export const createCommunityTopicApi = (payload) => post('/api/community/topics', payload)
+
+/* ============ 榜单 ============ */
+
+/**
+ * 社区榜单
+ * @param {Object} params { type, range, limit }
+ *   type: posts(热帖榜) | users(活跃用户榜)；range: today(今日) | week(最近 7 天)
+ */
+export const getCommunityLeaderboardApi = (params = {}) => get('/api/community/leaderboard', params)
+
 /**
  * 批量上传帖子图片，返回 OSS 图片 URL 数组
  * 后端: POST /api/community/upload (multipart/form-data，字段名 images)

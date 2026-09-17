@@ -126,6 +126,24 @@
 				</view>
 			</view>
 
+			<!-- 话题广场 / 排行榜入口 -->
+			<view class="community-entries">
+				<view
+					class="community-entry"
+					v-for="entry in communityEntries"
+					:key="entry.key"
+					@click="openCommunityEntry(entry)"
+				>
+					<view class="community-entry-icon">
+						<uni-icons :type="entry.icon" size="20" color="#1a1a1a"></uni-icons>
+					</view>
+					<view class="community-entry-text">
+						<text class="community-entry-label">{{ entry.label }}</text>
+						<text class="community-entry-hint">{{ entry.hint }}</text>
+					</view>
+				</view>
+			</view>
+
 			<!-- 分类导航 -->
 			<scroll-view scroll-x class="category-nav" show-scrollbar="false" enable-flex>
 				<view
@@ -482,6 +500,8 @@ import {
 } from "@/api/community.js";
 import { getUnreadCountApi } from "@/api/notifications.js";
 import { getUserInfo } from "@/utils/auth.js";
+import { t } from "@/utils/localeRuntime.js";
+import { COMMUNITY_LEADERBOARD_ROUTE, COMMUNITY_TOPICS_ROUTE } from "@/utils/communityHub.js";
 
 /* 后端无数据时兜底展示的热门话题（与后端 DEFAULT_HOT_TAGS 保持一致） */
 const DEFAULT_TAGS = ["技术分享", "创业经验", "生活随笔", "美食探索", "旅行故事", "摄影作品", "设计讨论", "行业交流"];
@@ -560,6 +580,20 @@ function clearHistory() {
 // 取消搜索只收起面板，已生效的筛选条件保留
 function closeSearchPanel() {
 	showSearchPanel.value = false;
+}
+
+/* ============ 话题广场 / 排行榜入口 ============ */
+// 标签依赖 currentLocale（t 内部读取语言 ref），切换语言后入口文案会一起更新
+const communityEntries = computed(() => ([
+	{ key: "topics", icon: "fire-filled", label: t("community.entryTopics"), hint: t("community.entryTopicsHint"), route: COMMUNITY_TOPICS_ROUTE },
+	{ key: "leaderboard", icon: "medal", label: t("community.entryLeaderboard"), hint: t("community.entryLeaderboardHint"), route: COMMUNITY_LEADERBOARD_ROUTE }
+]));
+
+function openCommunityEntry(entry) {
+	uni.navigateTo({
+		url: entry.route,
+		fail: () => uni.showToast({ title: t("community.openFailed"), icon: "none" })
+	});
 }
 
 /* ============ 分类导航 ============ */
@@ -1478,6 +1512,60 @@ $line-color: #f2f2f4;
 		width: 1px;
 		height: 40rpx;
 		background: #eeeef0;
+	}
+}
+
+/* ---------- 话题广场 / 排行榜入口 ---------- */
+.community-entries {
+	display: flex;
+	gap: 20rpx;
+	margin: 0 30rpx 24rpx;
+
+	.community-entry {
+		flex: 1;
+		display: flex;
+		align-items: center;
+		gap: 16rpx;
+		padding: 22rpx 20rpx;
+		background-color: $gray-bg;
+		border-radius: 20rpx;
+		min-width: 0;
+	}
+
+	.community-entry-icon {
+		width: 64rpx;
+		height: 64rpx;
+		border-radius: 18rpx;
+		background-color: $brand-yellow;
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		flex-shrink: 0;
+	}
+
+	.community-entry-text {
+		flex: 1;
+		min-width: 0;
+	}
+
+	.community-entry-label {
+		display: block;
+		font-size: 28rpx;
+		font-weight: 700;
+		color: $text-main;
+		overflow: hidden;
+		text-overflow: ellipsis;
+		white-space: nowrap;
+	}
+
+	.community-entry-hint {
+		display: block;
+		margin-top: 6rpx;
+		font-size: 20rpx;
+		color: $text-sub;
+		overflow: hidden;
+		text-overflow: ellipsis;
+		white-space: nowrap;
 	}
 }
 

@@ -158,6 +158,27 @@
 			}
 		},
 		{
+			"path": "pages/community/topics",
+			"style": {
+				"navigationBarTitleText": "话题广场",
+				"enablePullDownRefresh": false
+			}
+		},
+		{
+			"path": "pages/community/topicDetail",
+			"style": {
+				"navigationBarTitleText": "话题详情",
+				"enablePullDownRefresh": false
+			}
+		},
+		{
+			"path": "pages/community/leaderboard",
+			"style": {
+				"navigationBarTitleText": "排行榜",
+				"enablePullDownRefresh": false
+			}
+		},
+		{
 			"path": "pages/demandhall/index",
 			"style": {
 				"navigationBarTitleText": "需求市场",
