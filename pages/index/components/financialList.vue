@@ -4,6 +4,12 @@
     <scroll-view class="branch-tabs-scroll" scroll-x show-scrollbar="false">
       <view class="branch-tabs-container">
         <view 
+          class="branch-tab-item chart-tab-item" 
+          @click="goCharts"
+        >
+          📊 图表展示
+        </view>
+        <view 
           v-for="i in 10" 
           :key="i" 
           class="branch-tab-item" 
@@ -13,12 +19,6 @@
           分店 {{ i }}
         </view>
         <!-- 图表展示 Tab -->
-        <view 
-          class="branch-tab-item chart-tab-item" 
-          @click="goCharts"
-        >
-          📊 图表展示
-        </view>
       </view>
     </scroll-view>
 
