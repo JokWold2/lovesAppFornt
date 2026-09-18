@@ -4,7 +4,7 @@ export const TAB_BAR_ITEMS = Object.freeze([
   { route: 'pages/index/index360', labelKey: 'navigation.home', icon: 'home' },
   { route: 'pages/likes/likes', labelKey: 'navigation.likes', icon: 'heart' },
   { route: 'pages/notice/notice', labelKey: 'navigation.messages', icon: 'chat' },
-  { route: 'pages/my/myLifeShow/myLifeShow', labelKey: 'navigation.moments', icon: 'pyq' }
+  { route: 'pages/my/myLifeShow/myLifeShow', labelKey: 'navigation.moments', icon: 'person', selectedIcon: 'person-filled' }
 ])
 
 function normalizeRoute(route) {

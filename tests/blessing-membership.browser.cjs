@@ -10,7 +10,7 @@ const { parse, compileScript, compileStyleAsync } = require('@vue/compiler-sfc')
 const root = path.resolve(__dirname, '..')
 const files = {
   home: 'pages/index/index360.vue',
-  detail: 'pages/searchPerson/personShow/personShow.vue',
+  detail: 'components/profile/ProfileDetailView.vue',
   search: 'pages/searchPerson/searchPerson.vue',
   navigation: 'components/navigation/LiquidGlassTabBar.vue'
 }
@@ -24,20 +24,24 @@ async function bundlePage(kind) {
   const target = path.resolve(root, files[kind])
   const styles = []
   const result = await build({
-    stdin: { contents: `import {createApp,nextTick,h} from 'vue'; import Subject from './${files[kind]}'; import {tabBarState} from './utils/tabBarState.js'; window.tabs=tabBarState; const app=createApp(Subject,${kind==='navigation'?"{activeRoute:'pages/likes/likes'}":'{}'}); app.component('uni-icons',{props:['type','size','color'],render(){return h('span',{class:'uni-icons uniui-'+this.type,style:{fontSize:this.size+'px',color:this.color}})}}); window.subject=app.mount('#app'); for(const cb of window.hooks.load) cb({id:1}); for(const cb of window.hooks.show) cb();`, resolveDir: root },
+    stdin: { contents: `import {createApp,nextTick,h} from 'vue'; import Subject from './${files[kind]}'; import {tabBarState} from './utils/tabBarState.js'; window.tabs=tabBarState; const app=createApp(Subject,${kind==='navigation'?"{activeRoute:'pages/likes/likes'}":kind==='detail'?'{id:1,visible:true}':'{}'}); app.component('uni-icons',{props:['type','size','color'],render(){return h('span',{class:'uni-icons uniui-'+this.type,style:{fontSize:this.size+'px',color:this.color}})}}); window.subject=app.mount('#app'); for(const cb of window.hooks.load) cb({id:1}); for(const cb of window.hooks.show) cb();`, resolveDir: root },
     bundle: true, write: false, platform: 'browser', format: 'iife',
     define: { __VUE_OPTIONS_API__: 'true', __VUE_PROD_DEVTOOLS__: 'false', __VUE_PROD_HYDRATION_MISMATCH_DETAILS__: 'false', 'process.env.NODE_ENV': '"production"' },
     plugins: [{ name: 'fixture', setup(b) {
-      b.onResolve({filter: /^@dcloudio\/uni-app$|^@\/utils\/(localeRuntime|config|guard)\.js$|^@\/api\//}, args => ({path:args.path,namespace:'fixture'}))
+      b.onResolve({filter: /^@dcloudio\/uni-app$|^@\/utils\/(localeRuntime|config|guard|auth|unreadBadge|useProfileDetailSheet)\.js$|^@\/api\//}, args => ({path:args.path,namespace:'fixture'}))
       b.onLoad({filter: /.*/,namespace:'fixture'}, args => {
-        if (args.path.includes('/api/')) return {contents: ['getExploreFeedApi','getFeaturedFeedApi','getCommentsApi','toggleLikeMomentApi','addCommentApi','toggleProfileLikeApi','getCandidateProfileApi','getProfileLikesApi','getProfileCommentsApi','addProfileCommentApi','getMembershipApi','decideBlessingApi','rewindBlessingApi','getChatRequestStatusApi','createChatRequestApi','searchCandidatesApi'].map(name=>`export const ${name}=(...args)=>window.fixture.api.${name}(...args);`).join('\n')}
+        if (args.path.includes('/api/')) return {contents: ['getExploreFeedApi','getFeaturedFeedApi','getCommentsApi','toggleLikeMomentApi','addCommentApi','toggleProfileLikeApi','getCandidateProfileApi','getProfileLikesApi','getProfileCommentsApi','addProfileCommentApi','getMembershipApi','decideBlessingApi','rewindBlessingApi','getChatRequestStatusApi','createChatRequestApi','searchCandidatesApi','markProfileLikeViewedApi'].map(name=>`export const ${name}=(...args)=>window.fixture.api.${name}(...args);`).join('\n')}
         if (args.path.includes('localeRuntime')) return {contents:`import {ref} from 'vue'; import {translate} from ${JSON.stringify(path.join(root,'utils/locale.js'))}; export const currentLocale=ref('zh-Hans'); window.setFixtureLocale=value=>currentLocale.value=value; export const t=(key,args)=>translate(currentLocale.value,key,args); export const updateTabBarLocale=()=>{};`,resolveDir:root}
         if (args.path.includes('config')) return {contents:'export const config={baseURL:""};'}
         if (args.path.includes('guard')) return {contents:'export const ensureTokenValid=async()=>true;'}
-        return {contents:`export const onLoad=cb=>window.hooks.load.push(cb); export const onShow=cb=>window.hooks.show.push(cb); export const onHide=()=>{}; export const onResize=()=>{}; export const onPullDownRefresh=cb=>window.hooks.pullDown.push(cb); export const onReachBottom=()=>{}; export const onPageScroll=()=>{};`}
+        if (args.path.includes('auth')) return {contents:'export const getToken=()=>"fixture-viewer";'}
+        if (args.path.includes('unreadBadge')) return {contents:'export const refreshUnreadBadge=async()=>{};'}
+        if (args.path.includes('useProfileDetailSheet')) return {contents:`import {ref} from 'vue';export function useProfileDetailSheet(){const profileId=ref(null),pageVisible=ref(true);return {profileId,pageVisible,open:id=>{profileId.value=Number(id)},close:()=>{profileId.value=null}}}`,resolveDir:root}
+        return {contents:`export const onLoad=cb=>window.hooks.load.push(cb); export const onShow=cb=>window.hooks.show.push(cb); export const onHide=()=>{}; export const onUnload=()=>{}; export const onReady=()=>{}; export const onResize=()=>{}; export const onPullDownRefresh=cb=>window.hooks.pullDown.push(cb); export const onReachBottom=()=>{}; export const onPageScroll=()=>{};`}
       })
       b.onResolve({filter: /^@\//}, args=>({path:path.join(root,args.path.slice(2))}))
       b.onLoad({filter:/\.vue$/}, async args=> {
+        if (args.path.endsWith('ProfileDetailSheet.vue')) return {contents:'export default {render(){return null}};'}
         if (path.resolve(args.path)!==target && !['BlessingCardDeck.vue','FeedContentState.vue','LiquidGlassTabBar.vue'].some(name=>args.path.endsWith(name))) return {contents:`import {h} from 'vue'; export default {emits:['toggle-like'], render(){return h('button',{class:'like-button',onClick:()=>this.$emit('toggle-like')},'Like')}};`}
         let source = fs.readFileSync(args.path,'utf8')
         if(path.resolve(args.path)===target) source=source.replace('</script>',`defineExpose({${expose[kind]}})\n</script>`)
@@ -110,7 +114,7 @@ async function main() {
     async function mount(kind, beforeMount) {
       const output=await bundlePage(kind)
       await page.goto('about:blank')
-      await page.setContent('<style>view{display:block}body{margin:0}button{cursor:pointer}uni-icons{display:inline-block}</style><div id="app"></div>')
+      await page.setContent('<style>view,scroll-view{display:block}scroll-view{overflow-y:auto}#app{height:100vh}body{margin:0}button{cursor:pointer}uni-icons{display:inline-block}</style><div id="app"></div>')
       await page.evaluate(installFixture)
       if (beforeMount) await page.evaluate(beforeMount)
       await page.addStyleTag({content:output.css})
@@ -178,7 +182,7 @@ async function main() {
     assert.equal(await page.evaluate(()=>fixture.state.modals.at(-1).title),'请先点赞')
     assert.equal(await page.evaluate(()=>fixture.state.writes.length),0)
     assert.equal(await page.evaluate(()=>fixture.state.chatWrites),0)
-    assert.equal(await page.evaluate(()=>fixture.state.scrolls.at(-1).selector),'.like-button')
+    assert.deepEqual(await page.evaluate(()=>fixture.state.scrolls),[])
     await page.evaluate(async()=>{fixture.state.chat={status:'none',isLiked:true,mutual:false};await subject.requestChat()})
     assert.equal(await page.evaluate(()=>fixture.state.modals.at(-1).title),'还差一颗心')
     await page.evaluate(async()=>{fixture.state.chat={status:'none',isLiked:true,mutual:true};await subject.requestChat()})
@@ -227,7 +231,7 @@ async function main() {
     assert.equal(await page.evaluate(()=>fixture.membershipRequests),2)
     await page.evaluate(async()=>{const read=fixture.api.getMembershipApi;fixture.api.getMembershipApi=async()=>{throw Error('response lost again')};for(const cb of hooks.show)cb();await new Promise(resolve=>setTimeout(resolve,0));fixture.api.getMembershipApi=read})
     assert.equal(await page.evaluate(()=>subject.membership),null)
-    await page.locator('.blessing-quota').click()
+    await page.locator('.deck-quota:visible, .blessing-quota:visible').click()
     await page.waitForFunction(()=>subject.membership?.canSearch===true,undefined,{timeout:1500})
     assert.equal(await page.evaluate(()=>fixture.state.routes.length),0)
     console.log('PASS real Home: failed membership fetch recovers through pull refresh or the quota retry control')

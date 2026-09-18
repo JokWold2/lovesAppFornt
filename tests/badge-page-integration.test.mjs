@@ -56,6 +56,8 @@ async function likesHarness({ response, failRead = false } = {}) {
     refreshUnreadBadge: options => { badgeRefreshes.push(options); return Promise.resolve() },
     mergeBlessingLikes: (previous, next) => [...previous, ...next], getMembershipTierName: () => 'Iron',
     getMembershipErrorMessage: () => 'failed', useFixedPageHeader: () => ({}), t: key => key,
+    useProfileDetailSheet: () => ({ profileId: { value: null }, pageVisible: { value: true }, open: () => {}, close: () => {} }),
+    consumeIncomingLikesIntent: () => false,
     config: {}, BLESSING_CHANGED_EVENT: 'blessing-changed'
   }
   runInNewContext(script(await read('../pages/likes/likes.vue')) + '\nmodule.exports = {refresh, loadFeed, switchDirection, feeds, direction}', context)

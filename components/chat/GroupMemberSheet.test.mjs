@@ -12,8 +12,8 @@ test('成员 Sheet 展示头像、名称和邮箱', async () => {
 test('已读成员 Sheet 在下方展示未读成员统计', async () => {
   const source = await readFile(new URL('./GroupMemberSheet.vue', import.meta.url), 'utf8')
   assert.match(source, /unreadMembers/)
-  assert.match(source, /未读成员/)
-  assert.match(source, /全部已读/)
+  assert.match(source, /t\('chat\.unreadMembers'/)
+  assert.match(source, /t\('chat\.allRead'\)/)
 })
 
 test('群聊页展示可点击在线人数并打开在线成员 Sheet', async () => {

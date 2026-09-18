@@ -1,7 +1,7 @@
 <template>
-  <view v-if="visible" class="sheet-mask app-h5-sheet-mask" @tap.self="emit('close')">
+  <ChatSheet :open="visible" :label="title" @dismiss="emit('close')">
     <view class="sheet app-h5-sheet">
-      <view class="sheet-head"><text class="sheet-title">{{ title }}（{{ members.length }}）</text><text class="close" @tap="emit('close')">×</text></view>
+      <view class="sheet-head"><text class="sheet-title">{{ title }}（{{ members.length }}）</text><button class="close" :aria-label="t('chatDesign.close')" @tap="emit('close')">×</button></view>
       <scroll-view scroll-y class="member-list app-h5-scroll">
         <view v-for="member in memberCards" :key="member.userId" class="member-row">
           <image v-if="member.avatarUrl" class="member-avatar" :src="member.avatarUrl" mode="aspectFill" />
@@ -20,10 +20,11 @@
         </template>
       </scroll-view>
     </view>
-  </view>
+  </ChatSheet>
 </template>
 
 <script setup>
+import ChatSheet from './ChatSheet.vue'
 import { computed } from 'vue'
 import { visibleMemberDetails } from '@/utils/groupMemberSheetState.js'
 import { t } from '@/utils/localeRuntime.js'
@@ -36,12 +37,8 @@ const unreadMemberCards = computed(() => (props.unreadMembers || []).map(visible
 </script>
 
 <style scoped>
-.sheet-mask { position: fixed; z-index: 1000; inset: 0; display: flex; align-items: flex-end; background: rgba(0,0,0,.45); }.sheet { display: flex; width: 100%; min-height: 0; flex-direction: column; border-radius: 28rpx 28rpx 0 0; background: #fff; }.sheet-head { display: flex; flex: 0 0 auto; align-items: center; justify-content: space-between; height: 100rpx; padding: 0 32rpx; border-bottom: 1rpx solid #eee; }.sheet-title { color: #20232b; font-size: 30rpx; font-weight: 600; }.close { padding: 8rpx; color: #999; font-size: 50rpx; line-height: 1; }.member-row { display: flex; align-items: center; gap: 18rpx; padding: 22rpx 32rpx; }.member-avatar { width: 76rpx; height: 76rpx; border-radius: 50%; background: #e5e7eb; }.member-avatar-fallback { display: flex; align-items: center; justify-content: center; color: #fff; background: #b7b7b7; font-size: 28rpx; }.member-copy { display: flex; flex: 1; flex-direction: column; min-width: 0; gap: 6rpx; }.member-name { overflow: hidden; color: #222; font-size: 28rpx; text-overflow: ellipsis; white-space: nowrap; }.member-email { overflow: hidden; color: #999; font-size: 23rpx; text-overflow: ellipsis; white-space: nowrap; }.empty,.all-read { padding: 48rpx 0; color: #999; text-align: center; font-size: 26rpx; }.section-head { margin-top: 10rpx; padding: 22rpx 32rpx; border-top: 16rpx solid #f5f6f8; color: #505762; font-size: 27rpx; font-weight: 600; }
+.sheet{display:flex;flex-direction:column;height:66vh;max-height:calc(100vh - 80px);padding:10px 20px calc(18px + env(safe-area-inset-bottom));box-sizing:border-box;background:#f5f4f1;color:#292825;}.sheet-head{display:flex;flex:none;align-items:center;justify-content:space-between;gap:12px;padding:8px 0 16px;}.sheet-title{font-size:19px;font-weight:600;line-height:1.5;}.close{flex:0 0 44px;width:44px;height:44px;margin:0;padding:0;border-radius:50%;background:#ebe9e4;color:#807b73;font-size:28px;line-height:44px;}.close::after{border:0;}.member-list{height:0;min-height:0;flex:1;border-radius:22px;background:#fff;}.member-row{display:flex;align-items:center;gap:12px;padding:16px;}.member-avatar{flex:0 0 44px;width:44px;height:44px;border-radius:50%;background:#eae7df;}.member-avatar-fallback{display:flex;align-items:center;justify-content:center;background:#f5edd7;color:#8b7845;font-size:17px;}.member-copy{display:flex;flex-direction:column;flex:1;min-width:0;gap:5px;}.member-name{font-size:15px;color:#292825;overflow-wrap:anywhere;}.member-email{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:#918d85;font-size:12px;}.empty,.all-read{padding:30px 16px;text-align:center;color:#918d85;font-size:13px;}.section-head{padding:16px;border-top:8px solid #f5f4f1;font-size:14px;font-weight:600;}
 /* #ifdef H5 */
-.sheet-mask { bottom: var(--app-viewport-bottom-offset, 0px); }
-/* #endif */
-/* #ifndef H5 */
-.sheet { max-height: 70vh; padding-bottom: env(safe-area-inset-bottom); }
-.member-list { max-height: calc(70vh - 100rpx); }
+.sheet{max-height:calc(var(--app-viewport-height,100dvh) - 60px);}
 /* #endif */
 </style>

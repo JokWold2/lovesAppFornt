@@ -106,10 +106,10 @@ export function getMyProfileApi() {
  * 提交/更新个人资料（upsert）
  * 后端: POST /api/profile (需要登录)
  * @param {Object} payload 前端字段全部 camelCase，后端会自己映射成 snake_case
- *   必含 careers 数组，其它字段可选
+ *   仅传本次修改的字段；careers 不传时保留现有经历。
  */
-export function submitMyProfileApi(payload) {
-  return post('/api/profile', payload)
+export function submitMyProfileApi(payload, options = {}) {
+  return post('/api/profile', payload, options)
 }
 
 // ===== 搜索候选 =====
@@ -118,7 +118,7 @@ export function submitMyProfileApi(payload) {
  * 搜索候选人
  * 后端: POST /api/search (需要登录)
  * 入参直接对应 searchController.searchCandidates 需要的字段：
- *   name, gender, generation, status, preferredCountries,
+ *   name, gender[], generation[], status[], preferredCountries[],
  *   ageMin, ageMax, heightMin, heightMax,
  *   topGun, jobs, faithLife, wantBlessing2026,
  *   tools: { hands, yinyang, fiveElements, enneagram, mbti },
@@ -278,20 +278,25 @@ export function uploadCoverApi(filePath) {
 }
 
 // 资料照片会追加保存到 profiles.photos。必须串行上传，避免多个请求并发覆盖同一数组。
-export function uploadProfilePhotosApi(filePaths) {
+export function uploadProfilePhotosApi(filePaths, { replacePhotoUrl, onUploaded } = {}) {
+  if (replacePhotoUrl && filePaths.length !== 1) return Promise.reject(new Error('Replace one photo at a time'))
   const token = uni.getStorageSync('AUTH_TOKEN')
   let latestResult = null
 
   return filePaths.reduce((chain, filePath) => chain.then(() => new Promise((resolve, reject) => {
     uni.uploadFile({
-      url: config.baseURL + '/api/profile/photos',
+      // A dedicated route fails safely against an older server instead of appending.
+      url: config.baseURL + (replacePhotoUrl ? '/api/profile/photos/replace' : '/api/profile/photos'),
       filePath,
       name: 'photos',
+      formData: replacePhotoUrl ? { replacePhotoUrl } : {},
       header: { Authorization: `Bearer ${token}` },
       success: (res) => {
         if (res.statusCode !== 200) return reject(new Error(res.data || '上传失败'))
         try {
           latestResult = JSON.parse(res.data)
+          // Publish each successful append so a later failed upload cannot hide saved photos.
+          onUploaded?.(latestResult)
           resolve()
         } catch (_) {
           reject(new Error('解析上传响应失败'))

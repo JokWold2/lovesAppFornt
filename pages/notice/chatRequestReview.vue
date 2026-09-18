@@ -6,7 +6,7 @@
       <text v-if="request.message" class="message">{{ t('review.note', { message: request.message }) }}</text><text class="time">{{ formatTime(request.created_at) }}</text>
       <view class="actions"><button class="reject" @tap="openReject(request)">{{ t('review.reject') }}</button><button class="approve" @tap="reviewRequest = request">{{ t('review.approve') }}</button></view>
     </view>
-    <MemberPickerSheet v-if="reviewRequest" :visible="true" :excluded-user-ids="[reviewRequest.applicant_user_id, reviewRequest.target_user_id]" :title="t('review.pickMembers')" :show-review-fields="true" @close="reviewRequest = null" @confirm="approve" />
+    <MemberPickerSheet :visible="Boolean(reviewRequest)" :busy="approving" :excluded-user-ids="[reviewRequest?.applicant_user_id, reviewRequest?.target_user_id]" :title="t('review.pickMembers')" :show-review-fields="true" @close="closeReview" @confirm="approve" @after-close="afterReviewClose" />
     <view v-if="rejectRequest" class="mask app-h5-sheet-mask" @tap="rejectRequest = null">
       <view class="reject-sheet app-h5-sheet" @tap.stop>
         <text class="title">{{ t('review.rejectTitle') }}</text>
@@ -24,13 +24,31 @@ import { refreshUnreadBadge } from '@/utils/unreadBadge.js'
 import MemberPickerSheet from '@/components/chat/MemberPickerSheet.vue'
 import { currentLocale, t } from '@/utils/localeRuntime.js'
 const requests = ref([]), reviewRequest = ref(null), rejectRequest = ref(null), rejectReason = ref('')
+const approving = ref(false)
+let approvedGroupId = null
+function closeReview() { if (!approving.value) reviewRequest.value = null }
+function afterReviewClose() {
+  if (!approvedGroupId) return
+  const id = approvedGroupId; approvedGroupId = null
+  uni.navigateTo({ url: `/pages/chat/chatRoom?id=${id}` })
+}
 const defaultAvatar = '/static/logo.png'
 const pendingRequests = computed(() => requests.value.filter(item => item.status === 'pending'))
 function formatTime(value) { return value ? new Date(value).toLocaleString() : '' }
 async function load() { const data = await getChatRequestsApi(); requests.value = data?.requests || []; await refreshUnreadBadge({ force: true }) }
 function openReject(request) { rejectRequest.value = request; rejectReason.value = '' }
 async function reject() { if (!rejectReason.value.trim()) return uni.showToast({ title: t('review.rejectReasonRequired'), icon: 'none' }); try { await rejectChatRequestApi(rejectRequest.value.id, { reviewMessage: rejectReason.value.trim() }); rejectRequest.value = null; await load() } catch (error) { uni.showToast({ title: error?.error || t('review.rejectFailed'), icon: 'none' }) } }
-async function approve(payload) { try { const result = await approveChatRequestApi(reviewRequest.value.id, payload); reviewRequest.value = null; await load(); uni.navigateTo({ url: `/pages/chat/chatRoom?id=${result.groupId}` }) } catch (error) { uni.showToast({ title: error?.error || t('review.approveFailed'), icon: 'none' }) } }
+async function approve(payload) {
+  if (approving.value || !reviewRequest.value) return
+  approving.value = true
+  try {
+    const result = await approveChatRequestApi(reviewRequest.value.id, payload)
+    approvedGroupId = result.groupId
+    reviewRequest.value = null
+    load().catch(() => {})
+  } catch (error) { uni.showToast({ title: error?.error || t('review.approveFailed'), icon: 'none' }) }
+  finally { approving.value = false }
+}
 onShow(() => { uni.setNavigationBarTitle({ title: t('review.approve') }); load() })
 watch(currentLocale, () => uni.setNavigationBarTitle({ title: t('review.approve') }))
 </script>

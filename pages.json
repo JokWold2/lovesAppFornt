@@ -24,7 +24,8 @@
 		{
 			"path": "pages/account/accountCenter",
 			"style": {
-				"navigationBarTitleText": "个人中心"
+				"navigationBarTitleText": "个人中心",
+				"navigationStyle": "custom"
 			}
 		},
 		{
@@ -56,7 +57,8 @@
 			"path": "pages/notice/notice",
 			"style": {
 				"enablePullDownRefresh": true,
-				"navigationBarTitleText": "消息"
+				"navigationBarTitleText": "消息",
+				"navigationStyle": "custom"
 			}
 		},
 		{ "path": "pages/likes/likes", "style": { "navigationBarTitleText": "点赞", "navigationStyle": "custom", "enablePullDownRefresh": true } },
@@ -82,13 +84,17 @@
 		{
 			"path": "pages/searchPerson/searchPerson",
 			"style": {
-				"navigationBarTitleText": ""
+				"navigationBarTitleText": "搜索候选人",
+				"navigationStyle": "custom",
+				"disableScroll": true
 			}
 		},
 		{
 			"path": "pages/my/myLifeShow/myLifeShow",
 			"style": {
-				"navigationBarTitleText": ""
+				"navigationBarTitleText": "个人资料",
+				"navigationStyle": "custom",
+				"enablePullDownRefresh": true
 			}
 		},
 		{
@@ -100,7 +106,8 @@
 		{
 			"path": "pages/searchPerson/personShow/personShow",
 			"style": {
-				"navigationBarTitleText": ""
+				"navigationBarTitleText": "",
+				"navigationStyle": "custom"
 			}
 		},
 		{
@@ -123,9 +130,9 @@
 			"style": { "navigationBarTitleText": "内容详情", "navigationBarBackgroundColor": "#111111", "navigationBarTextStyle": "white" }
 		}
 		,
-		{ "path": "pages/chat/chatRoom", "style": { "navigationBarTitleText": "群聊", "disableScroll": true } },
-		{ "path": "pages/chat/groupManage", "style": { "navigationBarTitleText": "聊天信息" } },
-		{ "path": "pages/chat/groupMembers", "style": { "navigationBarTitleText": "群聊成员" } },
+		{ "path": "pages/chat/chatRoom", "style": { "navigationStyle": "custom", "navigationBarTitleText": "群聊", "disableScroll": true } },
+		{ "path": "pages/chat/groupManage", "style": { "navigationStyle": "custom", "navigationBarTitleText": "聊天信息" } },
+		{ "path": "pages/chat/groupMembers", "style": { "navigationStyle": "custom", "navigationBarTitleText": "群聊成员" } },
 		{
 			"path": "pages/index/components/financialList",
 			"style": {
@@ -247,7 +254,7 @@
 			},
 			{
 				"pagePath": "pages/my/myLifeShow/myLifeShow",
-				"text": "朋友圈",
+				"text": "个人资料",
 				"iconPath": "static/tabbar/my-no.png",
 				"selectedIconPath": "static/tabbar/my-active.png"
 			}

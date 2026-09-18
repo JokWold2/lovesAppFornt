@@ -18,12 +18,7 @@ test('群聊输入栏只保留现有的表情和图片操作', async () => {
   assert.match(source, /icon-create-post-dark\.png/)
 })
 
-test('群聊输入栏保持紧凑并放大表情和图片图标', async () => {
-  const source = await readFile(new URL('./ChatComposer.vue', import.meta.url), 'utf8')
-  assert.match(source, /min-height: 72rpx/)
-  assert.match(source, /padding: 8rpx 20rpx/)
-  assert.match(source, /width:\s*68rpx;\s*height:\s*68rpx/)
-})
+
 
 test('聊天页按平台向输入栏传递键盘高度', async () => {
   const source = await readFile(new URL('../../pages/chat/chatRoom.vue', import.meta.url), 'utf8')
@@ -42,7 +37,7 @@ test('开始输入时只在允许跟随最新消息的平台状态滚动到底�
   assert.match(room, /function shouldFollowLatestOnComposerInteraction\(\)/)
   assert.match(room, /if \(!shouldFollowLatestOnComposerInteraction\(\)\) return;/)
   assert.match(room, /id="messages-end"/)
-  assert.match(room, /scrollIntoView\.value = "messages-end"/)
+  assert.doesNotMatch(room, /:scroll-into-view=/)
   assert.match(room, /keyboardHeight\.value && shouldFollowLatestOnComposerInteraction\(\)/)
   assert.match(room, /scroll-with-animation/)
 })
@@ -53,18 +48,16 @@ test('群聊消息列表支持分页加载和回到最新按钮', async () => {
   assert.match(room, /v-if="loadingOlder"/)
   assert.match(room, /v-if="latestButtonVisible"/)
   assert.match(room, /class="back-to-latest"/)
-  assert.match(room, /setTimeout\(hideLatestButton, 3000\)/)
-  assert.match(room, /scrollToLast\(\{ animated: hasLoadedInitialMessages \}\)/)
-  assert.match(room, /class="latest-chevron"/)
-  assert.match(room, /left: 50%/)
-  assert.match(room, /translate\(-50%, 72rpx\)/)
+  assert.match(room, /class="latest-button-anchor"/)
+  assert.match(room, /class="latest-arrow"/)
+  assert.doesNotMatch(room, /setTimeout\(hideLatestButton/)
 })
 
 test('群聊管理员使用群管理入口，已解散群隐藏输入栏', async () => {
   const source = await readFile(new URL('../../pages/chat/chatRoom.vue', import.meta.url), 'utf8')
   assert.match(source, /openGroupManage/)
   assert.match(source, /v-if="isGroupMember && groupStatus === 'active'"/)
-  assert.match(source, /该群已解散，仅可查看历史消息/)
+  assert.match(source, /t\('inbox\.dissolvedNote'\)/)
   assert.match(source, /<GroupAvatar/)
   assert.doesNotMatch(source, /room-head"\s*\n\s*>/)
 })
@@ -76,23 +69,14 @@ test('群管理页提供资料修改、成员管理与解散入口', async () =>
   ])
   assert.match(manage, /uploadChatGroupAvatar/)
   assert.match(manage, /dissolveChatGroupApi/)
-  assert.match(manage, /群成员/)
+  assert.match(manage, /t\('group\.members'\)/)
   assert.match(members, /MemberPickerSheet/)
   assert.match(members, /removeChatGroupMemberApi/)
 })
 
-test('群管理页将解散操作展示为独立粉色按钮', async () => {
-  const source = await readFile(new URL('../../pages/chat/groupManage.vue', import.meta.url), 'utf8')
-  assert.match(source, /class="dissolve-button"/)
-  assert.match(source, /\.dissolve-button\{[^}]*background:#ffeef1;[^}]*color:#fe385c/)
-  assert.match(source, /\.status-on\{color:#6fba88/)
-})
 
-test('群成员页将管理员展示为粉色圆角标签，并使用指定移出颜色', async () => {
-  const source = await readFile(new URL('../../pages/chat/groupMembers.vue', import.meta.url), 'utf8')
-  assert.match(source, /\.admin-tag\{display:inline-flex;[^}]*border-radius:12rpx;[^}]*background:#ffeef1;[^}]*color:#fe385c/)
-  assert.match(source, /\.remove\{[^}]*color:#fe0039/)
-})
+
+
 
 test('二手市场内容详情使用拆分后的评论图标', async () => {
   const source = await readFile(new URL('../../pages/market/marketFeed.vue', import.meta.url), 'utf8')
@@ -108,6 +92,6 @@ test('自己发送的消息展示已读成员头像和人数，未读时展示�
   const source = await readFile(new URL('./ChatMessageBubble.vue', import.meta.url), 'utf8')
   assert.match(source, /v-if="message\.readCount"/)
   assert.match(source, /class="read-avatar"/)
-  assert.match(source, /人已读/)
-  assert.match(source, /v-else>未读<\/text>/)
+  assert.match(source, /t\('chat\.readCount'/)
+  assert.match(source, /t\('chat\.unread'\)/)
 })

@@ -19,17 +19,18 @@ async function compileFixture(mode) {
       contents: `import { createApp, h, reactive, ref, nextTick } from 'vue';
         import Deck from './components/profile/BlessingCardDeck.vue';
         const state = reactive({items:[],revision:0,loading:false,rewindBusy:false,rewindAvailable:true});
-        const counts = {rewind:0,decide:0,dismiss:0,open:0}; let pendingOnRewind = false;
+        const counts = {rewind:0,decide:0,dismiss:0,open:0}; let pendingOnRewind = false; let decisions = [];
         window.fixture = {
           reset: async (overrides={}) => {
             Object.keys(counts).forEach(key => counts[key]=0);
             pendingOnRewind = false;
+            decisions = [];
             Object.assign(state,{items:[{profileId:1,displayName:'Fixture One'},{profileId:2,displayName:'Fixture Two'}],loading:false,rewindBusy:false,rewindAvailable:true},overrides);
             state.revision++; await nextTick();
-          }, counts: () => ({...counts}), pendingOnNextRewind: () => {pendingOnRewind=true;}
+          }, counts: () => ({...counts}), decisions: () => decisions.slice(), pendingOnNextRewind: () => {pendingOnRewind=true;}
         };
         const app = createApp({render: () => h(Deck, {...state,active:true,
-          decideProfile: async () => {counts.decide++;return {isLiked:true};},
+          decideProfile: async (_profile,direction) => {counts.decide++;decisions.push(direction);return {isLiked:direction==='like'};},
           onRewind: () => {counts.rewind++;if(pendingOnRewind)state.rewindBusy=true;},onDismiss: () => {counts.dismiss++;},onOpen: () => {counts.open++;}
         })});
         // Preserve the icon's real event shape: a text node with an independent
@@ -109,6 +110,16 @@ async function main() {
         assert.deepEqual(pageErrors, [])
       }
       for (const input of mode === 'h5' ? ['touch', 'mouse'] : ['touch']) {
+        for (const decision of ['pass', 'like']) {
+          for (const location of ['center', 'edge']) {
+            await check(input + ' ' + location + ' ' + decision + ' saves one decision without rewind or detail navigation', async () => {
+              await reset(); await activate(input, location, '.deck-action-' + decision)
+              assert.deepEqual(await page.evaluate(() => window.fixture.decisions()), [decision])
+              assert.deepEqual(await page.evaluate(() => window.fixture.counts()), { rewind: 0, decide: 1, dismiss: 1, open: 0 })
+              assert.deepEqual(pageErrors, [])
+            })
+          }
+        }
         for (const location of ['center', 'edge']) {
           await check(input + ' ' + location + ' rewinds exactly once without card actions', async () => {
             await reset(); await activate(input, location); await expectCounts(1)

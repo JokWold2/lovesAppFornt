@@ -28,7 +28,8 @@
     </view>
     <view v-if="feed.items.length" class="load-more"><text v-if="feed.loading">{{ t('membership.loading') }}</text><button v-else-if="feed.error" @click="loadFeed(false)">{{ t('membership.retryMore') }}</button><button v-else-if="feed.hasMore" @click="loadFeed(false)">{{ t('membership.more') }}</button><text v-else>{{ t('membership.allShown') }}</text></view>
     <view v-if="membership && direction === 'incoming' && !membership.canViewLikes && !membershipError" class="unlock-dock"><button @click="openMembershipUpgrade('likes')">{{ t('membership.unlockLikes') }}</button></view>
-    <LiquidGlassTabBar active-route="pages/likes/likes" />
+    <LiquidGlassTabBar active-route="pages/likes/likes" :hidden="!!sheetProfileId" />
+    <ProfileDetailSheet :profile-id="sheetProfileId" :page-visible="sheetPageVisible" @closed="onProfileSheetClosed" />
   </view>
 </template>
 
@@ -43,6 +44,12 @@ import { config } from '@/utils/config.js'
 import { t } from '@/utils/localeRuntime.js'
 import { BLESSING_CHANGED_EVENT, mergeBlessingLikes, getMembershipTierName, getMembershipErrorMessage, getMembershipChatPrompt, handleMembershipError, openMembershipUpgrade } from '@/utils/membership.js'
 import { useFixedPageHeader } from '@/utils/useFixedPageHeader.js'
+import { useProfileDetailSheet } from '@/utils/useProfileDetailSheet.js'
+import ProfileDetailSheet from '@/components/profile/ProfileDetailSheet.vue'
+import { consumeIncomingLikesIntent } from '@/utils/likesTabIntent.js'
+
+const { profileId: sheetProfileId, pageVisible: sheetPageVisible, open: openProfileSheet, close: closeProfileSheet } = useProfileDetailSheet()
+function onProfileSheetClosed() { closeProfileSheet(); refresh() }
 
 const direction = ref('incoming'), membership = ref(null), membershipError = ref(''), applying = ref(null)
 const emptyFeed = () => ({ items: [], total: 0, page: 0, hasMore: true, loading: false, error: '', generation: 0 })
@@ -64,7 +71,7 @@ function onPhotoError(item) { const url = sourcePhotoUrl(item); if (url) failedP
 function goHome() { uni.switchTab({ url: '/pages/index/index360' }) }
 function openPerson(item) {
   if (isLocked(item)) return openMembershipUpgrade('likes')
-  if (item.profileId) uni.navigateTo({ url: `/pages/searchPerson/personShow/personShow?id=${item.profileId}` })
+  openProfileSheet(item.profileId)
 }
 async function refresh() {
   const generation = ++refreshGeneration
@@ -134,7 +141,7 @@ async function apply(item) {
 }
 function onChanged() { if (visible) refresh() }
 uni.$on?.(BLESSING_CHANGED_EVENT, onChanged)
-onShow(() => { visible = true; refresh() })
+onShow(() => { visible = true; if (consumeIncomingLikesIntent()) direction.value = 'incoming'; refresh() })
 onHide(() => { visible = false })
 onUnload(() => { visible = false; refreshGeneration++; feeds.incoming.generation++; feeds.outgoing.generation++; uni.$off?.(BLESSING_CHANGED_EVENT, onChanged) })
 onReachBottom(() => loadFeed(false))

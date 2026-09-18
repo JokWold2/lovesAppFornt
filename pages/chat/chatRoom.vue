@@ -1,24 +1,29 @@
 <template>
 	<view class="page app-h5-screen">
-		<view class="room-head">
-			<GroupAvatar :avatar-url="groupAvatarUrl" :members="members" :size="36" />
-			<view class="group-copy"><text class="group-name">{{ groupName || t('inbox.groupChat') }}</text><text class="online-count" @tap="openOnlineMembers">{{ onlineLabel }}</text></view>
-			<text
-				v-if="isGroupAdmin && groupStatus === 'active'"
-				class="group-manage"
-				@tap="openGroupManage"
-			>{{ t('inbox.groupManage') }}</text>
-		</view>
+		<ChatPageHeader :avatar-header="true">
+      <view class="group-copy">
+        <GroupAvatar :avatar-url="groupAvatarUrl" :members="members" :size="54" />
+        <text class="group-name">{{ groupName || t('inbox.groupChat') }}</text>
+        <view class="group-subtitle"><text>{{ t('group.memberCount', { count: members.length }) }}</text><text class="online-count" @tap="openOnlineMembers">· {{ onlineLabel }}</text></view>
+      </view>
+      <template #action><GlassCircleButton v-if="isGroupMember" class="group-manage" :label="t('inbox.groupManage')" @tap="openGroupManage"><view class="more-dots"><view /><view /><view /></view></GlassCircleButton></template>
+    </ChatPageHeader>
+    <view class="messages-area">
 		<!-- #ifdef H5 -->
 		<scroll-view
 			ref="h5MessagesRef"
 			class="messages messages--h5"
 			scroll-y
-			:upper-threshold="80"
+			:upper-threshold="60"
+      :bounces="false"
+      @touchstart="onScrollTouchStart"
+      @touchend="onScrollTouchEnd"
+      @touchcancel="onScrollTouchEnd"
 			@scroll="onH5MessageScroll"
 			@scrolltoupper="loadOlderMessages"
 		>
-			<view v-if="loadingOlder" class="history-loading"><text>{{ t('inbox.loading') }}</text></view>
+			<view class="messages-content">
+      <view v-if="loadingOlder" class="history-loading history-loading--older"><text>{{ t('inbox.loading') }}</text></view>
 			<view v-for="item in displayItems" :key="item.key">
 				<view v-if="item.kind === 'time'" class="time-divider">{{
 					item.label
@@ -33,10 +38,13 @@
 					@show-read-members="openReadMembers"
 				/>
 			</view>
-			<view v-if="!loading && !messages.length" class="empty"
+			<view v-if="loadFailed" class="load-error"><text>{{ t('inbox.loadChatFailed') }}</text><button @tap="load()">{{ t('chatDesign.retry') }}</button></view>
+			<view v-if="loading && !messages.length" class="history-loading">{{ t('inbox.loading') }}</view>
+			<view v-if="!loadFailed && !loading && !messages.length" class="empty"
 				>{{ t('inbox.emptyChat') }}</view
 			>
 			<view class="messages-end" />
+      </view>
 		</scroll-view>
 		<!-- #endif -->
 		<!-- #ifndef H5 -->
@@ -45,13 +53,18 @@
 			scroll-y
 			:scroll-top="scrollTop"
 			:scroll-with-animation="scrollWithAnimation"
-			:scroll-into-view="scrollIntoView"
-			:upper-threshold="80"
+
+			:upper-threshold="60"
+      :bounces="false"
+      @touchstart="onScrollTouchStart"
+      @touchend="onScrollTouchEnd"
+      @touchcancel="onScrollTouchEnd"
 			@scroll="onMessageScroll"
 			@scrolltoupper="loadOlderMessages"
-			@scrolltolower="atBottom = true"
+
 		>
-			<view v-if="loadingOlder" class="history-loading"><text>{{ t('inbox.loading') }}</text></view>
+			<view class="messages-content">
+      <view v-if="loadingOlder" class="history-loading history-loading--older"><text>{{ t('inbox.loading') }}</text></view>
 			<template>
 				<view v-for="item in displayItems" :key="item.key">
 					<view v-if="item.kind === 'time'" class="time-divider">{{
@@ -68,20 +81,19 @@
 					/>
 				</view>
 			</template>
-			<view v-if="!loading && !messages.length" class="empty"
+			<view v-if="loadFailed" class="load-error"><text>{{ t('inbox.loadChatFailed') }}</text><button @tap="load()">{{ t('chatDesign.retry') }}</button></view>
+			<view v-if="loading && !messages.length" class="history-loading">{{ t('inbox.loading') }}</view>
+			<view v-if="!loadFailed && !loading && !messages.length" class="empty"
 				>{{ t('inbox.emptyChat') }}</view
 			>
 			<view id="messages-end" class="messages-end" />
+      </view>
 		</scroll-view>
 		<!-- #endif -->
-		<view
-			v-if="latestButtonVisible"
-			class="back-to-latest"
-			:class="{ 'back-to-latest-leaving': latestButtonLeaving }"
-			:style="{ bottom: `${latestButtonBottomOffset}px` }"
-			@tap="returnToLatest"
-			><text class="latest-chevron">⌄</text><text class="latest-chevron">⌄</text></view
-		>
+    <view v-if="latestButtonVisible" class="latest-button-anchor">
+      <GlassCircleButton class="back-to-latest" :label="t('chatDesign.latest')" @tap="returnToLatest"><view class="latest-arrow" /></GlassCircleButton>
+    </view>
+    </view>
 		<ChatComposer
 			v-if="isGroupMember && groupStatus === 'active'"
 			:members="members"
@@ -107,8 +119,8 @@
 </template>
 
 <script setup>
-import { computed, nextTick, ref, watch } from "vue";
-import { onHide, onLoad, onShow, onUnload } from "@dcloudio/uni-app";
+import { computed, getCurrentInstance, nextTick, ref, watch } from "vue";
+import { onHide, onLoad, onReady, onResize, onShow, onUnload } from "@dcloudio/uni-app";
 import {
 	getChatGroupMembersApi,
 	getChatGroupOnlineMembersApi,
@@ -117,6 +129,8 @@ import {
 	sendChatMessageApi,
 	uploadChatImageApi,
 } from "@/api/chat.js";
+import GlassCircleButton from "@/components/chat/GlassCircleButton.vue";
+import ChatPageHeader from "@/components/chat/ChatPageHeader.vue";
 import ChatComposer from "@/components/chat/ChatComposer.vue";
 import ChatLongPressMenu from "@/components/chat/ChatLongPressMenu.vue";
 import ChatMessageBubble from "@/components/chat/ChatMessageBubble.vue";
@@ -125,11 +139,8 @@ import GroupMemberSheet from "@/components/chat/GroupMemberSheet.vue";
 import {
 	buildChatDisplayItems,
 	mergeChatMessages,
-	planH5ChatLoadScroll,
 	readH5MessageScrollMetrics,
 	resolveH5MessageScrollElement,
-	shouldAutoScrollForChatInteraction,
-	shouldAutoScrollOnChatLoad,
 	shouldLoadOlderMessagesFromH5Scroll,
 	shouldShowChatLatestButton,
 	shouldStickToBottom,
@@ -149,10 +160,9 @@ const onlineMembers = ref([]);
 const memberSheet = ref(null);
 const memberSheetMembers = ref([]);
 const memberSheetUnreadMembers = ref(null);
-const isGroupAdmin = ref(false);
+
 const isGroupMember = ref(false);
 const scrollTop = ref(0);
-const scrollIntoView = ref("");
 const scrollWithAnimation = ref(false);
 const h5MessagesRef = ref(null);
 const groupName = ref("");
@@ -165,34 +175,46 @@ const keyboardHeight = ref(0);
 const sending = ref(false);
 const atBottom = ref(true);
 const loading = ref(false);
+const loadFailed = ref(false);
 const loadingOlder = ref(false);
 const hasOlderMessages = ref(true);
 const latestButtonVisible = ref(false);
-const latestButtonLeaving = ref(false);
-const h5UserScrolledAwayFromBottom = ref(false);
+const userScrolledAwayFromBottom = ref(false);
+let touchingMessages = false, scrollInteractionRevision = 0, scrollCommandRevision = 0;
+let observedScrollTop = 0, observedScrollHeight = 0;
+let pageActive = true;
 const myId = Number(uni.getStorageSync("USER_INFO")?.id);
 const viewportHeight = Math.max(
 	0,
 	Number(uni.getSystemInfoSync?.().windowHeight || 700) - 150,
 );
+const messageViewportHeight = ref(viewportHeight);
+const pageInstance = getCurrentInstance();
+function measureMessageViewport() {
+	// Native scroll events do not report clientHeight. Measure the actual flex
+	// area so safe-area/header/keyboard heights cannot make history look newest.
+	// #ifndef H5
+	nextTick(() => uni.createSelectorQuery().in(pageInstance.proxy).select('.messages').boundingClientRect(rect => {
+		if (rect?.height > 0) messageViewportHeight.value = rect.height;
+	}).exec());
+	// #endif
+}
+onReady(measureMessageViewport);
+onResize(measureMessageViewport);
 // #ifdef H5
 const composerKeyboardHeight = computed(() => 0);
-const latestButtonBottomOffset = computed(() => 128);
 // #endif
 // #ifndef H5
 const composerKeyboardHeight = computed(() => keyboardHeight.value);
-const latestButtonBottomOffset = computed(() => Number(keyboardHeight.value) + 88);
 // #endif
 let pollTimer = null;
-let latestButtonTimer = null;
-let latestButtonLeaveTimer = null;
 let forceScrollAfterLoad = true;
-let forceScrollReason = "initial";
+let refreshAfterLoad = false;
 let hasLoadedInitialMessages = false;
 const messagePageSize = 15;
 const displayItems = computed(() => buildChatDisplayItems(messages.value));
 const onlineLabel = computed(() => `${onlineMembers.value.length} ${t('inbox.onlineMembers')}`);
-const memberSheetTitle = computed(() => memberSheet.value === 'read' ? t('inbox.readMembers') : t('inbox.onlineMembers'));
+const memberSheetTitle = computed(() => memberSheetUnreadMembers.value !== null ? t('inbox.readMembers') : t('inbox.onlineMembers'));
 
 function getH5MessagesElement() {
 	return resolveH5MessageScrollElement(h5MessagesRef.value, {
@@ -214,54 +236,65 @@ function captureH5ScrollState() {
 	};
 }
 
-function restoreH5ScrollState(snapshot) {
-	if (!snapshot) return;
-	nextTick(() => {
-		const element = getH5MessagesElement();
-		if (!element) return;
-		const maxScrollTop = Math.max(0, (Number(element.scrollHeight) || 0) - (Number(element.clientHeight) || 0));
-		const nextScrollTop = Number(snapshot.scrollTop) || 0;
-		element.scrollTo({
-			top: Math.min(maxScrollTop, Math.max(0, nextScrollTop)),
-			behavior: "auto",
-		});
-	});
+async function captureScrollState() {
+  await nextTick();
+  // #ifdef H5
+  return captureH5ScrollState();
+  // #endif
+  // #ifndef H5
+  return new Promise(resolve => {
+    let top = observedScrollTop, height = observedScrollHeight, viewport = messageViewportHeight.value;
+    uni.createSelectorQuery().in(pageInstance.proxy)
+      .select('.messages').scrollOffset(value => { if (Number.isFinite(value?.scrollTop)) top = value.scrollTop; })
+      .select('.messages').boundingClientRect(value => { if (value?.height > 0) viewport = value.height; })
+      .select('.messages-content').boundingClientRect(value => { if (value?.height > 0) height = value.height; })
+      .exec(() => { messageViewportHeight.value = viewport; resolve({ scrollTop: top, scrollHeight: height, clientHeight: viewport }); });
+  });
+  // #endif
 }
 
-function scrollToLast({ animated = true } = {}) {
-	if (!messages.value.length) return;
-	// #ifdef H5
-	nextTick(() => {
-		const element = getH5MessagesElement();
-		if (!element) return;
-		element.scrollTo({
-			top: element.scrollHeight,
-			behavior: animated ? "smooth" : "auto",
-		});
-	});
-	return;
-	// #endif
-	// #ifndef H5
-	// Reset first because setting the same target twice does not re-scroll in WeChat.
-	scrollWithAnimation.value = animated;
-	scrollIntoView.value = "";
-	nextTick(() => {
-		scrollIntoView.value = "messages-end";
-	});
-	// #endif
+async function applyScrollPosition(target, current, interaction = scrollInteractionRevision) {
+  if (!pageActive || interaction !== scrollInteractionRevision) return;
+  const command = ++scrollCommandRevision;
+  const top = Math.max(0, Number(target) || 0);
+  // #ifdef H5
+  const element = getH5MessagesElement();
+  if (element) element.scrollTo({ top, behavior: 'auto' });
+  // #endif
+  // #ifndef H5
+  // Only explicit commands write this prop. Echoing @scroll into it restarts
+  // native animation/overflow locking and fights the user's finger.
+  scrollWithAnimation.value = false;
+  if (scrollTop.value === top && Math.abs(Number(current) - top) > 1) {
+    scrollTop.value = Math.max(0, Number(current) || 0);
+    await nextTick();
+  }
+  if (!pageActive || command !== scrollCommandRevision || interaction !== scrollInteractionRevision) return;
+  scrollTop.value = top;
+  // #endif
+  observedScrollTop = top;
 }
-async function load({ silent = false } = {}) {
-	if (!groupId.value || loading.value) return;
-	// #ifdef H5
-	const preLoadH5ScrollState = captureH5ScrollState();
-	const preLoadAtBottom = preLoadH5ScrollState
-		? shouldStickToBottom({
-			scrollTop: preLoadH5ScrollState.scrollTop,
-			scrollHeight: preLoadH5ScrollState.scrollHeight,
-			viewportHeight: preLoadH5ScrollState.clientHeight,
-		})
-		: true;
-	// #endif
+
+async function scrollToLast() {
+  if (!messages.value.length) return false;
+  const interaction = scrollInteractionRevision;
+  const snapshot = await captureScrollState();
+  if (!snapshot || interaction !== scrollInteractionRevision || !pageActive) return false;
+  const target = Math.max(0, snapshot.scrollHeight - snapshot.clientHeight);
+  await applyScrollPosition(target, snapshot.scrollTop, interaction);
+  if (interaction !== scrollInteractionRevision || !pageActive) return false;
+  atBottom.value = true;
+  userScrolledAwayFromBottom.value = false;
+  latestButtonVisible.value = false;
+  return true;
+}
+async function load({ silent = false, refreshAfterPending = false } = {}) {
+	if (!groupId.value) return;
+  if (loading.value) {
+    if (refreshAfterPending) refreshAfterLoad = true;
+    return;
+  }
+  const previousLatestId = Number(messages.value[messages.value.length - 1]?.id || 0);
 	loading.value = true;
 	try {
 		const [messageData, groupData, memberData] = await Promise.all([
@@ -269,9 +302,8 @@ async function load({ silent = false } = {}) {
 			getChatGroupsApi(),
 			getChatGroupMembersApi(groupId.value),
 		]);
-		// #ifdef H5
-		const liveH5ScrollState = captureH5ScrollState();
-		// #endif
+
+		loadFailed.value = false;
 		const incomingMessages = messageData?.messages || messageData?.data?.messages || [];
 		messages.value = hasLoadedInitialMessages
 			? mergeChatMessages(messages.value, incomingMessages)
@@ -285,59 +317,31 @@ async function load({ silent = false } = {}) {
 			(item) => Number(item.id) === Number(groupId.value),
 		);
 		isGroupMember.value = Boolean(group);
-		isGroupAdmin.value = group?.role === "admin";
+
 		groupName.value = presentGroupName(group?.name);
-		console.log(groupName.value, "groupName.value");
+
 
 		groupAvatarUrl.value = group?.avatar_url || "";
 		groupStatus.value = group?.status || "active";
-		const shouldForceAfterSending = forceScrollAfterLoad && forceScrollReason === "send";
-		// #ifdef H5
-		const h5ScrollPlan = planH5ChatLoadScroll({
-			requestStartedAtBottom: preLoadAtBottom,
-			liveScrollState: liveH5ScrollState,
-			fallbackAtBottom: atBottom.value,
-			forceScroll: forceScrollAfterLoad,
-			userScrolled: h5UserScrolledAwayFromBottom.value,
-		});
-		// #endif
-		const shouldAutoScroll = shouldForceAfterSending || (
-			// #ifdef H5
-			h5ScrollPlan.shouldAutoScroll
-			// #endif
-			// #ifndef H5
-			shouldAutoScrollOnChatLoad({
-				forceScroll: forceScrollAfterLoad,
-				atBottom: atBottom.value,
-				userScrolled: h5UserScrolledAwayFromBottom.value,
-			})
-			// #endif
-		);
-		if (shouldAutoScroll) {
-			// H5 background refresh must not keep a smooth-scroll animation alive
-			// while the user is reading older messages.
-			// #ifdef H5
-			scrollToLast({ animated: false });
-			// #endif
-			// #ifndef H5
-			scrollToLast({ animated: hasLoadedInitialMessages });
-			// #endif
-			// #ifdef H5
-			h5UserScrolledAwayFromBottom.value = false;
-			// #endif
-		} else {
-			// #ifdef H5
-			h5UserScrolledAwayFromBottom.value = !h5ScrollPlan.atBottom;
-			restoreH5ScrollState(h5ScrollPlan.scrollStateToPreserve);
-			// #endif
-		}
-		forceScrollAfterLoad = false;
-		forceScrollReason = null;
+    const latestId = Number(messages.value[messages.value.length - 1]?.id || 0);
+    const hasNewLatest = latestId > previousLatestId;
+    // Current intent wins: a gesture cancels following; tapping Latest restores
+    // it even if the request began while reading history.
+    const following = !touchingMessages && !userScrolledAwayFromBottom.value;
+    const shouldFollow = following && (forceScrollAfterLoad || (hasNewLatest && atBottom.value));
+    if (shouldFollow && await scrollToLast()) forceScrollAfterLoad = false;
+    else if (hasNewLatest && pageActive) {
+      // Appending does not necessarily emit scroll. Refresh the floating
+      // control from live geometry without moving the reader's position.
+      const snapshot = await captureScrollState();
+      if (snapshot && pageActive) updateMessageScrollState(snapshot);
+    }
 		hasLoadedInitialMessages = true;
 		refreshUnreadBadge({ force: true }).catch((error) =>
 			console.warn("刷新未读角标失败", error),
 		);
 	} catch (error) {
+		loadFailed.value = true;
 		if (!silent)
 			uni.showToast({
 				title: error?.error || t('inbox.loadChatFailed'),
@@ -345,6 +349,10 @@ async function load({ silent = false } = {}) {
 			});
 	} finally {
 		loading.value = false;
+    if (refreshAfterLoad && pageActive) {
+      refreshAfterLoad = false;
+      await load({ silent: true });
+    }
 	}
 }
 
@@ -361,6 +369,7 @@ async function loadOnlineMembers({ silent = false } = {}) {
 
 async function openOnlineMembers() {
 	memberSheet.value = 'online';
+	memberSheetUnreadMembers.value = null;
 	memberSheetMembers.value = onlineMembers.value;
 	await loadOnlineMembers();
 }
@@ -373,100 +382,67 @@ function openReadMembers(message) {
 
 function closeMemberSheet() {
 	memberSheet.value = null;
-	memberSheetMembers.value = [];
-	memberSheetUnreadMembers.value = null;
+
 }
 async function loadOlderMessages() {
-	if (!hasOlderMessages.value || loadingOlder.value || !messages.value.length) return;
-	// #ifdef H5
-	const previousH5ScrollState = captureH5ScrollState();
-	// #endif
-	loadingOlder.value = true;
-	try {
-		const oldestMessage = messages.value[0];
-		const data = await getChatMessagesApi(groupId.value, {
-			limit: messagePageSize,
-			beforeId: oldestMessage.id,
-		});
-		messages.value = mergeChatMessages(messages.value, data?.messages || data?.data?.messages || []);
-		hasOlderMessages.value = Boolean(data?.hasMore ?? data?.data?.hasMore);
-		// #ifdef H5
-		if (previousH5ScrollState) {
-			nextTick(() => {
-				const element = getH5MessagesElement();
-				if (!element) return;
-				element.scrollTop = previousH5ScrollState.scrollTop
-					+ Math.max(0, (Number(element.scrollHeight) || 0) - previousH5ScrollState.scrollHeight);
-			});
-		}
-		// #endif
-	} catch (error) {
-		uni.showToast({ title: error?.error || t('inbox.loadHistoryFailed'), icon: "none" });
-	} finally {
-		loadingOlder.value = false;
-	}
+  if (!hasLoadedInitialMessages || !userScrolledAwayFromBottom.value || !hasOlderMessages.value || loadingOlder.value || !messages.value.length) return;
+  loadingOlder.value = true;
+  try {
+    const data = await getChatMessagesApi(groupId.value, { limit: messagePageSize, beforeId: messages.value[0].id });
+    // Read the LIVE position at response time. The user may have moved while
+    // waiting for the request; restoring the request-start offset jerks them.
+    const before = await captureScrollState();
+    const interaction = scrollInteractionRevision;
+    const wasFollowingLatest = atBottom.value && !userScrolledAwayFromBottom.value;
+    messages.value = mergeChatMessages(messages.value, data?.messages || data?.data?.messages || []);
+    hasOlderMessages.value = Boolean(data?.hasMore ?? data?.data?.hasMore);
+    const after = await captureScrollState();
+    if (before && after && interaction === scrollInteractionRevision) {
+      const target = wasFollowingLatest && !userScrolledAwayFromBottom.value ? Math.max(0, after.scrollHeight - after.clientHeight)
+        : after.scrollTop + Math.max(0, after.scrollHeight - before.scrollHeight);
+      await applyScrollPosition(target, after.scrollTop, interaction);
+    }
+  } catch (error) {
+    uni.showToast({ title: error?.error || t('inbox.loadHistoryFailed'), icon: 'none' });
+  } finally { loadingOlder.value = false; }
+}
+function onScrollTouchStart() {
+  touchingMessages = true;
+  scrollInteractionRevision++;
+  scrollCommandRevision++;
+  userScrolledAwayFromBottom.value = true;
+  forceScrollAfterLoad = false;
+}
+function onScrollTouchEnd() {
+  touchingMessages = false;
+  if (observedScrollTop + messageViewportHeight.value >= observedScrollHeight - 3) userScrolledAwayFromBottom.value = false;
 }
 function onMessageScroll(event) {
-	scrollTop.value = event.detail.scrollTop;
-	atBottom.value = shouldStickToBottom({
-		scrollTop: event.detail.scrollTop,
-		scrollHeight: event.detail.scrollHeight,
-		viewportHeight: Math.max(0, viewportHeight - keyboardHeight.value),
-	});
-	if (!atBottom.value) showLatestButton();
+  updateMessageScrollState({ scrollTop: event.detail.scrollTop, scrollHeight: event.detail.scrollHeight, clientHeight: messageViewportHeight.value });
 }
-function updateMessageScrollState({ scrollTop, scrollHeight, clientHeight }) {
-	atBottom.value = shouldStickToBottom({
-		scrollTop,
-		scrollHeight,
-		viewportHeight: clientHeight,
-	});
-	h5UserScrolledAwayFromBottom.value = !atBottom.value;
-	if (shouldShowChatLatestButton({ atBottom: atBottom.value })) {
-		showLatestButton();
-	} else {
-		latestButtonVisible.value = false;
-		latestButtonLeaving.value = false;
-	}
-	if (shouldLoadOlderMessagesFromH5Scroll({
-		scrollTop,
-		hasOlderMessages: hasOlderMessages.value,
-		loadingOlder: loadingOlder.value,
-	})) void loadOlderMessages();
+function updateMessageScrollState({ scrollTop: top, scrollHeight, clientHeight }) {
+  const movingUp = top < observedScrollTop - 1;
+  observedScrollTop = Math.max(0, Number(top) || 0);
+  observedScrollHeight = Number(scrollHeight) || 0;
+  messageViewportHeight.value = clientHeight;
+  atBottom.value = shouldStickToBottom({ scrollTop: top, scrollHeight, viewportHeight: clientHeight });
+  // A larger viewport (keyboard closing) can clamp scrollTop upwards while
+  // still at the real bottom. That is not a gesture away from latest.
+  if (!touchingMessages && top + clientHeight >= scrollHeight - 3) userScrolledAwayFromBottom.value = false;
+  else if (touchingMessages || movingUp) userScrolledAwayFromBottom.value = true;
+  latestButtonVisible.value = shouldShowChatLatestButton({ atBottom: atBottom.value });
 }
-
 function onH5MessageScroll(event) {
-	const metrics = readH5MessageScrollMetrics({
-		element: getH5MessagesElement(),
-		event,
-	});
-	if (metrics) updateMessageScrollState(metrics);
+  const metrics = readH5MessageScrollMetrics({ element: getH5MessagesElement(), event });
+  if (!metrics) return;
+  updateMessageScrollState(metrics);
+  if (shouldLoadOlderMessagesFromH5Scroll({ scrollTop: metrics.scrollTop, hasOlderMessages: hasOlderMessages.value, loadingOlder: loadingOlder.value })) void loadOlderMessages();
 }
-function showLatestButton() {
-	latestButtonVisible.value = true;
-	latestButtonLeaving.value = false;
-	clearTimeout(latestButtonTimer);
-	clearTimeout(latestButtonLeaveTimer);
-	// #ifdef H5
-	return;
-	// #endif
-	latestButtonTimer = setTimeout(hideLatestButton, 3000);
-}
-function hideLatestButton() {
-	latestButtonLeaving.value = true;
-	latestButtonLeaveTimer = setTimeout(() => {
-		latestButtonVisible.value = false;
-		latestButtonLeaving.value = false;
-	}, 260);
-}
-function returnToLatest() {
-	atBottom.value = true;
-	h5UserScrolledAwayFromBottom.value = false;
-	clearTimeout(latestButtonTimer);
-	clearTimeout(latestButtonLeaveTimer);
-	latestButtonVisible.value = false;
-	latestButtonLeaving.value = false;
-	scrollToLast({ animated: true });
+async function returnToLatest() {
+  scrollInteractionRevision++;
+  touchingMessages = false;
+  userScrolledAwayFromBottom.value = false;
+  await scrollToLast();
 }
 function startPolling() {
 	if (!pollTimer) pollTimer = setInterval(() => load({ silent: true }), 5000);
@@ -478,28 +454,20 @@ function stopPolling() {
 	}
 }
 function shouldFollowLatestOnComposerInteraction() {
-	// #ifdef H5
-	return shouldAutoScrollForChatInteraction({
-		isH5: true,
-		atBottom: atBottom.value,
-		userScrolled: h5UserScrolledAwayFromBottom.value,
-	});
-	// #endif
-	// #ifndef H5
-	return shouldAutoScrollForChatInteraction({ isH5: false });
-	// #endif
+  return atBottom.value && !userScrolledAwayFromBottom.value && !touchingMessages;
 }
 function handleComposerFocus() {
 	if (!shouldFollowLatestOnComposerInteraction()) return;
-	scrollToLast({ animated: true });
+	scrollToLast();
 }
 function setKeyboardHeight(event) {
 	keyboardHeight.value = Math.max(
 		0,
 		Number(unwrapComponentEventPayload(event)) || 0,
 	);
+	measureMessageViewport();
 	if (keyboardHeight.value && shouldFollowLatestOnComposerInteraction()) {
-		nextTick(() => scrollToLast({ animated: true }));
+		nextTick(() => scrollToLast());
 	}
 }
 function closeLongPressMenu() {
@@ -523,6 +491,7 @@ function openGroupManage() {
 }
 async function sendMessage(payload) {
 	if (sending.value) return;
+	const interactionWhenSending = scrollInteractionRevision;
 	sending.value = true;
 	try {
 		await sendChatMessageApi(
@@ -530,9 +499,11 @@ async function sendMessage(payload) {
 			attachReplyMessage(payload, replyMessage.value),
 		);
 		replyMessage.value = null;
-		forceScrollAfterLoad = true;
-		forceScrollReason = "send";
-		await load({ silent: true });
+		if (interactionWhenSending === scrollInteractionRevision) {
+			userScrolledAwayFromBottom.value = false;
+			forceScrollAfterLoad = true;
+		}
+		await load({ silent: true, refreshAfterPending: true });
 	} catch (error) {
 		uni.showToast({ title: error?.error || t('inbox.sendFailed'), icon: "none" });
 	} finally {
@@ -541,6 +512,7 @@ async function sendMessage(payload) {
 }
 async function sendImage({ imagePath }) {
 	if (sending.value) return;
+	const interactionWhenSending = scrollInteractionRevision;
 	sending.value = true;
 	uni.showLoading({ title: t('inbox.uploadingImage') });
 	try {
@@ -553,9 +525,11 @@ async function sendImage({ imagePath }) {
 			replyToMessageId: replyMessage.value?.id || null,
 		});
 		replyMessage.value = null;
-		forceScrollAfterLoad = true;
-		forceScrollReason = "send";
-		await load({ silent: true });
+		if (interactionWhenSending === scrollInteractionRevision) {
+			userScrolledAwayFromBottom.value = false;
+			forceScrollAfterLoad = true;
+		}
+		await load({ silent: true, refreshAfterPending: true });
 	} catch (error) {
 		uni.showToast({ title: error?.error || t('inbox.uploadImageFailed'), icon: "none" });
 	} finally {
@@ -567,25 +541,26 @@ onLoad((options) => {
 	groupId.value = options.id;
 });
 onShow(() => {
+	measureMessageViewport();
 	uni.setNavigationBarTitle({ title: t('inbox.groupChat') });
-	latestButtonVisible.value = false;
-	latestButtonLeaving.value = false;
-	forceScrollAfterLoad = true;
-	forceScrollReason = "initial";
-	h5UserScrolledAwayFromBottom.value = false;
+  pageActive = true;
+  if (!hasLoadedInitialMessages) {
+    forceScrollAfterLoad = true;
+    userScrolledAwayFromBottom.value = false;
+  }
 	load();
 	startPolling();
 });
 watch(currentLocale, () => uni.setNavigationBarTitle({ title: t('inbox.groupChat') }));
 onHide(() => {
 	keyboardHeight.value = 0;
-	clearTimeout(latestButtonTimer);
-	clearTimeout(latestButtonLeaveTimer);
+  pageActive = false;
+  scrollCommandRevision++;
 	stopPolling();
 });
 onUnload(() => {
-	clearTimeout(latestButtonTimer);
-	clearTimeout(latestButtonLeaveTimer);
+  pageActive = false;
+  scrollCommandRevision++;
 	stopPolling();
 });
 </script>
@@ -595,50 +570,23 @@ onUnload(() => {
 	display: flex;
 	flex-direction: column;
 	overflow: hidden;
-	background: #efefef;
+	background: #eeedeb;
 }
 /* #ifndef H5 */
 .page {
 	height: 100vh;
 }
 /* #endif */
-/* #ifdef H5 */
-.messages--h5 {
-	width: 100%;
-	height: auto;
-	flex: 1 1 0;
-}
-/* #endif */
-.room-head {
-	display: flex;
-	align-items: center;
-	gap: 14rpx;
-	padding: 18rpx 24rpx;
-	background: #f6f7f8;
-}
-.group-copy { display: flex; flex: 1; flex-direction: column; min-width: 0; gap: 4rpx; }
-.group-name {
-	overflow: hidden;
-	color: #1d2230;
-	font-size: 30rpx;
-	font-weight: 600;
-	text-overflow: ellipsis;
-	white-space: nowrap;
-}
-.online-count { align-self: flex-start; color: #7d838c; font-size: 22rpx; }
-.group-manage {
-	padding: 10rpx 14rpx;
-	border-radius: 14rpx;
-	color: #73747b;
-	background: #fff;
-	font-size: 24rpx;
-}
-.messages {
-	flex: 1;
-	min-height: 0;
-	box-sizing: border-box;
-	padding: 16rpx 24rpx;
-}
+.messages-area{position:relative;flex:1;min-height:0;overflow:hidden;}
+.group-copy{display:flex;flex:1;align-items:center;flex-direction:column;min-width:0;gap:5px;padding:0 0 2px;}
+.group-name{display:block;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:18px;font-weight:600;color:#292825;}
+.group-subtitle{display:flex;flex-wrap:wrap;align-items:center;justify-content:center;gap:5px;color:#918d85;font-size:11px;font-weight:400;}
+.online-count{padding:4px 0;}
+.more-dots{display:flex;align-items:center;justify-content:center;gap:4px;}.more-dots>view{width:5px;height:5px;border-radius:50%;background:currentColor;}
+.load-error{padding:18px;color:#918d85;text-align:center;font-size:13px;}.load-error button{margin-top:10px;width:fit-content;background:#fff;border-radius:22px;font-size:13px;}
+.messages{width:100%;height:100%;min-height:0;box-sizing:border-box;overflow-anchor:none;}
+.messages-content{position:relative;padding:8px 14px 12px;box-sizing:border-box;overflow-anchor:none;}
+.history-loading--older{position:absolute;top:0;left:0;right:0;z-index:2;padding:8px!important;background:rgba(238,237,235,.94);pointer-events:none;}
 .time-divider {
 	margin: 22rpx auto;
 	color: #7d838c;
@@ -660,48 +608,17 @@ onUnload(() => {
 	text-align: center;
 	font-size: 23rpx;
 }
-.back-to-latest {
-	position: absolute;
-	left: 50%;
-	z-index: 9999;
-	display: flex;
-	flex-direction: column;
-	align-items: center;
-	justify-content: center;
-	width: 76rpx;
-	height: 76rpx;
-	border-radius: 50%;
-	color: #1d2230;
-	background: #fff;
-	box-shadow: 0 8rpx 18rpx rgba(34, 40, 51, 0.16);
-	transform: translateX(-50%);
-	transition: transform 260ms ease-in, opacity 260ms ease-in;
-	pointer-events: auto;
-}
-/* #ifdef H5 */
-.back-to-latest {
-	position: fixed;
-}
-/* #endif */
-.latest-chevron {
-	display: block;
-	font-size: 36rpx;
-	font-weight: 600;
-	line-height: 20rpx;
-}
-.latest-chevron + .latest-chevron {
-	margin-top: -2rpx;
-}
-.back-to-latest-leaving {
-	opacity: 0;
-	transform: translate(-50%, 72rpx);
-}
+.latest-button-anchor{position:absolute;right:16px;bottom:12px;z-index:10;}
+.latest-arrow{position:relative;width:16px;height:19px;color:#686359;}
+.latest-arrow::before{content:"";position:absolute;left:7px;top:1px;width:2px;height:14px;border-radius:2px;background:currentColor;}
+.latest-arrow::after{content:"";position:absolute;left:3px;bottom:4px;width:8px;height:8px;border-right:2px solid currentColor;border-bottom:2px solid currentColor;transform:rotate(45deg);border-radius:1px;}
 .dissolved-note {
 	flex: 0 0 auto;
 	padding: 24rpx;
 	color: #7d838c;
-	background: #f7f8f9;
+	background: #eeedeb;
 	text-align: center;
 	font-size: 25rpx;
 }
+@media(prefers-reduced-motion:reduce){.back-to-latest{transition:none;}}
 </style>
