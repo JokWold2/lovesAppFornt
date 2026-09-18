@@ -8,6 +8,14 @@ const stateSource = await readFile(new URL('../utils/tabBarState.js', import.met
 const stateModuleUrl = asModuleUrl(stateSource.replace("'./unreadBadgeState.js'", JSON.stringify(asModuleUrl(badgeSource))))
 const navigation = await import(stateModuleUrl)
 
+test('personal profile keeps the existing fourth destination and uses a person icon', () => {
+  const profileTab = navigation.TAB_BAR_ITEMS[3]
+  assert.equal(profileTab.route, 'pages/my/myLifeShow/myLifeShow')
+  assert.equal(profileTab.labelKey, 'navigation.moments')
+  assert.equal(profileTab.icon, 'person')
+  assert.equal(profileTab.selectedIcon, 'person-filled')
+})
+
 test('only existing tab destinations can be opened, and the current tab is a no-op', () => {
   assert.equal(typeof navigation.getTabSwitchTarget, 'function')
   assert.equal(navigation.getTabSwitchTarget('pages/index/index360', 'pages/notice/notice'), '/pages/notice/notice')

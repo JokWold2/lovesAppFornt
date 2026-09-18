@@ -34,7 +34,7 @@
           @keydown.space.prevent="tapTab(item.route)"
         >
           <view class="liquid-tabbar-icon-wrap" :style="itemMagnification(index)">
-            <uni-icons :type="item.icon" :size="23" :color="selectedIndex === index ? '#17191c' : '#54585e'" />
+            <uni-icons :type="selectedIndex === index ? (item.selectedIcon || item.icon) : item.icon" :size="23" :color="selectedIndex === index ? '#17191c' : '#54585e'" />
             <text v-if="badgeText(item.route)" class="liquid-tabbar-badge">{{ badgeText(item.route) }}</text>
           </view>
           <text class="liquid-tabbar-label">{{ labels[index] }}</text>
@@ -497,7 +497,7 @@ onBeforeUnmount(() => {
 .liquid-tabbar-item:focus-visible { outline: 2px solid #31363d; outline-offset: -3px; }
 .liquid-tabbar-pressed { background: transparent; }
 .liquid-tabbar-icon-wrap { position: relative; height: 25px; line-height: 25px; transform-origin: center; }
-.liquid-tabbar-label { margin-top: 3px; max-width: 100%; font-size: 12px; font-weight: 500; line-height: 16px; white-space: nowrap; }
+.liquid-tabbar-label { display: block; margin-top: 3px; max-width: 100%; overflow: hidden; text-overflow: ellipsis; font-size: 12px; font-weight: 500; line-height: 16px; white-space: nowrap; }
 .is-selected .liquid-tabbar-label { font-weight: 600; }
 .liquid-tabbar-badge {
   position: absolute;

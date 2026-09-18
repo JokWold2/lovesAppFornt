@@ -12,27 +12,31 @@ const output = process.env.QA_SCREENSHOT_DIR || path.resolve(root, '../.lovesapp
 async function bundle() {
   const styles = []
   const result = await build({
-    stdin: { resolveDir: root, contents: `import {createApp,h,nextTick} from 'vue';
-      import Likes from './pages/likes/likes.vue';import Detail from './pages/searchPerson/personShow/personShow.vue';
+    stdin: { resolveDir: root, contents: `import {createApp,h,nextTick,reactive} from 'vue';
+      import Likes from './pages/likes/likes.vue';import Detail from './components/profile/ProfileDetailView.vue';
       import {tabBarState} from './utils/tabBarState.js';import {currentLocale} from '@/utils/localeRuntime.js';
       let app=null;window.fixture.tabs=tabBarState;
-      window.fixture.mount=async(kind,id=12)=>{if(app)app.unmount();window.fixtureHooks={load:[],show:[],hide:[],unload:[]};window.fixture.kind=kind;app=createApp(kind==='likes'?Likes:Detail);app.component('uni-icons',{props:['type','size','color'],render(){return h('span',{class:'uni-icons uniui-'+this.type,style:{fontSize:this.size+'px',color:this.color}})}});window.fixture.subject=app.mount('#app');for(const fn of fixtureHooks.load)fn({id});for(const fn of fixtureHooks.show)fn();await nextTick();};
+      window.fixture.mount=async(kind,id=12)=>{if(app)app.unmount();window.fixtureHooks={load:[],show:[],hide:[],unload:[]};window.fixture.kind=kind;const detailProps=reactive({id,visible:true});window.fixture.hideDetail=()=>{detailProps.visible=false};app=createApp(kind==='likes'?Likes:{render:()=>h(Detail,detailProps)});app.component('uni-icons',{props:['type','size','color'],render(){return h('span',{class:'uni-icons uniui-'+this.type,style:{fontSize:this.size+'px',color:this.color}})}});window.fixture.subject=app.mount('#app');for(const fn of fixtureHooks.load)fn({id});for(const fn of fixtureHooks.show)fn();await nextTick();};
       window.fixture.locale=value=>{currentLocale.value=value};window.fixture.mount('likes');` },
     bundle: true, write: false, format: 'iife', platform: 'browser',
     define: { __VUE_OPTIONS_API__: 'true', __VUE_PROD_DEVTOOLS__: 'false', __VUE_PROD_HYDRATION_MISMATCH_DETAILS__: 'false', 'process.env.NODE_ENV': '"production"' },
     plugins: [{ name: 'profile-view-fixture', setup(b) {
       b.onResolve({ filter: /^@dcloudio\/uni-app$|^@\/api\// }, args => ({ path: args.path, namespace: 'fixture' }))
-      b.onResolve({ filter: /^@\/utils\/(localeRuntime|config|auth|unreadBadge)\.js$/ }, args => ({ path: args.path, namespace: 'fixture' }))
+      b.onResolve({ filter: /^@\/utils\/(localeRuntime|config|auth|unreadBadge|useProfileDetailSheet)\.js$/ }, args => ({ path: args.path, namespace: 'fixture' }))
       b.onLoad({ filter: /.*/, namespace: 'fixture' }, args => {
         if (args.path.includes('/api/')) return { contents: ['getMembershipApi', 'getBlessingLikesApi', 'getCandidateProfileApi', 'getProfileLikesApi', 'toggleProfileLikeApi', 'createChatRequestApi', 'getChatRequestStatusApi', 'decideBlessingApi', 'markProfileLikeViewedApi'].map(name => `export const ${name}=(...args)=>window.fixture.api.${name}(...args);`).join('\n') }
         if (args.path.includes('localeRuntime')) return { contents: `import {ref} from 'vue';import {translate} from ${JSON.stringify(path.join(root, 'utils/locale.js'))};export const currentLocale=ref('zh-Hans');export const t=(key,args)=>translate(currentLocale.value,key,args);`, resolveDir: root }
         if (args.path.includes('config')) return { contents: 'export const config={baseURL:""};' }
         if (args.path.includes('auth')) return { contents: 'export const getToken=()=>window.fixture.token;' }
         if (args.path.includes('unreadBadge')) return { contents: 'export const refreshUnreadBadge=async(options)=>window.fixture.refreshBadges(options);' }
+        // Sheet animation/history have dedicated actual-runtime tests. Keep this
+        // fixture focused on which profile opens and when its view is acknowledged.
+        if (args.path.includes('useProfileDetailSheet')) return { contents: `import {ref} from 'vue';export function useProfileDetailSheet(){const profileId=ref(null),pageVisible=ref(true);return {profileId,pageVisible,open:id=>{profileId.value=Number(id);window.fixture.openedProfiles.push(Number(id));},close:()=>{profileId.value=null}}}`, resolveDir: root }
         return { contents: `export const onLoad=fn=>window.fixtureHooks.load.push(fn);export const onShow=fn=>window.fixtureHooks.show.push(fn);export const onHide=fn=>window.fixtureHooks.hide.push(fn);export const onUnload=fn=>window.fixtureHooks.unload.push(fn);export const onReady=()=>{};export const onResize=()=>{};export const onReachBottom=()=>{};export const onPullDownRefresh=()=>{};` }
       })
       b.onResolve({ filter: /^@\// }, args => ({ path: path.join(root, args.path.slice(2)) }))
       b.onLoad({ filter: /\.vue$/ }, async args => {
+        if (args.path.endsWith('ProfileDetailSheet.vue')) return { contents: 'export default {render(){return null}};' }
         let source = fs.readFileSync(args.path, 'utf8').replace(/\/\/ #ifndef H5[\s\S]*?\/\/ #endif/g, '')
           .replace(/<image(?=[\s>])/g, '<img').replace(/<\/image>/g, '</img>')
         if (args.path.endsWith('likes.vue')) source = source.replace('</script>', 'defineExpose({refresh,switchDirection})\n</script>')
@@ -55,7 +59,7 @@ async function bundle() {
 
 function installFixture() {
   const photo = color => 'data:image/svg+xml,' + encodeURIComponent(`<svg xmlns="http://www.w3.org/2000/svg" width="160" height="240"><rect width="160" height="240" fill="${color}"/><circle cx="80" cy="75" r="35" fill="#f0dfcc"/><ellipse cx="80" cy="200" rx="64" ry="88" fill="#515857"/></svg>`)
-  const state = { kind: 'likes', token: 'viewer', tier: 3, requests: [], acks: [], badgeRefreshes: [], profileFailure: false, profileDelay: false,
+  const state = { kind: 'likes', token: 'viewer', tier: 3, requests: [], openedProfiles: [], acks: [], badgeRefreshes: [], profileFailure: false, profileDelay: false,
     items: [
       { profileId: 12, userId: 80, displayName: '林予安', avatarUrl: photo('#ad8b76'), unread: true, mutual: true, likeId: 401 },
       { profileId: 13, userId: 81, displayName: 'Alex', avatarUrl: photo('#6e8c99'), unread: true, mutual: false, likeId: 402 },
@@ -109,7 +113,7 @@ async function main() {
       if (url.startsWith('http://fixture.local/static/')) return route.fulfill({ body: fs.readFileSync(path.join(root, url.replace('http://fixture.local/', ''))), contentType: 'image/png' })
       return route.abort()
     })
-    await page.setContent('<base href="http://fixture.local/"><style>view{display:block}body{margin:0;background:#f6f5f2;font-family:Arial,sans-serif}button{display:block;border:0;font:inherit}img{object-fit:cover}.uni-icons{display:inline-block;width:23px;height:25px;line-height:25px}</style><div id="app"></div>')
+    await page.setContent('<base href="http://fixture.local/"><style>view,scroll-view{display:block}scroll-view{overflow-y:auto}#app{height:100vh}body{margin:0;background:#f6f5f2;font-family:Arial,sans-serif}button{display:block;border:0;font:inherit}img{object-fit:cover}.uni-icons{display:inline-block;width:23px;height:25px;line-height:25px}</style><div id="app"></div>')
     await page.evaluate(installFixture); await page.addStyleTag({ content: compiled.css }); await page.addScriptTag({ content: compiled.js })
     await page.waitForSelector('.person-card')
     await page.evaluate(() => fixture.refreshBadges())
@@ -143,7 +147,8 @@ async function main() {
     await page.evaluate(() => { fixture.tier = 3; return fixture.mount('likes') }); await page.waitForSelector('.person-unread-dot')
     const dot = await page.locator('.person-unread-dot').first().boundingBox()
     await page.touchscreen.tap(dot.x + dot.width / 2, dot.y + dot.height / 2)
-    assert.equal(await page.evaluate(() => fixture.requests.at(-1)), '/pages/searchPerson/personShow/personShow?id=12')
+    assert.equal(await page.evaluate(() => fixture.openedProfiles.at(-1)), 12)
+    assert.deepEqual(await page.evaluate(() => fixture.requests), [])
     assert.deepEqual(await page.evaluate(() => fixture.acks), []); passed++
     await page.evaluate(() => fixture.mount('detail', 12)); await page.waitForFunction(() => fixture.acks.length === 1)
     assert.deepEqual(await page.evaluate(() => fixture.acks), [{ profileId: 12, likeId: 401, rendered: true, visible: true }])
@@ -155,7 +160,7 @@ async function main() {
     assert.equal(await page.evaluate(() => fixture.acks.length), 1); passed++
     await page.evaluate(() => { fixture.profileFailure = false; fixture.profileDelay = true; return fixture.mount('detail', 13) })
     await page.waitForFunction(() => !!fixture.resolveProfile)
-    await page.evaluate(() => { for (const fn of fixtureHooks.hide) fn(); fixture.resolveProfile() })
+    await page.evaluate(async () => { fixture.hideDetail(); for (const fn of fixtureHooks.hide) fn(); await Promise.resolve(); fixture.resolveProfile() })
     await page.waitForTimeout(100); assert.equal(await page.evaluate(() => fixture.acks.length), 1); passed++
     assert.deepEqual(errors, [])
     await page.close()

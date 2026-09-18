@@ -71,10 +71,13 @@
       <button class="deck-rewind" :disabled="busy || loading || rewindBusy || !rewindAvailable" :aria-label="t('deck.rewind')" @click.stop="emit('rewind')">
         <view class="deck-rewind-arrow" aria-hidden="true"></view>
       </button>
-      <view class="deck-actions" @touchstart.stop @mousedown.stop>
-        <button class="deck-action deck-action-pass" :disabled="busy || loading || rewindBusy" :aria-label="t('deck.pass')" @click="decide('pass')"><uni-icons type="closeempty" size="32" color="#fff" /></button>
+      <button v-if="quotaText" class="deck-quota" :class="{ 'has-error': quotaError }" :disabled="quotaLoading" @click.stop="emit('quota-tap')"><text>{{ quotaText }}</text></button>
+      <!-- These controls are siblings of the swipe surface, so touchstart must
+           retain its default tap behavior on WeChat and App. -->
+      <view class="deck-actions">
+        <button class="deck-action deck-action-pass" :disabled="busy || loading || rewindBusy" :aria-label="t('deck.pass')" @click.stop="decide('pass')"><view class="deck-action-cross" aria-hidden="true"></view></button>
         <text class="deck-action-caption" aria-live="polite">{{ busy || rewindBusy ? t('deck.saving') : t('deck.swipeHint') }}</text>
-        <button class="deck-action deck-action-like" :disabled="busy || loading || rewindBusy" :aria-label="t('deck.like')" @click="decide('like')"><uni-icons type="heart-filled" size="32" color="#ff453a" /></button>
+        <button class="deck-action deck-action-like" :disabled="busy || loading || rewindBusy" :aria-label="t('deck.like')" @click.stop="decide('like')"><view class="deck-action-heart" aria-hidden="true"></view></button>
       </view>
     </view>
     <FeedContentState
@@ -112,9 +115,12 @@ const props = defineProps({
   decideProfile: { type: Function, default: null },
   handleError: { type: Function, default: () => false },
   rewindAvailable: Boolean,
-  rewindBusy: Boolean
+  rewindBusy: Boolean,
+  quotaText: { type: String, default: '' },
+  quotaLoading: Boolean,
+  quotaError: Boolean
 })
-const emit = defineEmits(['dismiss', 'open', 'refresh', 'retry', 'load-more', 'busy-change', 'rewind'])
+const emit = defineEmits(['dismiss', 'open', 'refresh', 'retry', 'load-more', 'busy-change', 'rewind', 'quota-tap'])
 const current = computed(() => props.items[0] || null)
 const photos = computed(() => getProfilePhotos(current.value, config.baseURL))
 const photoIndex = ref(0)
@@ -185,7 +191,8 @@ function moveGesture(event) {
   const y = next.y - gesture.y
   if (!gesture.axis && Math.max(Math.abs(x), Math.abs(y)) > 8) gesture.axis = Math.abs(x) > Math.abs(y) * 1.15 ? 'x' : 'y'
   if (gesture.axis !== 'x') return
-  if (event.cancelable && event.preventDefault) event.preventDefault()
+  // uni-app's H5 touch wrapper forwards preventDefault, but omits cancelable.
+  if (event.cancelable !== false && typeof event.preventDefault === 'function') event.preventDefault()
   dragging.value = true
   offset.value = { x, y }
 }
@@ -297,6 +304,11 @@ onBeforeUnmount(() => { generation++; clearTimeout(leaveTimer); cancelGesture();
 .deck-rewind-arrow::before { content: ''; position: absolute; inset: 3px; border: 2px solid #f2d68b; border-left-color: transparent; border-radius: 50%; transform: rotate(-35deg); }
 .deck-rewind-arrow::after { content: ''; position: absolute; top: 2px; left: 2px; width: 7px; height: 7px; border-left: 2px solid #f2d68b; border-bottom: 2px solid #f2d68b; }
 .deck-rewind[disabled] { opacity: .4; }
+.deck-quota { position: absolute; z-index: 5; top: 28px; left: 16px; right: 76px; width: auto; min-height: 44px; box-sizing: border-box; padding: 7px 12px; margin: 0; display: flex; align-items: center; justify-content: center; border: 1px solid rgba(255,255,255,.2); border-radius: 22px; background: rgba(24,24,26,.52); color: #f3deb1; font-size: 11px; line-height: 1.5; text-align: center; overflow-wrap: anywhere; }
+.deck-quota::after { border: none; }
+.deck-quota text { pointer-events: none; }
+.deck-quota.has-error { border-color: rgba(242,214,139,.7); }
+.deck-quota[disabled] { color: #e0d6c1; background: rgba(24,24,26,.52); }
 .deck-empty-rewind { padding: 10px 22px; min-height: 44px; font-size: 13px; line-height: 1.5; border-radius: 24px; color: #795d1e; background: transparent; transition: transform 140ms cubic-bezier(.23,1,.32,1); }
 .deck-empty-rewind:active { transform: scale(.97); }
 .deck-stage { position: relative; height: var(--blessing-card-height, 540px); min-height: 280px; margin: 8px 0 12px; }
@@ -340,6 +352,14 @@ onBeforeUnmount(() => { generation++; clearTimeout(leaveTimer); cancelGesture();
 .deck-action { flex: 0 0 62px; width: 62px; height: 62px; margin: 0; padding: 0; border-radius: 50%; display: flex; align-items: center; justify-content: center; background: rgba(35,35,37,.54); border: 1px solid rgba(255,255,255,.24); backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px); transition: transform 180ms; }
 .deck-action:active { transform: scale(.92); }
 .deck-action[disabled] { opacity: .45; }
+.deck-action-cross, .deck-action-heart { position: relative; flex-shrink: 0; pointer-events: none; }
+.deck-action-cross { width: 30px; height: 30px; }
+.deck-action-cross::before, .deck-action-cross::after { content: ''; position: absolute; left: 13px; top: 0; width: 4px; height: 30px; border-radius: 2px; background: #fff; transform: rotate(45deg); }
+.deck-action-cross::after { transform: rotate(-45deg); }
+.deck-action-heart { width: 20px; height: 20px; margin-top: 5px; border-radius: 2px; background: #ff453a; transform: rotate(-45deg); }
+.deck-action-heart::before, .deck-action-heart::after { content: ''; position: absolute; width: 20px; height: 20px; border-radius: 50%; background: #ff453a; }
+.deck-action-heart::before { top: -10px; left: 0; }
+.deck-action-heart::after { top: 0; left: 10px; }
 .deck-action-caption { max-width: 125px; font-size: 11px; line-height: 1.7; text-align: center; color: rgba(255,255,255,.75); }
 .deck-empty { min-height: 340px; margin: 8px 0 12px; border-radius: 28px; background: #fff; }
 .deck-error, .deck-more-error { padding: 10px 12px; font-size: 13px; line-height: 1.6; text-align: center; color: #b93128; }

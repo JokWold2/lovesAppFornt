@@ -3,7 +3,7 @@
     <view class="membership-chrome" :style="headerStyle">
       <view class="membership-header">
         <button class="close-button" :aria-label="t('membership.close')" @click="close"><uni-icons type="closeempty" size="27" color="#171717" /></button>
-        <view class="brand"><text class="brand-name">LOVES</text><text class="brand-badge">{{ t('membership.badge') }}</text></view>
+        <view class="brand"><text class="brand-name">BLESS</text><text class="brand-badge">{{ t('membership.badge') }}</text></view>
         <view class="header-balance" aria-hidden="true"></view>
       </view>
     </view>

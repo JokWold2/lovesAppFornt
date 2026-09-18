@@ -1,316 +1,104 @@
 <template>
   <view class="page app-h5-screen">
+    <view class="search-fixed-panel" :class="{ 'search-fixed-panel--scrolled': headerScrollTop > 0 }">
+      <ChatPageHeader glass :title="t('search.title')" :scroll-top="headerScrollTop" />
+      <view v-if="canSearch" class="search-controls">
+        <view class="name-search-card">
+          <view class="search-field">
+            <view class="search-icon" aria-hidden="true" />
+            <input v-model="form.name" class="name-input" :placeholder="t('search.nameSearchPlaceholder')" confirm-type="search" @confirm="onSearch" />
+            <button class="search-submit" :disabled="searching" :aria-label="t('search.search')" hover-class="search-submit--pressed" @tap="onSearch"><view class="search-arrow" /></button>
+          </view>
+          <text class="filter-label">{{ t('search.genderMultiple') }}</text>
+          <view class="primary-chips">
+            <button v-for="option in genderOptions" :key="option" class="primary-chip" :class="{ selected: form.gender.includes(option) }" hover-class="chip-pressed" @tap="toggle(form.gender, option)">
+              <view v-if="form.gender.includes(option)" class="chip-check" /><text>{{ choiceLabel(option) }}</text>
+            </button>
+            <button class="primary-chip" :class="{ selected: form.gender.length === 0 }" hover-class="chip-pressed" @tap="clearGender"><text>{{ t('search.unrestricted') }}</text></button>
+          </view>
+        </view>
 
-    <view class="header">
-      <text class="header-title">🔍 {{ t('search.title') }}</text>
+        <button class="more-filter-row" hover-class="more-filter-row--pressed" @tap="openAdvancedFilters">
+          <view class="sliders-icon" aria-hidden="true"><view /><view /><view /></view>
+          <text class="more-filter-label">{{ t('search.moreFilters') }}</text>
+          <text v-if="advancedCount" class="selected-count">{{ t('search.selectedCount', { count: advancedCount }) }}</text>
+          <view class="chevron" />
+        </button>
+      </view>
     </view>
 
     <view v-if="!canSearch" class="search-membership-gate">
       <text>{{ entitlementLoading ? t('home.loading') : t('deck.searchLocked') }}</text>
-      <button v-if="!entitlementLoading" @click="openMembershipUpgrade('search')">{{ t('deck.viewMembership') }}</button>
+      <button v-if="!entitlementLoading" class="membership-button" hover-class="press-scale" @tap="openMembershipUpgrade('search')">{{ t('deck.viewMembership') }}</button>
     </view>
-    <scroll-view v-if="canSearch" scroll-y class="content-area app-h5-scroll" :scroll-into-view="contentScrollIntoView" scroll-with-animation style="box-sizing: border-box;">
 
-      <!-- 卡片1：選擇條件 -->
-      <view class="form-card">
-        <view class="section-title">{{ t('search.conditions') }}</view>
-
-        <view class="form-row">
-          <text class="form-label">{{ t('search.name') }}</text>
-          <input class="form-input" v-model="form.name" :placeholder="t('search.namePlaceholder')" />
-        </view>
-
-        <view class="form-row">
-          <text class="form-label">{{ t('search.gender') }}</text>
-          <view class="checkbox-group">
-            <view class="checkbox-item" @tap="form.gender = '女'">
-              <view class="radio-dot" :class="{ checked: form.gender === '女' }"></view>
-              <text>{{ choiceLabel('女') }}</text>
-            </view>
-            <view class="checkbox-item" @tap="form.gender = '男'">
-              <view class="radio-dot" :class="{ checked: form.gender === '男' }"></view>
-              <text>{{ choiceLabel('男') }}</text>
-            </view>
-          </view>
-        </view>
-
-        <view class="form-row">
-          <text class="form-label">{{ t('search.generation') }}</text>
-          <view class="checkbox-group">
-            <view class="checkbox-item" @tap="form.generation = '祝福子女'">
-              <view class="radio-dot" :class="{ checked: form.generation === '祝福子女' }"></view>
-              <text>{{ choiceLabel('祝福子女') }}</text>
-            </view>
-            <view class="checkbox-item" @tap="form.generation = '一世會員'">
-              <view class="radio-dot" :class="{ checked: form.generation === '一世會員' }"></view>
-              <text>{{ choiceLabel('一世會員') }}</text>
-            </view>
-          </view>
-        </view>
-
-        <view class="form-row">
-          <text class="form-label">{{ t('search.status') }}</text>
-          <view class="checkbox-group">
-            <view class="checkbox-item" v-for="opt in statusOptions" :key="opt" @tap="toggle(form.status, opt)">
-              <view class="box" :class="{ checked: form.status.includes(opt) }">
-                <text v-if="form.status.includes(opt)" class="check-mark">✓</text>
-              </view>
-              <text>{{ choiceLabel(opt) }}</text>
-            </view>
-          </view>
+    <scroll-view v-else scroll-y class="results-scroll app-h5-scroll" :scroll-into-view="contentScrollIntoView" scroll-with-animation @scroll="onContentScroll">
+      <view class="results-content">
+      <view id="search-results" class="results-section">
+        <view class="results-heading"><text>{{ t('search.searchResults') }}</text><text v-if="hasSearched && !searching" class="results-total">{{ t('search.total', { count: total }) }}</text></view>
+        <view v-if="searching && results.length === 0" class="state-card"><text>{{ t('search.searching') }}</text></view>
+        <view v-else-if="!hasSearched" class="state-card"><text>{{ t('search.searchHint') }}</text></view>
+        <view v-else-if="results.length === 0" class="state-card"><text>{{ t('search.noResults') }}</text></view>
+        <view v-else class="result-list">
+          <button v-for="item in results" :key="item.id" class="result-item" hover-class="result-item--pressed" @tap="onResultClick(item)">
+            <view class="result-avatar"><image v-if="item.avatar_url" :src="item.avatar_url" mode="aspectFill" class="avatar-img" /><text v-else>{{ candidateInitial(item) }}</text></view>
+            <view class="result-info"><text class="result-name">{{ candidateName(item) }}</text><text class="result-meta">{{ candidateMeta(item) }}</text><text v-if="candidateDetail(item)" class="result-detail">{{ candidateDetail(item) }}</text></view>
+            <view class="chevron" />
+          </button>
+          <button v-if="results.length < total" class="load-more" :disabled="searching" @tap="loadMore">{{ searching ? t('search.searching') : t('search.loadMore') }}</button>
+          <text v-else class="all-loaded">{{ t('search.allLoaded') }}</text>
         </view>
       </view>
-
-      <!-- 卡片2：進階條件 -->
-      <view class="form-card">
-        <view class="form-row">
-          <text class="form-label">{{ t('search.preferredCountry') }}</text>
-          <view class="checkbox-group">
-            <view class="checkbox-item" v-for="opt in countryOptions" :key="opt" @tap="toggle(form.preferredCountries, opt)">
-              <view class="box" :class="{ checked: form.preferredCountries.includes(opt) }">
-                <text v-if="form.preferredCountries.includes(opt)" class="check-mark">✓</text>
-              </view>
-              <text>{{ choiceLabel(opt) }}</text>
-            </view>
-          </view>
-        </view>
-
-        <view class="form-row">
-          <text class="form-label">{{ t('search.ageRange') }}</text>
-          <view class="range-group">
-            <picker mode="selector" :range="ageOptionLabels" @change="e => form.ageMin = ageOptions[e.detail.value]">
-              <view class="form-select"><text>{{ choiceLabel(form.ageMin || '全部') }}</text></view>
-            </picker>
-            <text class="range-sep">~</text>
-            <picker mode="selector" :range="ageOptionLabels" @change="e => form.ageMax = ageOptions[e.detail.value]">
-              <view class="form-select"><text>{{ choiceLabel(form.ageMax || '全部') }}</text></view>
-            </picker>
-          </view>
-        </view>
-
-        <view class="form-row">
-          <text class="form-label">{{ t('search.heightRange') }}</text>
-          <view class="range-group">
-            <picker mode="selector" :range="heightOptionLabels" @change="e => form.heightMin = heightOptions[e.detail.value]">
-              <view class="form-select"><text>{{ choiceLabel(form.heightMin || '全部') }}</text></view>
-            </picker>
-            <text class="range-sep">~</text>
-            <picker mode="selector" :range="heightOptionLabels" @change="e => form.heightMax = heightOptions[e.detail.value]">
-              <view class="form-select"><text>{{ choiceLabel(form.heightMax || '全部') }}</text></view>
-            </picker>
-          </view>
-        </view>
+      <view class="scroll-spacer" />
       </view>
-
-      <!-- 卡片3：背景與信仰 -->
-      <view class="form-card">
-        <view class="form-row">
-          <view class="checkbox-item" @tap="form.topGun = !form.topGun">
-            <view class="box" :class="{ checked: form.topGun }">
-              <text v-if="form.topGun" class="check-mark">✓</text>
-            </view>
-            <text>{{ t('search.topGun') }}</text>
-          </view>
-        </view>
-
-        <view class="form-row">
-          <text class="form-label">{{ t('search.jobs') }}</text>
-          <view class="checkbox-group tight">
-            <view class="checkbox-item" v-for="opt in jobOptions" :key="opt" @tap="toggle(form.jobs, opt)">
-              <view class="box" :class="{ checked: form.jobs.includes(opt) }">
-                <text v-if="form.jobs.includes(opt)" class="check-mark">✓</text>
-              </view>
-              <text>{{ choiceLabel(opt) }}</text>
-            </view>
-          </view>
-        </view>
-
-        <view class="form-row">
-          <text class="form-label">{{ t('search.faith') }}</text>
-          <view class="checkbox-group">
-            <view class="checkbox-item" v-for="opt in faithOptions" :key="opt" @tap="toggle(form.faithLife, opt)">
-              <view class="box" :class="{ checked: form.faithLife.includes(opt) }">
-                <text v-if="form.faithLife.includes(opt)" class="check-mark">✓</text>
-              </view>
-              <text>{{ choiceLabel(opt) }}</text>
-              <text class="help-icon">?</text>
-            </view>
-          </view>
-        </view>
-
-        <view class="form-row" style="margin-top: 15px;">
-          <text class="form-label">{{ t('search.blessing2026') }}<text class="help-icon">?</text></text>
-          <view class="checkbox-item" @tap="form.wantBlessing2026 = !form.wantBlessing2026">
-            <view class="box" :class="{ checked: form.wantBlessing2026 }">
-              <text v-if="form.wantBlessing2026" class="check-mark">✓</text>
-            </view>
-            <text>{{ t('search.wantJoin') }}</text>
-          </view>
-        </view>
-      </view>
-
-      <!-- 卡片4：分析工具 -->
-      <view class="form-card">
-        <view class="tools-header">
-          <view class="section-title" style="margin: 0;">{{ t('search.tools') }}</view>
-          <view class="btn-recommend" @tap="onFindRecommend">{{ t('search.recommend') }}</view>
-        </view>
-        <text class="tools-desc">{{ t('search.toolsDescription') }}</text>
-
-        <view class="tool-list">
-          <!-- Tool 1：雙手交握 -->
-          <view class="tool-item">
-            <view class="checkbox-item tool-title" @tap="form.tools.hands.enabled = !form.tools.hands.enabled">
-              <view class="box" :class="{ checked: form.tools.hands.enabled }">
-                <text v-if="form.tools.hands.enabled" class="check-mark">✓</text>
-              </view>
-              <text>{{ t('search.hands') }}</text>
-              <text class="help-icon">?</text>
-            </view>
-            <view class="checkbox-group tool-options">
-              <view class="checkbox-item" @tap="form.tools.hands.value = '右拇指'">
-                <view class="radio-dot" :class="{ checked: form.tools.hands.value === '右拇指' }"></view>
-                <text>{{ choiceLabel('右拇指') }}</text>
-              </view>
-              <view class="checkbox-item" @tap="form.tools.hands.value = '左拇指'">
-                <view class="radio-dot" :class="{ checked: form.tools.hands.value === '左拇指' }"></view>
-                <text>{{ choiceLabel('左拇指') }}</text>
-              </view>
-            </view>
-          </view>
-
-          <!-- Tool 2：陰/陽 -->
-          <view class="tool-item">
-            <view class="checkbox-item tool-title" @tap="form.tools.yinyang.enabled = !form.tools.yinyang.enabled">
-              <view class="box" :class="{ checked: form.tools.yinyang.enabled }">
-                <text v-if="form.tools.yinyang.enabled" class="check-mark">✓</text>
-              </view>
-              <text>{{ t('search.yinYang') }}</text>
-              <text class="help-icon">?</text>
-            </view>
-            <view class="checkbox-group tool-options">
-              <view class="checkbox-item" @tap="form.tools.yinyang.value = '陽'">
-                <view class="radio-dot" :class="{ checked: form.tools.yinyang.value === '陽' }"></view>
-                <text>{{ choiceLabel('陽') }}</text>
-              </view>
-              <view class="checkbox-item" @tap="form.tools.yinyang.value = '陰'">
-                <view class="radio-dot" :class="{ checked: form.tools.yinyang.value === '陰' }"></view>
-                <text>{{ choiceLabel('陰') }}</text>
-              </view>
-            </view>
-          </view>
-
-          <!-- Tool 3：五要素 -->
-          <view class="tool-item">
-            <view class="checkbox-item tool-title" @tap="form.tools.fiveElements.enabled = !form.tools.fiveElements.enabled">
-              <view class="box" :class="{ checked: form.tools.fiveElements.enabled }">
-                <text v-if="form.tools.fiveElements.enabled" class="check-mark">✓</text>
-              </view>
-              <text>{{ t('search.fiveElements') }}</text>
-              <text class="help-icon">?</text>
-            </view>
-            <view class="checkbox-group tool-options">
-              <view class="checkbox-item" v-for="opt in fiveElementOptions" :key="opt" @tap="toggle(form.tools.fiveElements.values, opt)">
-                <view class="box" :class="{ checked: form.tools.fiveElements.values.includes(opt) }">
-                  <text v-if="form.tools.fiveElements.values.includes(opt)" class="check-mark">✓</text>
-                </view>
-                <text>{{ choiceLabel(opt) }}</text>
-              </view>
-            </view>
-          </view>
-
-          <!-- Tool 4：九型人格 -->
-          <view class="tool-item">
-            <view class="checkbox-item tool-title" @tap="form.tools.enneagram.enabled = !form.tools.enneagram.enabled">
-              <view class="box" :class="{ checked: form.tools.enneagram.enabled }">
-                <text v-if="form.tools.enneagram.enabled" class="check-mark">✓</text>
-              </view>
-              <text>{{ t('search.enneagram') }}</text>
-              <text class="help-icon">?</text>
-            </view>
-            <view class="checkbox-group tool-options tight">
-              <view class="checkbox-item" v-for="opt in enneagramOptions" :key="opt" @tap="toggle(form.tools.enneagram.values, opt)">
-                <view class="box" :class="{ checked: form.tools.enneagram.values.includes(opt) }">
-                  <text v-if="form.tools.enneagram.values.includes(opt)" class="check-mark">✓</text>
-                </view>
-                <text>{{ choiceLabel(opt) }}</text>
-              </view>
-            </view>
-          </view>
-
-          <!-- Tool 5：MBTI -->
-          <view class="tool-item">
-            <view class="checkbox-item tool-title" @tap="form.tools.mbti.enabled = !form.tools.mbti.enabled">
-              <view class="box" :class="{ checked: form.tools.mbti.enabled }">
-                <text v-if="form.tools.mbti.enabled" class="check-mark">✓</text>
-              </view>
-              <text>MBTI</text>
-              <text class="help-icon">?</text>
-            </view>
-            <view class="tool-options" style="padding-top: 4px;">
-              <picker mode="selector" :range="mbtiOptions" @change="e => form.tools.mbti.value = mbtiOptions[e.detail.value]">
-                <view class="form-select"><text>{{ form.tools.mbti.value || t('search.select') }}</text></view>
-              </picker>
-            </view>
-          </view>
-        </view>
-      </view>
-
-      <!-- 搜尋結果 -->
-      <view v-if="hasSearched || searching" id="search-results" class="form-card result-card">
-        <view class="section-title">
-          {{ t('search.searchResults') }}
-          <text v-if="!searching" class="result-count">{{ t('search.total', { count: total }) }}</text>
-        </view>
-
-        <view v-if="searching && results.length === 0" class="empty-tip">
-          <text>{{ t('search.searching') }}</text>
-        </view>
-
-        <view v-else-if="results.length === 0" class="empty-tip">
-          <text>{{ t('search.noResults') }}</text>
-        </view>
-
-        <view v-else>
-          <view v-for="item in results" :key="item.id" class="result-item" @click="onResultClick(item)" >
-            <view class="result-avatar">
-              <image v-if="item.avatar_url" :src="item.avatar_url" mode="aspectFill" class="avatar-img" />
-              <text v-else>{{ (item.native_last_name || item.en_last_name || '').slice(0, 1) || '?' }}</text>
-            </view>
-            <view class="result-info">
-              <view class="result-name">
-                <text>{{ item.native_first_name || item.en_first_name || t('search.notFilled') }} {{ item.native_last_name || item.en_last_name || '' }}</text>
-              </view>
-              <view class="result-meta">
-                <text v-if="item.gender">{{ item.gender }} · </text>
-                <text v-if="item.generation">{{ item.generation }} · </text>
-                <text v-if="item.birth_year">{{ t('search.yearsOld', { count: new Date().getFullYear() - Number(item.birth_year) }) }} · </text>
-                <text v-if="item.height">{{ item.height }}cm</text>
-              </view>
-              <view class="result-meta">
-                <text v-if="item.country">{{ item.country }}</text>
-                <text v-if="item.church_name"> · {{ item.church_name }}</text>
-                <text v-if="item.occupation"> · {{ item.occupation }}</text>
-              </view>
-            </view>
-          </view>
-
-          <view class="result-more">
-            <text v-if="searching">{{ t('search.searching') }}</text>
-            <text v-else-if="results.length >= total">{{ t('search.allLoaded') }}</text>
-            <text v-else class="link" @tap="loadMore">{{ t('search.loadMore') }}</text>
-          </view>
-        </view>
-      </view>
-
     </scroll-view>
 
-    <!-- 底部固定按鈕 -->
-    <view v-if="canSearch" class="bottom-bar app-h5-fixed-bottom">
-      <view class="btn btn-submit" @tap="onSearch">{{ t('search.search') }}</view>
-      <view class="btn btn-reset" @tap="onReset">{{ t('search.reset') }}</view>
-    </view>
-
+    <ChatSheet :open="showAdvancedFilters" :label="t('search.moreFilters')" :busy="searching" @dismiss="closeAdvancedFilters">
+      <view class="advanced-sheet">
+        <view class="sheet-header">
+          <view><text class="sheet-title">{{ t('search.moreFilters') }}</text><text v-if="advancedCount" class="sheet-count">{{ t('search.selectedCount', { count: advancedCount }) }}</text></view>
+          <button class="sheet-close" :aria-label="t('search.close')" @tap="closeAdvancedFilters">×</button>
+        </view>
+        <scroll-view scroll-y class="advanced-scroll app-h5-scroll">
+          <view class="sheet-section">
+            <text class="sheet-label">{{ t('search.generation') }}</text>
+            <view class="filter-chips"><button v-for="option in generationOptions" :key="option" class="filter-chip" :class="{ selected: form.generation.includes(option) }" @tap="toggle(form.generation, option)"><view v-if="form.generation.includes(option)" class="chip-check" /><text>{{ choiceLabel(option) }}</text></button></view>
+          </view>
+          <view class="sheet-section">
+            <text class="sheet-label">{{ t('search.status') }}</text>
+            <view class="filter-chips"><button v-for="option in statusOptions" :key="option" class="filter-chip" :class="{ selected: form.status.includes(option) }" @tap="toggle(form.status, option)"><view v-if="form.status.includes(option)" class="chip-check" /><text>{{ choiceLabel(option) }}</text></button></view>
+          </view>
+          <view class="sheet-section">
+            <text class="sheet-label">{{ t('search.preferredCountry') }}</text>
+            <view class="filter-chips"><button v-for="option in countryOptions" :key="option" class="filter-chip" :class="{ selected: form.preferredCountries.includes(option) }" @tap="toggle(form.preferredCountries, option)"><view v-if="form.preferredCountries.includes(option)" class="chip-check" /><text>{{ choiceLabel(option) }}</text></button></view>
+          </view>
+          <view class="sheet-section range-section">
+            <text class="sheet-label">{{ t('search.ageRange') }}</text>
+            <view class="range-row"><picker class="range-picker" mode="selector" :range="ageOptionLabels" @change="event => form.ageMin = ageOptions[event.detail.value]"><view class="range-value">{{ choiceLabel(form.ageMin || '全部') }}</view></picker><text class="range-separator">—</text><picker class="range-picker" mode="selector" :range="ageOptionLabels" @change="event => form.ageMax = ageOptions[event.detail.value]"><view class="range-value">{{ choiceLabel(form.ageMax || '全部') }}</view></picker></view>
+          </view>
+          <view class="sheet-section range-section">
+            <text class="sheet-label">{{ t('search.heightRange') }}</text>
+            <view class="range-row"><picker class="range-picker" mode="selector" :range="heightOptionLabels" @change="event => form.heightMin = heightOptions[event.detail.value]"><view class="range-value">{{ choiceLabel(form.heightMin || '全部') }}</view></picker><text class="range-separator">—</text><picker class="range-picker" mode="selector" :range="heightOptionLabels" @change="event => form.heightMax = heightOptions[event.detail.value]"><view class="range-value">{{ choiceLabel(form.heightMax || '全部') }}</view></picker></view>
+          </view>
+          <view class="sheet-section"><button class="toggle-row" @tap="form.topGun = !form.topGun"><text>{{ t('search.topGun') }}</text><view class="square-check" :class="{ selected: form.topGun }"><view v-if="form.topGun" /></view></button></view>
+          <view class="sheet-section"><text class="sheet-label">{{ t('search.jobs') }}</text><view class="filter-chips"><button v-for="option in jobOptions" :key="option" class="filter-chip" :class="{ selected: form.jobs.includes(option) }" @tap="toggle(form.jobs, option)"><view v-if="form.jobs.includes(option)" class="chip-check" /><text>{{ choiceLabel(option) }}</text></button></view></view>
+          <view class="sheet-section"><text class="sheet-label">{{ t('search.faith') }}</text><view class="filter-chips"><button v-for="option in faithOptions" :key="option" class="filter-chip" :class="{ selected: form.faithLife.includes(option) }" @tap="toggle(form.faithLife, option)"><view v-if="form.faithLife.includes(option)" class="chip-check" /><text>{{ choiceLabel(option) }}</text></button></view></view>
+          <view class="sheet-section"><button class="toggle-row" @tap="form.wantBlessing2026 = !form.wantBlessing2026"><text>{{ t('search.blessing2026') }}</text><view class="square-check" :class="{ selected: form.wantBlessing2026 }"><view v-if="form.wantBlessing2026" /></view></button></view>
+          <view class="sheet-section tools-section">
+            <view class="tools-heading"><text class="sheet-label">{{ t('search.tools') }}</text><button class="recommend-link" @tap="onFindRecommend">{{ t('search.recommend') }}</button></view>
+            <text class="tools-description">{{ t('search.toolsDescription') }}</text>
+            <view class="tool-row"><button class="toggle-row" @tap="form.tools.hands.enabled = !form.tools.hands.enabled"><text>{{ t('search.hands') }}</text><view class="square-check" :class="{ selected: form.tools.hands.enabled }"><view v-if="form.tools.hands.enabled" /></view></button><view v-if="form.tools.hands.enabled" class="filter-chips sub-options"><button v-for="option in ['右拇指', '左拇指']" :key="option" class="filter-chip" :class="{ selected: form.tools.hands.value === option }" @tap="form.tools.hands.value = option"><text>{{ choiceLabel(option) }}</text></button></view></view>
+            <view class="tool-row"><button class="toggle-row" @tap="form.tools.yinyang.enabled = !form.tools.yinyang.enabled"><text>{{ t('search.yinYang') }}</text><view class="square-check" :class="{ selected: form.tools.yinyang.enabled }"><view v-if="form.tools.yinyang.enabled" /></view></button><view v-if="form.tools.yinyang.enabled" class="filter-chips sub-options"><button v-for="option in ['陽', '陰']" :key="option" class="filter-chip" :class="{ selected: form.tools.yinyang.value === option }" @tap="form.tools.yinyang.value = option"><text>{{ choiceLabel(option) }}</text></button></view></view>
+            <view class="tool-row"><button class="toggle-row" @tap="form.tools.fiveElements.enabled = !form.tools.fiveElements.enabled"><text>{{ t('search.fiveElements') }}</text><view class="square-check" :class="{ selected: form.tools.fiveElements.enabled }"><view v-if="form.tools.fiveElements.enabled" /></view></button><view v-if="form.tools.fiveElements.enabled" class="filter-chips sub-options"><button v-for="option in fiveElementOptions" :key="option" class="filter-chip" :class="{ selected: form.tools.fiveElements.values.includes(option) }" @tap="toggle(form.tools.fiveElements.values, option)"><text>{{ choiceLabel(option) }}</text></button></view></view>
+            <view class="tool-row"><button class="toggle-row" @tap="form.tools.enneagram.enabled = !form.tools.enneagram.enabled"><text>{{ t('search.enneagram') }}</text><view class="square-check" :class="{ selected: form.tools.enneagram.enabled }"><view v-if="form.tools.enneagram.enabled" /></view></button><view v-if="form.tools.enneagram.enabled" class="filter-chips sub-options"><button v-for="option in enneagramOptions" :key="option" class="filter-chip" :class="{ selected: form.tools.enneagram.values.includes(option) }" @tap="toggle(form.tools.enneagram.values, option)"><text>{{ choiceLabel(option) }}</text></button></view></view>
+            <view class="tool-row"><button class="toggle-row" @tap="form.tools.mbti.enabled = !form.tools.mbti.enabled"><text>MBTI</text><view class="square-check" :class="{ selected: form.tools.mbti.enabled }"><view v-if="form.tools.mbti.enabled" /></view></button><picker v-if="form.tools.mbti.enabled" class="mbti-picker" mode="selector" :range="mbtiOptions" @change="event => form.tools.mbti.value = mbtiOptions[event.detail.value]"><view class="range-value">{{ form.tools.mbti.value || t('search.select') }}</view></picker></view>
+          </view>
+          <view class="sheet-scroll-spacer" />
+        </scroll-view>
+        <view class="sheet-actions"><button class="reset-button" hover-class="press-scale" @tap="onReset">{{ t('search.reset') }}</button><button class="apply-button" :disabled="searching" hover-class="press-scale" @tap="applyAdvancedFilters">{{ searching ? t('search.searching') : t('search.applyFilters') }}</button></view>
+      </view>
+    </ChatSheet>
+    <ProfileDetailSheet :profile-id="sheetProfileId" :page-visible="sheetPageVisible" @closed="closeProfileSheet" />
   </view>
 </template>
 
@@ -319,38 +107,19 @@ import { computed, nextTick, reactive, ref } from 'vue'
 import { onShow } from '@dcloudio/uni-app'
 import { searchCandidatesApi } from '@/api/index.js'
 import { getMembershipApi } from '@/api/membership.js'
+import ChatPageHeader from '@/components/chat/ChatPageHeader.vue'
+import ChatSheet from '@/components/chat/ChatSheet.vue'
+import ProfileDetailSheet from '@/components/profile/ProfileDetailSheet.vue'
 import { handleMembershipError, openMembershipUpgrade } from '@/utils/membership.js'
 import { currentLocale, t } from '@/utils/localeRuntime.js'
 import { searchOptionLabel } from '@/utils/searchPresentation.js'
+import { buildSearchPayload, countAdvancedFilters, createSearchForm } from '@/utils/searchCandidateFilters.js'
+import { useProfileDetailSheet } from '@/utils/useProfileDetailSheet.js'
 
-function defaultForm () {
-  return {
-    name: '',
-    gender: '女',
-    generation: '祝福子女',
-    status: [],
-    preferredCountries: [],
-    ageMin: '',
-    ageMax: '',
-    heightMin: '',
-    heightMax: '',
-    topGun: false,
-    jobs: [],
-    faithLife: [],
-    wantBlessing2026: false,
-    tools: {
-      hands: { enabled: false, value: '' },
-      yinyang: { enabled: false, value: '' },
-      fiveElements: { enabled: false, values: [] },
-      enneagram: { enabled: false, values: [] },
-      mbti: { enabled: false, value: '' }
-    }
-  }
-}
-
-const form = reactive(defaultForm())
-
-// ---- 選項數據 ----
+const { profileId: sheetProfileId, pageVisible: sheetPageVisible, open: openProfileSheet, close: closeProfileSheet } = useProfileDetailSheet()
+const form = reactive(createSearchForm())
+const genderOptions = ['女', '男']
+const generationOptions = ['祝福子女', '一世會員']
 const statusOptions = ['申請者', '候選人']
 const countryOptions = ['Korea', 'Japan(+Taiwan)', 'North America', 'Latin America', 'Asia', 'Europe(+Middle East)', 'Africa']
 const jobOptions = ['公職幹部', '學生', '上班族', '自營商', '公務員', '專業人員', '職業軍人', '其他']
@@ -358,13 +127,12 @@ const faithOptions = ['非常傳統', '有彈性', '妥協']
 const fiveElementOptions = ['木', '火', '土', '金', '水']
 const enneagramOptions = ['1: 改革型', '2: 助人型', '3: 成就型', '4: 藝術型', '5: 智慧型', '6: 忠誠型', '7: 遠見型', '8: 領導型', '9: 和平型']
 const mbtiOptions = ['INTJ', 'INTP', 'ENTJ', 'ENTP', 'INFJ', 'INFP', 'ENFJ', 'ENFP', 'ISTJ', 'ISFJ', 'ESTJ', 'ESFJ', 'ISTP', 'ISFP', 'ESTP', 'ESFP']
-const ageOptions = ['全部', ...Array.from({ length: 63 }, (_, i) => `${18 + i}`)]
-const heightOptions = ['全部', ...Array.from({ length: 71 }, (_, i) => `${140 + i}`)]
+const ageOptions = ['全部', ...Array.from({ length: 63 }, (_, index) => `${18 + index}`)]
+const heightOptions = ['全部', ...Array.from({ length: 71 }, (_, index) => `${140 + index}`)]
 const choiceLabel = value => searchOptionLabel(currentLocale.value, value)
 const ageOptionLabels = computed(() => ageOptions.map(choiceLabel))
 const heightOptionLabels = computed(() => heightOptions.map(choiceLabel))
-
-// ---- 搜索状态 ----
+const advancedCount = computed(() => countAdvancedFilters(form))
 const PAGE_SIZE = 20
 const searching = ref(false)
 const canSearch = ref(false)
@@ -374,6 +142,8 @@ const results = ref([])
 const total = ref(0)
 const page = ref(1)
 const contentScrollIntoView = ref('')
+const showAdvancedFilters = ref(false)
+const headerScrollTop = ref(0)
 
 onShow(async () => {
   entitlementLoading.value = true
@@ -384,396 +154,51 @@ onShow(async () => {
   if (!canSearch.value) { results.value = []; total.value = 0 }
 })
 
-// ---- 方法 ----
-function toggle (list, value) {
-  const idx = list.indexOf(value)
-  if (idx > -1) {
-    list.splice(idx, 1)
-  } else {
-    list.push(value)
-  }
-}
-
-function onResultClick (item) {
-  console.log('onResultClick', item)
-  uni.navigateTo({
-    url: `/pages/searchPerson/personShow/personShow?id=${item.id}`
-  })
-}
-
-function onFindRecommend () {
-  // TODO: 接入「尋找推薦類型」實際邏輯 / 跳轉頁面
-  uni.showToast({ title: t('search.inDevelopment'), icon: 'none' })
-}
-
-// 构造请求体：清理「全部」这类占位符，避免发给后端
-function buildPayload (pageNum) {
-  const f = JSON.parse(JSON.stringify(form))
-  if (f.ageMin === '全部' || !f.ageMin) delete f.ageMin
-  if (f.ageMax === '全部' || !f.ageMax) delete f.ageMax
-  if (f.heightMin === '全部' || !f.heightMin) delete f.heightMin
-  if (f.heightMax === '全部' || !f.heightMax) delete f.heightMax
-  // 空数组保留即可，后端会跳过 length === 0 的项
-  return { ...f, page: pageNum, pageSize: PAGE_SIZE }
-}
+function toggle (list, value) { const index = list.indexOf(value); if (index >= 0) list.splice(index, 1); else list.push(value) }
+function onContentScroll (event) { headerScrollTop.value = Number(event?.detail?.scrollTop) || 0 }
+function clearGender () { form.gender.splice(0) }
+function openAdvancedFilters () { showAdvancedFilters.value = true }
+function closeAdvancedFilters () { if (!searching.value) showAdvancedFilters.value = false }
+function onResultClick (item) { openProfileSheet(item.id) }
+function onFindRecommend () { uni.showToast({ title: t('search.inDevelopment'), icon: 'none' }) }
+function candidateName (item) { const nativeName = `${item.native_last_name || ''}${item.native_first_name || ''}`.trim(); return nativeName || [item.en_first_name, item.en_last_name].filter(Boolean).join(' ') || t('search.notFilled') }
+function candidateInitial (item) { return candidateName(item).slice(0, 1) || '?' }
+function candidateMeta (item) { const values = []; if (item.generation) values.push(choiceLabel(item.generation)); if (item.birth_year) values.push(t('search.yearsOld', { count: new Date().getFullYear() - Number(item.birth_year) })); if (item.height) values.push(`${item.height}cm`); return values.join(' · ') || t('search.notFilled') }
+function candidateDetail (item) { return [item.country, item.church_name, item.occupation].filter(Boolean).join(' · ') }
 
 async function doSearch (pageNum, append = false) {
   if (searching.value) return
   searching.value = true
   try {
     canSearch.value = (await getMembershipApi()).canSearch === true
-    if (!canSearch.value) {
-      results.value = []
-      total.value = 0
-      return openMembershipUpgrade('search')
-    }
-    const payload = buildPayload(pageNum)
-    const data = await searchCandidatesApi(payload)
-    total.value = data && data.total ? Number(data.total) : 0
-    const list = (data && data.results) || []
+    if (!canSearch.value) { results.value = []; total.value = 0; return openMembershipUpgrade('search') }
+    const data = await searchCandidatesApi(buildSearchPayload(form, pageNum, PAGE_SIZE))
+    total.value = Number(data?.total || 0)
+    const list = data?.results || []
     results.value = append ? [...results.value, ...list] : list
     page.value = pageNum
     hasSearched.value = true
-    if (!append) {
-      // 第一次搜索完成后，让 scroll-view 滚到结果区
-      // #ifdef H5
-      contentScrollIntoView.value = ''
-      nextTick(() => {
-        contentScrollIntoView.value = 'search-results'
-      })
-      // #endif
-      // #ifndef H5
-      uni.pageScrollTo({ duration: 200, scrollTop: 9999 })
-      // #endif
-    }
-  } catch (e) {
-    console.error('search error', e)
-    if (e?.code === 'MEMBERSHIP_REQUIRED') { canSearch.value = false; results.value = []; total.value = 0 }
-    if (!handleMembershipError(e)) uni.showToast({ title: t('home.loadFailed'), icon: 'none' })
-  } finally {
-    searching.value = false
-  }
+    if (!append) { contentScrollIntoView.value = ''; nextTick(() => { contentScrollIntoView.value = 'search-results' }) }
+  } catch (error) {
+    if (error?.code === 'MEMBERSHIP_REQUIRED') { canSearch.value = false; results.value = []; total.value = 0 }
+    if (!handleMembershipError(error)) uni.showToast({ title: t('home.loadFailed'), icon: 'none' })
+  } finally { searching.value = false }
 }
-
-function onSearch () {
-  doSearch(1, false)
-}
-
-function loadMore () {
-  if (searching.value || results.value.length >= total.value) return
-  doSearch(page.value + 1, true)
-}
-
-function onReset () {
-  Object.assign(form, defaultForm())
-  results.value = []
-  total.value = 0
-  page.value = 1
-  hasSearched.value = false
-  contentScrollIntoView.value = ''
-}
+function onSearch () { void doSearch(1, false) }
+function applyAdvancedFilters () { showAdvancedFilters.value = false; void doSearch(1, false) }
+function loadMore () { if (!searching.value && results.value.length < total.value) void doSearch(page.value + 1, true) }
+function onReset () { Object.assign(form, createSearchForm()); results.value = []; total.value = 0; page.value = 1; hasSearched.value = false; contentScrollIntoView.value = '' }
 </script>
 
 <style scoped>
-.search-membership-gate { flex: 1; display: flex; flex-direction: column; justify-content: center; align-items: center; gap: 20px; padding: 32px; text-align: center; color: #6d5b30; }
-.search-membership-gate button { min-height: 44px; padding: 0 24px; line-height: 44px; border-radius: 24px; background: #ffdf85; color: #493812; font-size: 15px; }
-.page {
-  --primary-color: #fff6df;
-  --secondary-color: #606266;
-  --blue-color: #e6dcc4;
-  --bg-color: #fff6df;
-  --card-bg: #ffffff;
-  --text-main: #2c3e50;
-  --text-secondary: #5c6b7a;
-  --border-color: #e1e4e8;
-
-  position: relative;
-  min-height: 100vh;
-  display: flex;
-  flex-direction: column;
-  background-color: var(--bg-color);
-  color: var(--text-main);
-  font-size: 14px;
-}
-
-/* #ifdef H5 */
-.page {
-  min-height: 0;
-}
-/* #endif */
-
-/* ====== 頂部 ====== */
-.header {
-  padding: 24px 20px 15px;
-  background: #fff;
-  border-bottom: 1px solid var(--border-color);
-}
-.header-title {
-  font-size: 20px;
-  font-weight: bold;
-  color: var(--text-main);
-}
-
-/* ====== 內容區 ====== */
-.content-area {
-  flex: 1;
-  padding: 15px 15px calc(100px + env(safe-area-inset-bottom));
-}
-
-.form-card {
-  background: var(--card-bg);
-  border-radius: 12px;
-  padding: 16px;
-  margin-bottom: 15px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
-}
-.section-title {
-  font-size: 15px;
-  font-weight: bold;
-  color: var(--text-main);
-  margin-bottom: 12px;
-}
-
-.form-row { margin-bottom: 15px; }
-.form-row:last-child { margin-bottom: 0; }
-.form-label {
-  font-size: 13px;
-  color: var(--text-secondary);
-  margin-bottom: 6px;
-  display: block;
-  font-weight: 500;
-}
-
-.form-input, .form-select {
-  width: 90%;
-  padding: 10px 12px;
-  border: 1px solid var(--border-color);
-  border-radius: 6px;
-  font-size: 14px;
-  color: var(--text-main);
-  background: #fff;
-}
-.form-select { display: flex; align-items: center; }
-
-.range-group {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-}
-.range-group .form-select { flex: 1; }
-.range-sep {
-  color: var(--text-secondary);
-  font-size: 14px;
-  flex-shrink: 0;
-}
-
-/* ====== 單選 / 多選 ====== */
-.checkbox-group {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 10px 15px;
-}
-.checkbox-group.tight {
-  gap: 8px 12px;
-}
-.checkbox-item {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  font-size: 14px;
-  color: var(--text-main);
-}
-
-.box {
-  width: 18px;
-  height: 18px;
-  border: 1.5px solid #c9ccd1;
-  border-radius: 4px;
-  background: #fff;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  flex-shrink: 0;
-}
-.box.checked {
-  background: var(--primary-color);
-  border-color: var(--primary-color);
-}
-.check-mark {
-  color: #fff;
-  font-size: 12px;
-  line-height: 1;
-}
-
-.radio-dot {
-  width: 18px;
-  height: 18px;
-  border-radius: 50%;
-  border: 1.5px solid #c9ccd1;
-  background: #fff;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  flex-shrink: 0;
-}
-.radio-dot.checked {
-  border-color: var(--primary-color);
-}
-.radio-dot.checked::after {
-  content: '';
-  width: 9px;
-  height: 9px;
-  border-radius: 50%;
-  background: var(--primary-color);
-}
-
-.help-icon {
-  display: inline-flex;
-  justify-content: center;
-  align-items: center;
-  width: 16px;
-  height: 16px;
-  background: #666;
-  color: #fff;
-  border-radius: 50%;
-  font-size: 10px;
-  font-weight: bold;
-  margin-left: 4px;
-}
-
-/* ====== 分析工具 ====== */
-.tools-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 15px;
-}
-.tools-desc {
-  font-size: 12px;
-  color: var(--text-secondary);
-  margin-bottom: 12px;
-  line-height: 1.4;
-  display: block;
-}
-.btn-recommend {
-  background: #fff6df;
-  color: #333333;
-  padding: 6px 12px;
-  border-radius: 4px;
-  font-size: 12px;
-}
-
-.tool-item {
-  border-top: 1px solid var(--border-color);
-  padding: 12px 0;
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-}
-.tool-item:first-child { border-top: none; padding-top: 0; }
-.tool-title { font-weight: 600; font-size: 14px; }
-.tool-options { padding-left: 24px; }
-
-/* ====== 底部固定按鈕 ====== */
-.bottom-bar {
-  position: fixed;
-  left: 0;
-  right: 0;
-  padding: 12px 20px calc(env(safe-area-inset-bottom) + 12px);
-  background: rgba(255, 255, 255, 0.95);
-  border-top: 1px solid var(--border-color);
-  display: flex;
-  gap: 12px;
-  z-index: 10;
-}
+/* Native pages must have a bounded viewport too; H5 gets this from app-h5-screen. */
 /* #ifndef H5 */
-.bottom-bar { bottom: 0; }
+.page.app-h5-screen{position:fixed;top:0;right:0;bottom:0;left:0;height:100%;min-height:0;overflow:hidden;}
 /* #endif */
-.btn {
-  flex: 1;
-  padding: 14px;
-  border-radius: 8px;
-  font-size: 16px;
-  font-weight: bold;
-  color: #333333;
-  text-align: center;
-}
-.btn-submit { background-color: var(--primary-color); }
-.btn-reset { background-color: #e6dcc4; }
-
-/* ====== 搜尋結果 ====== */
-.result-card { margin-top: 6px; }
-
-.result-count {
-  font-size: 12px;
-  color: var(--text-secondary);
-  font-weight: normal;
-  margin-left: 8px;
-}
-
-.empty-tip {
-  text-align: center;
-  color: var(--text-secondary);
-  font-size: 13px;
-  padding: 30px 0;
-}
-
-.result-item {
-  display: flex;
-  align-items: center;
-  padding: 12px 0;
-  border-bottom: 1px solid var(--border-color);
-}
-.result-item:last-child { border-bottom: none; }
-
-.result-avatar {
-  width: 44px;
-  height: 44px;
-  border-radius: 50%;
-  background: var(--primary-color);
-  color: #fff;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 18px;
-  font-weight: 600;
-  margin-right: 12px;
-  flex-shrink: 0;
-  overflow: hidden;
-}
-
-.avatar-img {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-}
-
-.result-info { flex: 1; min-width: 0; }
-
-.result-name {
-  font-size: 15px;
-  font-weight: 600;
-  color: var(--text-main);
-  margin-bottom: 4px;
-}
-
-.result-meta {
-  font-size: 12px;
-  color: var(--text-secondary);
-  line-height: 1.6;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.result-more {
-  text-align: center;
-  padding: 16px 0 4px;
-  font-size: 13px;
-  color: var(--text-secondary);
-}
-.result-more .link {
-  color: var(--primary-color);
-  font-weight: 600;
-}
+.page .results-scroll{min-height:0;overflow:hidden;}
+.page{display:flex;min-height:100vh;flex-direction:column;background:#eeedeb;color:#292825;box-sizing:border-box}.content-area{flex:1;height:0;padding:8px 20px 0;box-sizing:border-box}.search-membership-gate{display:flex;flex:1;align-items:center;justify-content:center;flex-direction:column;padding:32px;color:#746f66;text-align:center}.membership-button{min-height:48px;margin-top:20px;padding:0 24px;border:0;border-radius:18px;background:#efc635;color:#292825;font-size:15px;font-weight:650}.membership-button::after,button::after{border:0}.name-search-card{padding:20px;background:#fff;border-radius:24px;box-shadow:0 7px 24px rgba(64,57,46,.055)}.search-field{display:flex;height:58px;align-items:center;padding:0 7px 0 18px;border:1px solid #ebe9e5;border-radius:29px;background:#f7f7f6;box-sizing:border-box}.search-icon{position:relative;width:19px;height:19px;margin-right:13px;border:2px solid #44433f;border-radius:50%;box-sizing:border-box;flex:none}.search-icon::after{position:absolute;width:8px;height:2px;right:-6px;bottom:-3px;border-radius:2px;background:#44433f;content:'';transform:rotate(45deg)}.name-input{min-width:0;height:100%;flex:1;color:#292825;font-size:16px}.search-submit{display:flex;width:46px;height:46px;align-items:center;justify-content:center;margin:0;padding:0;border:0;border-radius:50%;background:#efc635;box-shadow:0 5px 14px rgba(201,162,43,.2);transform:scale(1);transition:transform 150ms cubic-bezier(.23,1,.32,1),background-color 150ms ease;flex:none}.search-submit[disabled]{opacity:.55}.search-submit--pressed{background:#e5b92c;transform:scale(.94)}.search-arrow{position:relative;width:17px;height:2px;border-radius:2px;background:#292825}.search-arrow::before,.search-arrow::after{position:absolute;width:9px;height:2px;right:-1px;border-radius:2px;background:#292825;content:'';transform-origin:right center}.search-arrow::before{top:-1px;transform:rotate(45deg)}.search-arrow::after{bottom:-1px;transform:rotate(-45deg)}.filter-label{display:block;margin:20px 0 11px;color:#5e5a54;font-size:14px;font-weight:600}.primary-chips,.filter-chips{display:flex;flex-wrap:wrap;margin:-5px}.primary-chip,.filter-chip{display:flex;min-height:42px;align-items:center;justify-content:center;margin:5px;padding:8px 16px;border:1px solid #e3e1dd;border-radius:21px;background:#f8f7f5;color:#4f4c47;font-size:14px;line-height:1.35;text-align:center;transform:scale(1);transition:transform 140ms cubic-bezier(.23,1,.32,1),background-color 140ms ease,border-color 140ms ease}.primary-chip.selected,.filter-chip.selected{border-color:#efc635;background:#efc635;color:#292825}.chip-check{width:8px;height:4px;margin:-2px 9px 0 0;border-left:2px solid #fff;border-bottom:2px solid #fff;transform:rotate(-45deg);flex:none}.chip-pressed,.press-scale{transform:scale(.97)}.more-filter-row{display:flex;width:100%;min-height:72px;align-items:center;margin-top:14px;padding:14px 18px;border:0;border-radius:23px;background:#fff;color:#292825;box-shadow:0 6px 20px rgba(64,57,46,.045);transform:scale(1);transition:transform 140ms cubic-bezier(.23,1,.32,1),background-color 140ms ease;text-align:left}.more-filter-row--pressed{background:#faf9f7;transform:scale(.99)}.sliders-icon{position:relative;width:26px;height:24px;margin-right:14px;flex:none}.sliders-icon>view{position:absolute;left:1px;width:24px;height:2px;border-radius:2px;background:#4b4944}.sliders-icon>view:nth-child(1){top:4px}.sliders-icon>view:nth-child(2){top:11px}.sliders-icon>view:nth-child(3){top:18px}.sliders-icon>view::after{position:absolute;width:7px;height:7px;top:-2.5px;border-radius:50%;background:#4b4944;content:''}.sliders-icon>view:nth-child(1)::after{left:5px}.sliders-icon>view:nth-child(2)::after{right:4px}.sliders-icon>view:nth-child(3)::after{left:9px}.more-filter-label{min-width:0;flex:1;font-size:16px;font-weight:650}.selected-count{margin-left:10px;color:#918d85;font-size:13px;white-space:nowrap}.chevron{width:8px;height:8px;margin:0 4px 0 12px;border-top:1.5px solid #aaa69f;border-right:1.5px solid #aaa69f;transform:rotate(45deg);flex:none}.results-section{padding-top:26px}.results-heading{display:flex;align-items:baseline;margin:0 4px 12px;color:#292825;font-size:21px;font-weight:680}.results-total{margin-left:12px;color:#918d85;font-size:13px;font-weight:400}.state-card{display:flex;min-height:116px;align-items:center;justify-content:center;padding:24px;border-radius:23px;background:#fff;color:#918d85;font-size:14px;text-align:center;box-sizing:border-box}.result-list{display:flex;flex-direction:column}.result-item{display:flex;width:100%;min-height:98px;align-items:center;margin-bottom:12px;padding:14px 17px;border:0;border-radius:23px;background:#fff;color:#292825;box-shadow:0 5px 18px rgba(64,57,46,.045);text-align:left;transform:scale(1);transition:transform 140ms cubic-bezier(.23,1,.32,1),background-color 140ms ease}.result-item--pressed{background:#faf9f7;transform:scale(.99)}.result-avatar{display:flex;width:64px;height:64px;align-items:center;justify-content:center;margin-right:15px;border-radius:50%;background:#e8e1cf;color:#7a6a41;font-size:20px;font-weight:650;overflow:hidden;flex:none}.avatar-img{width:100%;height:100%}.result-info{display:flex;min-width:0;flex:1;flex-direction:column}.result-name{color:#292825;font-size:17px;font-weight:650;line-height:1.35;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.result-meta,.result-detail{margin-top:5px;color:#858078;font-size:13px;line-height:1.35;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.result-detail{margin-top:3px;color:#aaa59d;font-size:12px}.load-more{min-height:48px;margin:2px 0 10px;border:0;border-radius:18px;background:#fff;color:#75642b;font-size:14px;text-align:center}.all-loaded{display:block;padding:12px 0 20px;color:#aaa69f;font-size:12px;text-align:center}.scroll-spacer{height:calc(24px + env(safe-area-inset-bottom))}
+.search-fixed-panel{position:relative;z-index:5;background:#eeedeb;box-shadow:0 0 0 rgba(62,57,48,0);transition:box-shadow 120ms linear;flex:none}.search-fixed-panel--scrolled{box-shadow:0 8px 22px rgba(62,57,48,.09)}.search-controls{padding:8px 20px 14px;box-sizing:border-box}.results-scroll{height:0;flex:1}.results-content{padding:0 20px;box-sizing:border-box}
+.advanced-sheet{display:flex;height:82vh;max-height:720px;flex-direction:column;padding:20px 20px calc(14px + env(safe-area-inset-bottom));color:#292825;box-sizing:border-box}.sheet-header{display:flex;align-items:center;justify-content:space-between;padding-bottom:11px;flex:none}.sheet-header>view{display:flex;min-width:0;align-items:baseline;flex-wrap:wrap}.sheet-title{font-size:21px;font-weight:680;line-height:1.4}.sheet-count{margin-left:10px;color:#918d85;font-size:12px}.sheet-close{display:flex;width:44px;height:44px;align-items:center;justify-content:center;margin:0;padding:0;border:0;border-radius:50%;background:#fff;color:#5e5a54;font-size:28px;line-height:1;flex:none}.advanced-scroll{height:0;flex:1}.sheet-section{padding:17px 2px;border-top:1px solid #e8e5df}.sheet-section:first-child{border-top:0}.sheet-label{display:block;margin-bottom:10px;color:#4e4b46;font-size:14px;font-weight:650}.range-row{display:flex;align-items:center}.range-picker{min-width:0;flex:1}.range-value{display:flex;min-height:44px;align-items:center;justify-content:center;padding:0 14px;border:1px solid #e1ded8;border-radius:16px;background:#fff;color:#4e4b46;font-size:14px;box-sizing:border-box}.range-separator{margin:0 10px;color:#aaa69f}.toggle-row{display:flex;width:100%;min-height:44px;align-items:center;justify-content:space-between;padding:0;border:0;background:transparent;color:#4e4b46;font-size:14px;text-align:left}.square-check{display:flex;width:24px;height:24px;align-items:center;justify-content:center;margin-left:14px;border:1px solid #d7d3cc;border-radius:8px;background:#fff;box-sizing:border-box;flex:none}.square-check.selected{border-color:#efc635;background:#efc635}.square-check>view{width:8px;height:4px;margin-top:-2px;border-left:2px solid #fff;border-bottom:2px solid #fff;transform:rotate(-45deg)}.tools-heading{display:flex;align-items:center;justify-content:space-between}.recommend-link{margin:0;padding:5px 0;border:0;background:transparent;color:#8b762f;font-size:12px}.tools-description{display:block;margin:-3px 0 8px;color:#9b968e;font-size:12px;line-height:1.5}.tool-row{padding:6px 0;border-top:1px solid #eeece8}.tool-row:first-of-type{border-top:0}.sub-options{padding:0 0 9px 5px}.mbti-picker{margin:0 0 9px 5px}.sheet-scroll-spacer{height:10px}.sheet-actions{display:flex;padding-top:12px;flex:none}.reset-button,.apply-button{display:flex;min-height:50px;align-items:center;justify-content:center;margin:0;border:0;border-radius:19px;font-size:15px;font-weight:650;transform:scale(1);transition:transform 140ms cubic-bezier(.23,1,.32,1),background-color 140ms ease}.reset-button{width:34%;margin-right:10px;background:#fff;color:#615d56}.apply-button{min-width:0;flex:1;background:#efc635;color:#292825}.apply-button[disabled]{opacity:.55}
+@media (max-width:340px){.search-controls,.results-content{padding-right:14px;padding-left:14px}.name-search-card{padding:16px}.primary-chip,.filter-chip{padding-right:12px;padding-left:12px}.result-avatar{width:56px;height:56px}.selected-count{max-width:92px;overflow:hidden;text-overflow:ellipsis}.advanced-sheet{padding-right:14px;padding-left:14px}}
+@media (prefers-reduced-motion:reduce){.search-submit,.primary-chip,.filter-chip,.more-filter-row,.result-item,.reset-button,.apply-button{transition:none}.search-submit--pressed,.chip-pressed,.press-scale,.more-filter-row--pressed,.result-item--pressed{transform:none}}
 </style>
