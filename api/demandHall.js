@@ -38,7 +38,7 @@ export const getDemandHallHotTagsApi = (params = {}) => get('/api/demand-hall/ta
 // 板块统计：需求数 / 服务数 / 报名数 / 各分类数量
 export const getDemandHallStatsApi = () => get('/api/demand-hall/stats')
 
-// 我的发布 / 我的报名（role: published | applied）
+// 我的发布 / 我的报名 / 我的收藏（role: published | applied | collected）
 export const getMyDemandHallPostsApi = (params = {}) => get('/api/demand-hall/mine', params)
 
 // 某个帖子的报名列表（发布者可见全部，其他人只能看到自己那条）
@@ -53,10 +53,20 @@ export const handleDemandHallApplicationApi = (id, payload) => post(`/api/demand
 /* ============ 担保交易（资金托管） ============ */
 
 export const getDemandHallOrdersApi = () => get('/api/demand-hall/orders')
+// 订单详情：附带原信息快照、交易对象与「需要认证服务者」的校验结果
 export const getDemandHallOrderApi = (id) => get(`/api/demand-hall/orders/${id}`)
 
 // 发布者选定接单方后发起托管：{ postId, counterpartyUserId, amount?, remark? }
 export const createDemandHallOrderApi = (payload) => post('/api/demand-hall/orders', payload)
 
-// 托管流转：{ action: 'fund' | 'deliver' | 'confirm' | 'cancel' | 'refund', note? }
+// 托管流转：{ action: 'fund' | 'deliver' | 'confirm' | 'cancel' | 'refund' | 'remind', note? }
 export const updateDemandHallOrderStatusApi = (id, payload) => post(`/api/demand-hall/orders/${id}/status`, payload)
+
+// 卖家提交交付说明与凭证：{ note?, evidence?: [{ url, name? }] }
+export const submitDemandHallOrderDeliveryApi = (id, payload) => post(`/api/demand-hall/orders/${id}/delivery`, payload)
+
+/**
+ * 交付凭证上传：复用社区图片上传通道（multipart/form-data，字段名 images）。
+ * 后端统一收口到同一个存储，需求市场不再单独维护一套上传配置。
+ */
+export const DEMAND_HALL_UPLOAD_URL = '/api/community/upload'

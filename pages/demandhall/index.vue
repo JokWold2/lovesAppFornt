@@ -7,9 +7,16 @@
 					<text class="hero-title">需求市场</text>
 					<text class="hero-subtitle">技能与任务服务 · 求助找帮手 / 提供找活儿</text>
 				</view>
-				<view class="hero-stat">
-					<text class="hero-stat-num">{{ stats.totalPosts }}</text>
-					<text class="hero-stat-label">条信息</text>
+				<view class="hero-actions">
+					<!-- 个人工作台入口：发布记录、接单记录与收藏统一收在这里 -->
+					<view class="workspace-entry" @click="goWorkspace">
+						<uni-icons type="person-filled" size="15" color="#1a1a1a"></uni-icons>
+						<text class="workspace-entry-text">{{ t('workspace.entry') }}</text>
+					</view>
+					<view class="hero-stat">
+						<text class="hero-stat-num">{{ stats.totalPosts }}</text>
+						<text class="hero-stat-label">条信息</text>
+					</view>
 				</view>
 			</view>
 
@@ -448,6 +455,7 @@ import {
 	createDemandHallApplicationApi
 } from '@/api/demandHall.js'
 import { createChatRequestApi, getChatRequestStatusApi } from '@/api/chat.js'
+import { t } from '@/utils/localeRuntime.js'
 import {
 	DEMAND_HALL_TABS,
 	SORT_OPTIONS,
@@ -772,6 +780,11 @@ function goDetail(post) {
 	uni.navigateTo({ url: `/pages/demandhall/detail?id=${post.id}` })
 }
 
+/** 进入个人工作台；带上当前 Tab 让「去发现」返回时落在同一分类。 */
+function goWorkspace() {
+	uni.navigateTo({ url: `/pages/demandhall/workspace?tab=posts` })
+}
+
 /* ============ 发布 ============ */
 const showEntrySheet = ref(false)
 const showPublishForm = ref(false)
@@ -882,6 +895,8 @@ onLoad(options => {
 	if (options?.tab === 'service' || options?.tab === 'demand') activeTab.value = options.tab
 	void loadSideData()
 	void loadPosts({ reset: true })
+	// 工作台的「发布」入口带 compose=1 过来，落地即打开发布抽屉，少一次点击。
+	if (options?.compose) setTimeout(() => { showEntrySheet.value = true }, 300)
 })
 
 onShow(() => {
@@ -948,6 +963,37 @@ $line-color: #f2f2f4;
 	flex-direction: column;
 	align-items: flex-end;
 	padding-top: 6rpx;
+}
+
+.hero-actions {
+	display: flex;
+	flex-direction: column;
+	align-items: flex-end;
+	gap: 12rpx;
+	flex-shrink: 0;
+}
+
+/* 个人工作台入口：与品牌黄一致的可点击胶囊 */
+.workspace-entry {
+	display: flex;
+	align-items: center;
+	gap: 8rpx;
+	height: 60rpx;
+	padding: 0 24rpx;
+	border-radius: 30rpx;
+	background: $brand-yellow;
+	box-shadow: 0 4rpx 12rpx rgba(255, 206, 0, 0.35);
+	transition: transform 160ms ease-out;
+
+	&:active {
+		transform: scale(0.96);
+	}
+}
+
+.workspace-entry-text {
+	font-size: 24rpx;
+	font-weight: bold;
+	color: $text-main;
 }
 
 .hero-stat-num {

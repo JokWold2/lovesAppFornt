@@ -243,7 +243,12 @@ test('互动消息能把需求市场通知跳回对应页面', async () => {
 		interactionRoute({ target_type: 'demand_hall_post', target_id: 11 }),
 		'/pages/demandhall/detail?id=11'
 	)
-	assert.equal(interactionRoute({ target_type: 'demand_hall_order', target_id: 31 }), '/pages/demandhall/index')
+	assert.equal(interactionRoute({ target_type: 'demand_hall_order', target_id: 31 }), '/pages/demandhall/orderDetail?id=31')
+	assert.equal(
+		interactionRoute({ target_type: 'demand_hall_order', target_id: null }),
+		'/pages/demandhall/workspace?tab=applies',
+		'缺少订单号的旧通知退回工作台'
+	)
 	assert.equal(interactionRoute({ target_type: 'community_post', target_id: 2 }), '/pages/community/index')
 	assert.equal(interactionRoute({ target_type: 'market_post' }), '', '缺少市场信息时仍返回空路由')
 })
