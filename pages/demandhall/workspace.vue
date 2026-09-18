@@ -326,7 +326,8 @@ import {
 	formatRelativeTime,
 	buildCardBadges,
 	applicationStatusMeta
-} from '@/utils/demandHallPresentation.js'import {
+} from '@/utils/demandHallPresentation.js'
+import {
 	WORKSPACE_ROLE_BY_TAB,
 	WORKSPACE_TABS,
 	buildMyPostGroups,
