@@ -22,13 +22,6 @@
 			}
 		},
 		{
-			"path": "pages/account/accountCenter",
-			"style": {
-				"navigationBarTitleText": "个人中心",
-				"navigationStyle": "custom"
-			}
-		},
-		{
 			"path": "pages/legal/userAgreement",
 			"style": {
 				"navigationBarTitleText": "用户服务协议"
@@ -47,13 +40,6 @@
 			}
 		},
 		{
-			"path": "pages/moments/momentDetail",
-			"style": {
-				"navigationBarTitleText": "动态详情",
-				"disableScroll": true
-			}
-		},
-		{
 			"path": "pages/notice/notice",
 			"style": {
 				"enablePullDownRefresh": true,
@@ -61,8 +47,14 @@
 				"navigationStyle": "custom"
 			}
 		},
-		{ "path": "pages/likes/likes", "style": { "navigationBarTitleText": "点赞", "navigationStyle": "custom", "enablePullDownRefresh": true } },
-		{ "path": "pages/membership/upgrade", "style": { "navigationBarTitleText": "永久会员", "navigationStyle": "custom" } },
+		{
+			"path": "pages/likes/likes",
+			"style": {
+				"navigationBarTitleText": "点赞",
+				"navigationStyle": "custom",
+				"enablePullDownRefresh": true
+			}
+		},
 		{
 			"path": "pages/notice/interactionMessages",
 			"style": {
@@ -82,14 +74,6 @@
 			}
 		},
 		{
-			"path": "pages/searchPerson/searchPerson",
-			"style": {
-				"navigationBarTitleText": "搜索候选人",
-				"navigationStyle": "custom",
-				"disableScroll": true
-			}
-		},
-		{
 			"path": "pages/my/myLifeShow/myLifeShow",
 			"style": {
 				"navigationBarTitleText": "个人资料",
@@ -104,35 +88,19 @@
 			}
 		},
 		{
-			"path": "pages/searchPerson/personShow/personShow",
-			"style": {
-				"navigationBarTitleText": "",
-				"navigationStyle": "custom"
-			}
-		},
-		{
 			"path": "pages/index/auctionDetail",
 			"style": {
 				"navigationBarTitleText": "拍品详情",
 				"navigationBarBackgroundColor": "#FFCE00",
 				"navigationBarTextStyle": "black"
 			}
-		}
-		,
-		{ "path": "pages/notice/chatRequestReview", "style": { "navigationBarTitleText": "私聊申请审核" } }
-		,
-		{
-			"path": "pages/market/marketList",
-			"style": { "navigationBarTitleText": "市场" }
 		},
 		{
-			"path": "pages/market/marketFeed",
-			"style": { "navigationBarTitleText": "内容详情", "navigationBarBackgroundColor": "#111111", "navigationBarTextStyle": "white" }
-		}
-		,
-		{ "path": "pages/chat/chatRoom", "style": { "navigationStyle": "custom", "navigationBarTitleText": "群聊", "disableScroll": true } },
-		{ "path": "pages/chat/groupManage", "style": { "navigationStyle": "custom", "navigationBarTitleText": "聊天信息" } },
-		{ "path": "pages/chat/groupMembers", "style": { "navigationStyle": "custom", "navigationBarTitleText": "群聊成员" } },
+			"path": "pages/notice/chatRequestReview",
+			"style": {
+				"navigationBarTitleText": "私聊申请审核"
+			}
+		},
 		{
 			"path": "pages/index/components/financialList",
 			"style": {
@@ -156,70 +124,183 @@
 			"style": {
 				"navigationBarTitleText": "数据分析与图表展示"
 			}
-		},
-		{
-			"path": "pages/community/index",
-			"style": {
-				"navigationBarTitleText": "社区",
-				"enablePullDownRefresh": false
-			}
-		},
-		{
-			"path": "pages/community/topics",
-			"style": {
-				"navigationBarTitleText": "话题广场",
-				"enablePullDownRefresh": false
-			}
-		},
-		{
-			"path": "pages/community/topicDetail",
-			"style": {
-				"navigationBarTitleText": "话题详情",
-				"enablePullDownRefresh": false
-			}
-		},
-		{
-			"path": "pages/community/leaderboard",
-			"style": {
-				"navigationBarTitleText": "排行榜",
-				"enablePullDownRefresh": false
-			}
-		},
-		{
-			"path": "pages/demandhall/index",
-			"style": {
-				"navigationBarTitleText": "需求市场",
-				"navigationBarTextStyle": "white",
-				"enablePullDownRefresh": false
-			}
-		},
-		{
-			"path": "pages/demandhall/detail",
-			"style": {
-				"navigationBarTitleText": "信息详情",
-				"navigationBarBackgroundColor": "#ff6b35",
-				"navigationBarTextStyle": "white"
-			}
-		},
-		{
-			"path": "pages/demandhall/workspace",
-			"style": {
-				"navigationBarTitleText": "我的工作台",
-				"navigationBarBackgroundColor": "#ffce00",
-				"navigationBarTextStyle": "black",
-				"enablePullDownRefresh": false
-			}
-		},
-		{
-			"path": "pages/demandhall/orderDetail",
-			"style": {
-				"navigationBarTitleText": "担保交易",
-				"navigationBarBackgroundColor": "#ffce00",
-				"navigationBarTextStyle": "black",
-				"enablePullDownRefresh": false
-			}
 		}
-
+	],
+	"subPackages": [
+		{
+			"root": "pages/community",
+			"pages": [
+				{
+					"path": "index",
+					"style": {
+						"navigationBarTitleText": "社区",
+						"enablePullDownRefresh": false
+					}
+				},
+				{
+					"path": "topics",
+					"style": {
+						"navigationBarTitleText": "话题广场",
+						"enablePullDownRefresh": false
+					}
+				},
+				{
+					"path": "topicDetail",
+					"style": {
+						"navigationBarTitleText": "话题详情",
+						"enablePullDownRefresh": false
+					}
+				},
+				{
+					"path": "leaderboard",
+					"style": {
+						"navigationBarTitleText": "排行榜",
+						"enablePullDownRefresh": false
+					}
+				}
+			]
+		},
+		{
+			"root": "pages/demandhall",
+			"pages": [
+				{
+					"path": "index",
+					"style": {
+						"navigationBarTitleText": "需求市场",
+						"navigationBarTextStyle": "white",
+						"enablePullDownRefresh": false
+					}
+				},
+				{
+					"path": "detail",
+					"style": {
+						"navigationBarTitleText": "信息详情",
+						"navigationBarBackgroundColor": "#ff6b35",
+						"navigationBarTextStyle": "white"
+					}
+				},
+				{
+					"path": "workspace",
+					"style": {
+						"navigationBarTitleText": "我的工作台",
+						"navigationBarBackgroundColor": "#ffce00",
+						"navigationBarTextStyle": "black",
+						"enablePullDownRefresh": false
+					}
+				},
+				{
+					"path": "orderDetail",
+					"style": {
+						"navigationBarTitleText": "担保交易",
+						"navigationBarBackgroundColor": "#ffce00",
+						"navigationBarTextStyle": "black",
+						"enablePullDownRefresh": false
+					}
+				}
+			]
+		},
+		{
+			"root": "pages/chat",
+			"pages": [
+				{
+					"path": "chatRoom",
+					"style": {
+						"navigationStyle": "custom",
+						"navigationBarTitleText": "群聊",
+						"disableScroll": true
+					}
+				},
+				{
+					"path": "groupManage",
+					"style": {
+						"navigationStyle": "custom",
+						"navigationBarTitleText": "聊天信息"
+					}
+				},
+				{
+					"path": "groupMembers",
+					"style": {
+						"navigationStyle": "custom",
+						"navigationBarTitleText": "群聊成员"
+					}
+				}
+			]
+		},
+		{
+			"root": "pages/searchPerson",
+			"pages": [
+				{
+					"path": "searchPerson",
+					"style": {
+						"navigationBarTitleText": "搜索候选人",
+						"navigationStyle": "custom",
+						"disableScroll": true
+					}
+				},
+				{
+					"path": "personShow/personShow",
+					"style": {
+						"navigationBarTitleText": "",
+						"navigationStyle": "custom"
+					}
+				}
+			]
+		},
+		{
+			"root": "pages/market",
+			"pages": [
+				{
+					"path": "marketList",
+					"style": {
+						"navigationBarTitleText": "市场"
+					}
+				},
+				{
+					"path": "marketFeed",
+					"style": {
+						"navigationBarTitleText": "内容详情",
+						"navigationBarBackgroundColor": "#111111",
+						"navigationBarTextStyle": "white"
+					}
+				}
+			]
+		},
+		{
+			"root": "pages/moments",
+			"pages": [
+				{
+					"path": "momentDetail",
+					"style": {
+						"navigationBarTitleText": "动态详情",
+						"disableScroll": true
+					}
+				}
+			]
+		},
+		{
+			"root": "pages/membership",
+			"pages": [
+				{
+					"path": "upgrade",
+					"style": {
+						"navigationBarTitleText": "永久会员",
+						"navigationStyle": "custom"
+					}
+				}
+			]
+		},
+		{
+			"root": "pages/account",
+			"pages": [
+				{
+					"path": "accountCenter",
+					"style": {
+						"navigationBarTitleText": "个人中心",
+						"navigationStyle": "custom"
+					}
+				}
+			]
+		}
 	],
 	"globalStyle": {
 		"navigationBarTextStyle": "black",
