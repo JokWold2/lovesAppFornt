@@ -25,12 +25,14 @@
     </view>
     <view class="header-spacer" :style="spacerStyle" aria-hidden="true" />
 
+<view class="my-trade-links"><view v-for="r in ['buying','selling','bidding']" :key="r" @click="openMyTrades(r)"><uni-icons type="shop" size="20" color="#b89124"/><text>{{ t('trade.'+r) }}</text></view></view>
     <view v-show="activeTab === 'moments'" class="moments-pane" role="tabpanel">
       <button class="moments-composer" @click="goToEdit">
         <view class="composer-symbol"><uni-icons type="compose" size="24" color="#a08632" /></view>
         <view class="composer-copy"><text class="composer-title">{{ t('momentsHub.composeTitle') }}</text><text class="composer-hint">{{ t('momentsHub.composeHint') }}</text></view>
         <uni-icons class="composer-photo" type="image" size="21" color="#8b907e" />
       </button>
+
       <view class="timeline-heading"><text>{{ t('momentsHub.recent') }}</text></view>
       <view v-if="loading && !moments.length" class="hub-state"><view class="state-icon"><uni-icons type="more-filled" size="28" color="#a09159" /></view><text>{{ t('momentsHub.loading') }}</text></view>
       <view v-else-if="momentsError" class="hub-state error-state"><view class="state-icon"><uni-icons type="reload" size="26" color="#9f8738" /></view><text>{{ t('momentsHub.momentsError') }}</text><button class="state-button moments-retry" @click="loadMoments">{{ t('momentsHub.retry') }}</button></view>
@@ -96,6 +98,7 @@
 </template>
 
 <script setup>
+function openMyTrades(role){uni.navigateTo({url:'/pages/market/trade?mode=orders&role='+role})}
 import { computed, nextTick, ref } from 'vue'
 import { onShow, onPageScroll, onPullDownRefresh } from '@dcloudio/uni-app'
 // #ifdef APP-PLUS
@@ -766,3 +769,5 @@ button{margin:0;box-sizing:border-box;border:0;line-height:1.5;font-weight:400;w
 /* #endif */
 @media(prefers-reduced-motion:reduce){button{transition:none;}button:active{transform:none;}}
 </style>
+
+<style scoped>.my-trade-links{display:flex;gap:8px;margin:14px 0}.my-trade-links>view{display:flex;flex:1;align-items:center;justify-content:center;gap:7px;background:white;border-radius:16px;padding:16px 8px;font-size:13px;flex-wrap:wrap}</style>

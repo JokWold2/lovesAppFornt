@@ -41,19 +41,7 @@
       </scroll-view>
       <view v-if="likesState.incoming.error || likesState.membershipError" class="likes-feedback"><text>{{ t('messageInbox.loadFailed') }}</text><button class="likes-retry" @click="retryLikes"><view class="retry-label"><text class="retry-label-text">{{ t('messageInbox.retry') }}</text></view></button></view>
     </view>
-    <view class="messages-panel">
-      <text class="section-title messages-title">{{ t('messageInbox.messages') }}</text>
-      <button v-if="showInteractions" class="row interaction-row" @click="openInteractions">
-        <view class="avatar interaction-icon"><uni-icons type="fire-filled" size="31" color="#fff" /></view><view class="main"><text class="name">{{ t('inbox.interactions') }}</text><text class="summary">{{ interactionSummary }}</text></view><view class="side"><text v-if="interactionDate" class="date">{{ interactionDate }}</text><text v-if="interactionUnread" class="badge">{{ badgeText(interactionUnread) }}</text></view>
-      </button>
-      <button v-if="isAdmin && filteredRequests.length" class="row audit-row" @click="openRequestReviews"><view class="avatar audit"><uni-icons type="checkmarkempty" size="26" color="#7f6b38" /></view><view class="main"><text class="name">{{ t('inbox.pendingRequests') }}</text><text class="summary">{{ t('inbox.requestsWaiting', { count: filteredRequests.length }) }}</text></view><view class="side"><text class="badge">{{ badgeText(filteredRequests.length) }}</text></view></button>
-      <button v-for="group in filteredChatGroups" :key="group.id" class="row conversation-row" :data-group-id="group.id" @click="openGroup(group.id)">
-        <GroupAvatar class="group-list-avatar" :avatar-url="group.avatar_url" :members="group.members || []" :size="52" /><view class="main"><text class="name">{{ presentGroupName(group.name) }}</text><text class="summary">{{ group.status === 'dissolved' ? t('inbox.dissolved') : group.last_message || t('inbox.noMessages') }}</text></view><view class="side"><text v-if="group.last_message_at" class="date">{{ formatConversationTime(group.last_message_at) }}</text><text v-if="hasUnreadMessages(group.unread_count)" class="badge">{{ badgeText(group.unread_count) }}</text></view>
-      </button>
-      <view v-if="messageError" class="message-error"><text>{{ t('inbox.loadChatFailed') }}</text><button class="likes-retry" @click="load"><view class="retry-label"><text class="retry-label-text">{{ t('messageInbox.retry') }}</text></view></button></view>
-      <view v-if="hasSearchKeyword && !hasSearchResults" class="search-empty">{{ t('inbox.noMatching') }}</view>
-    </view>
-    <LiquidGlassTabBar active-route="pages/notice/notice" :input-active="navigationInputActive" :hidden="!!sheetProfileId" />
+    <TradeInboxPanel :groups="filteredChatGroups" :trades="tradeConversations" :search="searchKeyword" :show-interactions="showInteractions" :interaction-unread="interactionUnread" :interaction-summary="interactionSummary" :interaction-date="interactionDate" :is-admin="isAdmin" :request-count="filteredRequests.length" :error="messageError" :notice-count="tradeNoticeCount" @interactions="openInteractions" @reviews="openRequestReviews" @group="openGroup" @retry="load" />    <LiquidGlassTabBar active-route="pages/notice/notice" :input-active="navigationInputActive" :hidden="!!sheetProfileId" />
     <ProfileDetailSheet :profile-id="sheetProfileId" :page-visible="sheetPageVisible" @closed="closeProfileSheet" />
   </view>
 </template>
@@ -79,11 +67,13 @@ import { createMessageLikesState } from '@/utils/messageLikesState.js'
 import { messageLikePhoto } from '@/utils/messageLikePhoto.js'
 import { useFixedPageHeader } from '@/utils/useFixedPageHeader.js'
 import GroupAvatar from '@/components/chat/GroupAvatar.vue'
+import TradeInboxPanel from '@/components/market/TradeInboxPanel.vue'
+import {getTradeConversationsApi,getTradeNoticesApi} from '@/api/marketTrades.js'
 import LiquidGlassTabBar from '@/components/navigation/LiquidGlassTabBar.vue'
 import ProfileDetailSheet from '@/components/profile/ProfileDetailSheet.vue'
 
 const { profileId: sheetProfileId, pageVisible: sheetPageVisible, open: openProfileSheet, close: closeProfileSheet } = useProfileDetailSheet()
-const notifications = ref([]), chatGroups = ref([]), requests = ref([])
+const notifications = ref([]), chatGroups = ref([]), requests = ref([]), tradeConversations = ref([]), tradeNoticeCount = ref(0)
 const searchOpen = ref(false), searchKeyword = ref(''), navigationInputActive = ref(false)
 const headerScrolled = ref(false)
 const headerLayoutKey = computed(() => `${currentLocale.value}|${searchOpen.value}`)
@@ -126,7 +116,7 @@ function refreshLikes(force = false) {
   lastLikesRefresh = Date.now()
   return likes.refresh()
 }
-function clearMessageCache() { notifications.value = []; chatGroups.value = []; requests.value = []; interactionUnread.value = 0; lastLikeUnread = null; messageError.value = false; lastLikesRefresh = 0; for (const key of Object.keys(failedPhotos)) delete failedPhotos[key] }
+function clearMessageCache() { tradeConversations.value=[]; tradeNoticeCount.value=0; notifications.value = []; chatGroups.value = []; requests.value = []; interactionUnread.value = 0; lastLikeUnread = null; messageError.value = false; lastLikesRefresh = 0; for (const key of Object.keys(failedPhotos)) delete failedPhotos[key] }
 function applyUnreadSummary(unread) {
   if (Number.isFinite(Number(unread?.interactionUnread))) interactionUnread.value = Math.max(0, Math.floor(Number(unread.interactionUnread)))
   const next = Number(unread?.profileLikeUnread)
@@ -161,6 +151,8 @@ function load() {
       if (!Array.isArray(response?.requests)) throw new Error('Invalid chat requests response')
       requests.value = response.requests.filter(item => ['pending','processing'].includes(item.status))
     }),
+    update(getTradeConversationsApi, response => { tradeConversations.value=response.conversations||[] }),
+    update(getTradeNoticesApi, response => { tradeNoticeCount.value=(response.notices||[]).filter(n=>!n.is_read).length }),
     update(refreshUnreadBadge, applyUnreadSummary, false)
   ]).finally(() => { if (request === generation) messageLoading = false })
 }

@@ -16,11 +16,16 @@
     <ProfileDetailSections v-if="profile"
       presentation="cards"
       :profile="profile"
+      :show-details="activeSection === 'profile'"
       :enable-like="interactionsEnabled"
       :liked="isLiked"
       :like-count="likeCount"
       @toggle-like="toggleProfileLike"
-    />
+    >
+      <template #after-photos>
+        <ProfileUserActivity :key="profile.id" :profile="profile" :name="profileName" @change="activeSection = $event" />
+      </template>
+    </ProfileDetailSections>
     <view v-else-if="loading" class="state-box" :aria-busy="true"><text>{{ t('profile.loading') }}</text></view>
     <view v-else class="state-box">
       <uni-icons type="person" size="40" color="#a19c94" />
@@ -48,6 +53,7 @@
 import { computed, nextTick, onBeforeUnmount, ref, watch } from 'vue'
 import { getCandidateProfileApi, getProfileLikesApi, toggleProfileLikeApi } from '@/api/index.js'
 import ProfileDetailSections from '@/components/profile/ProfileDetailSections.vue'
+import ProfileUserActivity from '@/components/profile/ProfileUserActivity.vue'
 import { createChatRequestApi, getChatRequestStatusApi } from '@/api/chat.js'
 import { getChatRequestButtonState, getChatRequestEntryState } from '@/utils/chatRequestState.js'
 import { decideBlessingApi } from '@/api/membership.js'
@@ -70,6 +76,7 @@ const emit = defineEmits(['close'])
 // 升级 key，确保此前没有看到引导的用户也能在本次功能发布后看到一次说明。
 const GUIDE_KEY = 'PROFILE_LIKE_DOUBLE_TAP_GUIDE_V2'
 const profile = ref(null)
+const activeSection = ref('profile')
 const profileName = computed(() => {
   const p = profile.value || {}
   return [p.native_last_name, p.native_first_name].filter(Boolean).join(' ') ||
@@ -109,6 +116,7 @@ watch([() => props.id, () => props.visible, () => props.interactionsEnabled], ([
   pageVisible = visible === true
   invalidateProfileView()
   if (nextId !== profileId.value) {
+    activeSection.value = 'profile'
     profileId.value = nextId
     profile.value = null
     isLiked.value = false
