@@ -1,4 +1,5 @@
 <script>
+ import { installOnboardingGuard, ONBOARDING_URL } from '@/utils/onboarding.js'
 	// import { setupRouteGuard } from '@/utils/guard.js'
 	import { validateTokenApi, heartbeatPresenceApi, offlinePresenceApi } from '@/api/index.js'
 	import { getToken, getUserInfo, removeToken, removeUserInfo, setUserInfo } from '@/utils/auth.js'
@@ -21,6 +22,7 @@
 		},
 		onLaunch: async function(options = {}) {
 			hideNativeTabBar()
+            installOnboardingGuard()
 			uni.$on?.('auth-session-changed', onBadgeSessionChanged)
 			console.log('App Launch')
 			// 安装路由守卫（拦截所有页面跳转，未登录则强制跳到登录页）
@@ -44,7 +46,8 @@
 				// Preserve that entry instead of queuing a switchTab back to itself.
 				const pages = getCurrentPages()
 				const homeTarget = getSessionRestoreTarget(pages[pages.length - 1]?.route, options?.path)
-				if (homeTarget) uni.switchTab({ url: homeTarget })
+				if (data.user.needsOnboarding) uni.reLaunch({ url: ONBOARDING_URL })
+                else if (homeTarget) uni.switchTab({ url: homeTarget })
 			} catch (error) {
 				// 不记录 Token，只记录服务端状态，方便定位重启后会话失效的原因。
 				console.warn('启动登录状态校验失败', {

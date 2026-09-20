@@ -9,9 +9,13 @@
 		{
 			"path": "pages/login/login360",
 			"style": {
-				"navigationBarTitleText": "登录"
+				"navigationBarTitleText": "登录",
+                "navigationStyle": "custom",
+                "backgroundColor": "#f7f5ef",
+                "app-plus": { "softinputMode": "adjustResize" }
 			}
 		},
+        { "path": "pages/login/onboarding", "style": { "navigationStyle": "custom", "backgroundColor": "#f5f4f1", "app-plus": { "softinputMode": "adjustResize" } } },
 		{
 			"path": "pages/index/index360",
 			"style": {
@@ -250,7 +254,7 @@
 			"root": "pages/market",
 			"pages": [
 				{
-					"path": "marketList",
+					"path": "trade", "style": { "navigationStyle": "custom", "disableScroll": true } }, { "path": "marketList",
 					"style": {
 						"navigationBarTitleText": "市场"
 					}
@@ -259,8 +263,8 @@
 					"path": "marketFeed",
 					"style": {
 						"navigationBarTitleText": "内容详情",
-						"navigationBarBackgroundColor": "#111111",
-						"navigationBarTextStyle": "white"
+						"navigationStyle": "custom",
+						"disableScroll": true
 					}
 				}
 			]
@@ -272,6 +276,7 @@
 					"path": "momentDetail",
 					"style": {
 						"navigationBarTitleText": "动态详情",
+						"navigationStyle": "custom",
 						"disableScroll": true
 					}
 				}

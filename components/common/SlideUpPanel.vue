@@ -1,5 +1,5 @@
 <template>
-  <view v-if="mounted" class="slide-up-host" :style="{ zIndex }" role="dialog" aria-modal="true" :aria-label="label">
+  <view v-if="mounted" class="slide-up-host" :style="{ zIndex, position: fixed ? 'fixed' : 'absolute', top: '0px', right: '0px', bottom: '0px', left: '0px' }" role="dialog" aria-modal="true" :aria-label="label">
     <view class="slide-up-scrim" :class="{ 'is-open': entered }" :style="motionStyle" @touchmove.stop.prevent @click="emit('dismiss')" />
     <view class="slide-up-panel" :class="{ 'is-open': entered, 'is-full': fullHeight }" :style="panelStyle" @touchmove.stop @transitionend="onTransitionEnd"><slot /></view>
   </view>
@@ -7,7 +7,7 @@
 
 <script setup>
 import { computed, nextTick, onBeforeUnmount, ref, watch } from 'vue'
-const props = defineProps({ open: Boolean, fullHeight: Boolean, label: String, topInset: { type: Number, default: 0 }, zIndex: { type: Number, default: 20 } })
+const props = defineProps({ open: Boolean, fixed: Boolean, fullHeight: Boolean, label: String, topInset: { type: Number, default: 0 }, zIndex: { type: Number, default: 20 } })
 const emit = defineEmits(['dismiss', 'after-close'])
 const mounted = ref(false), entered = ref(false)
 let frame = null, timer = null, revision = 0

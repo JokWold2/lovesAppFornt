@@ -14,6 +14,8 @@
         />
       </view>
 
+      <slot name="after-photos" />
+      <view v-show="showDetails">
       <view class="profile-card">
         <view class="profile-card-heading">
           <text class="profile-card-icon profile-card-quote" aria-hidden="true">“</text>
@@ -71,6 +73,7 @@
           <text class="profile-card-title">{{ t('profile.parents') }}</text>
         </view>
         <text class="profile-card-empty">{{ t('profile.noParents') }}</text>
+      </view>
       </view>
     </template>
 
@@ -138,6 +141,7 @@ const props = defineProps({
   profile: { type: Object, required: true },
   presentation: { type: String, default: 'classic' },
   showPhotos: { type: Boolean, default: true },
+  showDetails: { type: Boolean, default: true },
   editable: { type: Boolean, default: false },
   enableLike: { type: Boolean, default: false },
   liked: { type: Boolean, default: false },
