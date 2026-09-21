@@ -1,553 +1,951 @@
 <template>
-    <view class="page-container">
-      <scroll-view class="scroll-content" scroll-y>
-        
-        <!-- 1. 顶部月饼活动 Banner 区域 -->
-        <view class="banner-section">
-          <view class="banner-title-box">
-            <text class="title-main">下单月饼抽免单</text>
-            <text class="title-sub">限时活动·最高免100元</text>
-          </view>
-          
-          <!-- 优惠标签 -->
-          <view class="tags-row">
-            <view class="tag-item">
-              <text class="tag-t1">2盒立省30</text>
-              <text class="tag-t2">（盒装月饼）</text>
+  <view class="cake-page">
+    <CakeNavBar
+      title=""
+      tone="light"
+      :progress="navProgress"
+      :spacer="false"
+      :z-index="70"
+    >
+      <template #right>
+        <button class="cake-home-cart" :aria-label="t('cake.cartTitle')" @click="openCart">
+          <uni-icons type="cart" :size="20" color="#171717" />
+          <text v-if="cartQuantity" class="cake-home-cart-badge">{{ cartBadgeText }}</text>
+        </button>
+      </template>
+    </CakeNavBar>
+
+    <scroll-view class="cake-scroll" scroll-y :show-scrollbar="false" @scroll="onScroll">
+      <!-- 1. 顶部活动 Banner -->
+      <view class="cake-hero">
+        <swiper
+          v-if="heroSlides.length > 1"
+          class="cake-hero-swiper"
+          :autoplay="true"
+          :interval="4800"
+          :duration="360"
+          circular
+          @change="onHeroChange"
+        >
+          <swiper-item v-for="slide in heroSlides" :key="slide.key">
+            <view class="cake-hero-title-box">
+              <text class="cake-hero-title">{{ slide.title }}</text>
+              <text class="cake-hero-subtitle">{{ slide.subtitle }}</text>
             </view>
-            <view class="tag-item">
-              <text class="tag-t1">第二件半价</text>
-              <text class="tag-t2">（散装月饼）</text>
-            </view>
-            <view class="tag-item">
-              <text class="tag-t1">充200送20</text>
-              <text class="tag-t2">（储值优惠）</text>
-            </view>
-          </view>
-          
-          <!-- 产品展示占位 (请替换为实际图片) -->
-          <view class="product-showcase">
-            <image class="mooncake-img" mode="aspectFit" src="/static/mooncake-box.png"></image>
-          </view>
-          
-          <view class="action-btn">一键包邮寄出</view>
-          <view class="action-tips">*图片仅供参考，产品请以实物为准</view>
+          </swiper-item>
+        </swiper>
+        <view v-else class="cake-hero-title-box">
+          <text class="cake-hero-title">{{ heroSlides[0].title }}</text>
+          <text class="cake-hero-subtitle">{{ heroSlides[0].subtitle }}</text>
         </view>
-  
-        <!-- 2. 核心服务入口 (预订蛋糕 / 面包茶饮) -->
-        <view class="main-services">
-          <view class="service-item">
-            <text class="s-title">预订蛋糕</text>
-            <text class="s-desc">生日/纪念</text>
-          </view>
-          <view class="divider"></view>
-          <view class="service-item">
-            <text class="s-title">面包茶饮</text>
-            <text class="s-desc">外卖/自提</text>
+
+        <view v-if="heroSlides.length > 1" class="cake-hero-dots" aria-hidden="true">
+          <view v-for="(slide, index) in heroSlides" :key="slide.key" class="cake-hero-dot" :class="{ 'is-active': index === heroIndex }"></view>
+        </view>
+
+        <!-- 优惠标签 -->
+        <view class="cake-hero-terms">
+          <view v-for="term in promoTerms" :key="term.title" class="cake-hero-term">
+            <text class="cake-hero-term-main">{{ term.title }}</text>
+            <text class="cake-hero-term-note">{{ term.note }}</text>
           </view>
         </view>
-  
-        <!-- 新增：点单与月饼到家快捷入口 -->
-        <view class="extra-services">
-          <view class="es-card">
-            <view class="es-item">
-              <view class="es-info">
-                <text class="es-title">☕️ 极速点单</text>
-                <text class="es-desc">门店自取 / 外卖</text>
-              </view>
-              <view class="es-action">去点单</view>
-            </view>
-            <view class="es-divider"></view>
-            <view class="es-item">
-              <view class="es-info">
-                <text class="es-title">🥮 月饼到家</text>
-                <text class="es-desc">包邮直送到家</text>
-              </view>
-              <view class="es-action highlight">去购买</view>
-            </view>
+
+        <view class="cake-hero-showcase">
+          <image class="cake-hero-image" src="/static/cake/promo-mooncake.png" mode="aspectFit" :alt="t('cake.promoImageAlt')" />
+        </view>
+
+        <button class="cake-hero-cta" @click="goPromoTransport">{{ t('cake.promoShipping') }}</button>
+        <text class="cake-hero-disclaimer">{{ t('cake.promoDisclaimer') }}</text>
+      </view>
+
+      <!-- 2. 核心服务入口 -->
+      <view class="cake-services">
+        <view class="cake-service" role="button" :aria-label="t('cake.serviceCake')" @click="goShop">
+          <view class="cake-service-icon"><uni-icons type="gift" :size="26" color="#C4551F" /></view>
+          <text class="cake-service-title">{{ t('cake.serviceCake') }}</text>
+          <text class="cake-service-note">{{ t('cake.serviceCakeNote') }}</text>
+        </view>
+        <view class="cake-service-divider" aria-hidden="true"></view>
+        <view class="cake-service" role="button" :aria-label="t('cake.serviceBread')" @click="goOrder">
+          <view class="cake-service-icon"><uni-icons type="shop" :size="26" color="#C4551F" /></view>
+          <text class="cake-service-title">{{ t('cake.serviceBread') }}</text>
+          <text class="cake-service-note">{{ t('cake.serviceBreadNote') }}</text>
+        </view>
+      </view>
+
+      <!-- 3. 点单 / 月饼到家快捷入口 -->
+      <view class="cake-quick">
+        <view class="cake-quick-row" role="button" @click="goOrder">
+          <view class="cake-quick-info">
+            <text class="cake-quick-title">{{ t('cake.quickOrder') }}</text>
+            <text class="cake-quick-note">{{ t('cake.quickOrderNote') }}</text>
+          </view>
+          <view class="cake-quick-action">{{ t('cake.goOrder') }}</view>
+        </view>
+        <view class="cake-quick-line" aria-hidden="true"></view>
+        <view class="cake-quick-row" role="button" @click="goTransport">
+          <view class="cake-quick-info">
+            <text class="cake-quick-title">{{ t('cake.mooncakeHome') }}</text>
+            <text class="cake-quick-note">{{ t('cake.mooncakeHomeNote') }}</text>
+          </view>
+          <view class="cake-quick-action is-solid">{{ t('cake.goBuy') }}</view>
+        </view>
+      </view>
+
+      <!-- 4. 滚动通知 -->
+      <view class="cake-notice">
+        <view class="cake-notice-badge"><uni-icons type="info" :size="14" color="#A96A18" /></view>
+        <view class="cake-notice-viewport">
+          <view class="cake-notice-track">
+            <text class="cake-notice-text">{{ t('cake.noticeHeadline') }}</text>
+            <text class="cake-notice-text" aria-hidden="true">{{ t('cake.noticeHeadline') }}</text>
           </view>
         </view>
-  
-        <!-- 3. 滚动通知栏 -->
-        <view class="notice-bar">
-          <text class="notice-text">蛋糕上新啦，双重口味可选购，5家门店限定热销中：楼岗 松岗 大仟里 公明 嘉域</text>
+      </view>
+
+      <!-- 5. 资产与会员码 -->
+      <view class="cake-assets">
+        <view class="cake-asset" role="button" @click="openAccount">
+          <text class="cake-asset-label">{{ t('cake.assetBalance') }}</text>
+          <text class="cake-asset-value">{{ t('cake.balanceHidden') }}</text>
         </view>
-  
-        <!-- 4. 用户信息与资产 -->
-        <view class="user-assets-card">
-          <view class="asset-item">
-            <text class="a-label">余额</text>
-            <text class="a-val">***元</text>
+        <view class="cake-asset-line" aria-hidden="true"></view>
+        <view class="cake-asset" role="button" @click="openAccount">
+          <text class="cake-asset-label">{{ t('cake.assetCoupons') }}</text>
+          <text class="cake-asset-value">{{ t('cake.couponsHidden') }}</text>
+        </view>
+        <view class="cake-asset-line" aria-hidden="true"></view>
+        <view class="cake-asset is-code" role="button" @click="openAccount">
+          <text class="cake-asset-label">{{ t('cake.assetMemberCode') }}</text>
+          <view class="cake-asset-qr"><uni-icons type="scan" :size="20" color="#6E6961" /></view>
+        </view>
+      </view>
+
+      <!-- 6. 快捷功能 -->
+      <view class="cake-links">
+        <view v-for="link in quickLinks" :key="link.title" class="cake-link" role="button" :aria-label="link.title" @click="onQuickLink(link)">
+          <view class="cake-link-icon"><uni-icons :type="link.icon" :size="24" color="#A96A18" /></view>
+          <text class="cake-link-title">{{ link.title }}</text>
+          <text class="cake-link-note">{{ link.note }}</text>
+        </view>
+      </view>
+
+      <!-- 7. 热销推荐 -->
+      <view class="cake-section">
+        <view class="cake-section-head">
+          <text class="cake-section-title">{{ t('cake.hotProducts') }}</text>
+          <button class="cake-section-more" @click="goTransport">{{ t('cake.viewAll') }}<uni-icons type="right" :size="14" color="#8A857C" /></button>
+        </view>
+
+        <CakeStateView
+          v-if="hotState === 'loading'"
+          state="loading"
+          compact
+          :title="t('cake.loading')"
+        />
+        <CakeStateView
+          v-else-if="hotState === 'error'"
+          state="error"
+          compact
+          :title="t('cake.loadFailed')"
+          :hint="t('cake.loadMoreFailed')"
+          @retry="loadHotProducts"
+        />
+        <CakeStateView
+          v-else-if="hotState === 'empty'"
+          state="empty"
+          compact
+          :title="t('cake.emptyProducts')"
+          :hint="t('cake.emptyProductsHint')"
+        />
+        <view v-else class="cake-grid">
+          <CakeProductCard
+            v-for="product in hotProducts"
+            :key="product.id"
+            :product="product"
+            :locale="locale"
+            :pending="addingId === product.id"
+            @open="openProduct"
+            @add="addProduct"
+          />
+        </view>
+      </view>
+
+      <!-- 8. 会员活动 -->
+      <view class="cake-member" role="button" @click="openMembership">
+        <view class="cake-member-left">
+          <text class="cake-member-eng">{{ t('cake.memberActivitiesEng') }}</text>
+          <text class="cake-member-title">{{ t('cake.memberTitleFirst') }}</text>
+          <text class="cake-member-title">{{ t('cake.memberTitleSecond') }}</text>
+          <view class="cake-member-btn">{{ t('cake.memberCta') }}</view>
+        </view>
+        <view class="cake-member-star"><uni-icons type="star-filled" :size="46" color="#F0C558" /></view>
+      </view>
+
+      <!-- 9. 等级活动指南 -->
+      <view class="cake-section-label">
+        <view class="cake-label-line" aria-hidden="true"></view>
+        <text class="cake-label-text">{{ t('cake.levelGuide') }}</text>
+        <view class="cake-label-line" aria-hidden="true"></view>
+      </view>
+      <view class="cake-levels">
+        <view v-for="(level, index) in levels" :key="level.name" class="cake-level" :style="{ backgroundColor: level.bg, color: level.fg }">
+          <view class="cake-level-info">
+            <text class="cake-level-name">{{ level.name }}</text>
+            <text class="cake-level-eng">{{ level.eng }}</text>
           </view>
-          <view class="asset-item">
-            <text class="a-label">优惠券</text>
-            <text class="a-val">***张</text>
-          </view>
-          <view class="asset-item code-box">
-            <text class="a-label">会员码</text>
-            <view class="qr-icon-placeholder"></view>
+          <text class="cake-level-badge">V{{ index + 1 }}</text>
+        </view>
+      </view>
+
+      <!-- 10. 更多服务 -->
+      <view class="cake-section-label">
+        <view class="cake-label-line" aria-hidden="true"></view>
+        <text class="cake-label-text">{{ t('cake.moreServices') }}</text>
+        <view class="cake-label-line" aria-hidden="true"></view>
+      </view>
+      <view class="cake-more">
+        <view class="cake-more-row" role="button" @click="openProfile">
+          <text class="cake-more-title">{{ t('cake.completeProfile') }}</text>
+          <view class="cake-more-action">
+            <text class="cake-more-action-text">{{ t('cake.birthdayReward') }}</text>
+            <uni-icons type="right" :size="14" color="#8A857C" />
           </view>
         </view>
-  
-        <!-- 5. 快捷功能区 (金刚区) -->
-        <view class="quick-links">
-          <view class="link-item" v-for="(item, index) in quickLinks" :key="index">
-            <view class="icon-placeholder"></view>
-            <text class="l-title">{{item.title}}</text>
-            <text class="l-tag">{{item.tag}}</text>
-          </view>
-        </view>
-  
-        <!-- 6. 上滑提示 -->
-        <view class="scroll-hint">
-          <text class="hint-text">^ 上滑了解更多 ^</text>
-        </view>
-  
-        <!-- 7. 会员活动横幅 -->
-        <view class="member-activities">
-          <view class="ma-left">
-            <text class="ma-eng">MEMBER ACTIVITIES</text>
-            <text class="ma-title">会员权益升级</text>
-            <text class="ma-title">会员专享特价</text>
-            <view class="ma-btn">立即查看特价</view>
-          </view>
-          <view class="ma-right">
-            <!-- 替换为星星图片 -->
-            <view class="star-placeholder"></view>
-          </view>
-        </view>
-  
-        <!-- 8. 等级活动指南 -->
-        <view class="section-title">—— 等级活动指南 ——</view>
-        <view class="level-grid">
-          <view class="level-card" v-for="(lvl, index) in levels" :key="index" :style="{ backgroundColor: lvl.bgColor, color: lvl.color }">
-            <view class="lvl-info">
-              <text class="lvl-name">{{lvl.name}}</text>
-              <text class="lvl-eng">{{lvl.eng}}</text>
-            </view>
-            <view class="lvl-badge">V{{index + 1}}</view>
-          </view>
-        </view>
-  
-        <!-- 9. 更多快乐服务 -->
-        <view class="section-title">—— 更多快乐服务 ——</view>
-        <view class="more-services">
-          <view class="ms-item">
-            <text class="ms-title">完善资料</text>
-            <text class="ms-action">生日领惊喜券 >></text>
-          </view>
-        </view>
-        
-        <!-- 页面底部安全区留白 -->
-        <view class="safe-area-bottom"></view>
-      </scroll-view>
-    </view>
-  </template>
-  
-  <script setup>
-  import { ref } from 'vue'
-  
-  const quickLinks = ref([
-    { title: '充值有礼', tag: '充值赠余额' },
-    { title: '社群福利', tag: '0元领燕麦饼' },
-    { title: '积分商城', tag: '0元兑换茶饮' },
-    { title: '会员特权', tag: '0元领生日蛋糕' }
-  ])
-  
-  const levels = ref([
-    { name: '初遇', eng: 'First Meet', bgColor: '#F4E5D3', color: '#6B4A2E' },
-    { name: '陪伴', eng: 'Company', bgColor: '#DCC390', color: '#5A4315' },
-    { name: '常伴', eng: 'Companion', bgColor: '#E6A28C', color: '#6A2A1A' },
-    { name: '臻享', eng: 'Enjoyment', bgColor: '#BA6E5B', color: '#FEEADD' },
-    { name: '归属', eng: 'Belonging', bgColor: '#6F4B41', color: '#F1D8CF' },
-    { name: '专属', eng: 'Exclusive', bgColor: '#4A2F28', color: '#E8D1C7' }
-  ])
-  </script>
-  
-  <style lang="scss" scoped>
-  .page-container {
-    width: 100vw;
-    height: 100vh;
-    background-color: #F8F8F8;
-    display: flex;
-    flex-direction: column;
+      </view>
+
+      <view class="cake-bottom-space" aria-hidden="true"></view>
+    </scroll-view>
+
+    <CakeCartFab
+      v-if="cartQuantity"
+      :total-quantity="cartQuantity"
+      :items-amount-cents="cartAmountCents"
+      @open="openCart"
+    />
+
+    <CakeSkuPanel
+      :open="skuOpen"
+      :product="skuProduct"
+      :locale="locale"
+      mode="cart"
+      :submitting="addingId === skuProduct?.id"
+      @dismiss="closeSku"
+      @confirm="confirmSku"
+    />
+
+    <CakeTabBar active-key="home" />
+  </view>
+</template>
+
+<script setup>
+import { computed, onMounted, ref } from 'vue'
+import { onShow } from '@dcloudio/uni-app'
+import CakeNavBar from '@/components/cake/CakeNavBar.vue'
+import CakeTabBar from '@/components/cake/CakeTabBar.vue'
+import CakeCartFab from '@/components/cake/CakeCartFab.vue'
+import CakeProductCard from '@/components/cake/CakeProductCard.vue'
+import CakeSkuPanel from '@/components/cake/CakeSkuPanel.vue'
+import CakeStateView from '@/components/cake/CakeStateView.vue'
+import { currentLocale, t } from '@/utils/localeRuntime.js'
+import { getCakeBannersApi, getCakeCartApi, getCakeProductsApi, addCakeCartItemApi } from '@/api/cake.js'
+import {
+  CAKE_ROUTES,
+  cakeCartState,
+  createCakeScrollProgress,
+  goCakePage,
+  pickCakeText,
+  switchCakeTab
+} from '@/utils/cake.js'
+
+const locale = currentLocale
+const { progress: navProgress, update: updateScroll } = createCakeScrollProgress(56)
+
+const banners = ref([])
+const heroIndex = ref(0)
+const hotProducts = ref([])
+const hotState = ref('loading')
+const skuOpen = ref(false)
+const skuProduct = ref(null)
+const addingId = ref(0)
+
+const cartQuantity = computed(() => cakeCartState.totalQuantity.value)
+const cartAmountCents = computed(() => cakeCartState.itemsAmountCents.value)
+const cartBadgeText = computed(() => (cartQuantity.value > 99 ? '99+' : String(cartQuantity.value)))
+
+// 后端没配 Banner 时用内置活动文案兜底，保证首页永远有内容。
+const heroSlides = computed(() => {
+  const items = banners.value
+    .map(banner => ({
+      key: banner.code || banner.id,
+      title: pickCakeText(banner.title, locale.value),
+      subtitle: pickCakeText(banner.subtitle, locale.value)
+    }))
+    .filter(item => item.title || item.subtitle)
+  if (items.length) return items
+  return [{ key: 'fallback', title: t('cake.promoTitle'), subtitle: t('cake.promoSubtitle') }]
+})
+
+const promoTerms = computed(() => [
+  { title: t('cake.promoTerm1'), note: t('cake.promoTerm1Note') },
+  { title: t('cake.promoTerm2'), note: t('cake.promoTerm2Note') },
+  { title: t('cake.promoTerm3'), note: t('cake.promoTerm3Note') }
+])
+
+const quickLinks = computed(() => [
+  { title: t('cake.quickRecharge'), note: t('cake.quickRechargeNote'), icon: 'wallet', route: CAKE_ROUTES.account },
+  { title: t('cake.quickCommunity'), note: t('cake.quickCommunityNote'), icon: 'gift', route: CAKE_ROUTES.transport },
+  { title: t('cake.quickPoints'), note: t('cake.quickPointsNote'), icon: 'star', route: CAKE_ROUTES.shop },
+  { title: t('cake.quickMember'), note: t('cake.quickMemberNote'), icon: 'person', route: CAKE_ROUTES.account }
+])
+
+// 等级卡片用一条暖色梯度，替换原来的六种随机配色，视觉更统一。
+const levels = computed(() => [
+  { name: t('cake.levelFirstMeet'), eng: t('cake.levelFirstMeetEn'), bg: '#F6EEE1', fg: '#6B4A2E' },
+  { name: t('cake.levelCompany'), eng: t('cake.levelCompanyEn'), bg: '#EEDFC4', fg: '#5A4315' },
+  { name: t('cake.levelCompanion'), eng: t('cake.levelCompanionEn'), bg: '#E3C8A4', fg: '#4F3512' },
+  { name: t('cake.levelEnjoyment'), eng: t('cake.levelEnjoymentEn'), bg: '#D3A97C', fg: '#3F2708' },
+  { name: t('cake.levelBelonging'), eng: t('cake.levelBelongingEn'), bg: '#B98A5C', fg: '#FFF6E9' },
+  { name: t('cake.levelExclusive'), eng: t('cake.levelExclusiveEn'), bg: '#8C6240', fg: '#FFF3E4' }
+])
+
+function onScroll(event) {
+  updateScroll(event?.detail?.scrollTop)
+}
+
+function onHeroChange(event) {
+  heroIndex.value = Number(event?.detail?.current || 0)
+}
+
+function goShop() { switchCakeTab(CAKE_ROUTES.shop) }
+function goOrder() { switchCakeTab(CAKE_ROUTES.order) }
+function goTransport() { switchCakeTab(CAKE_ROUTES.transport) }
+// 从活动位进入的订单带上活动码，后端据此记录「下单月饼抽免单」的参与来源。
+function goPromoTransport() { switchCakeTab(`${CAKE_ROUTES.transport}?marketing=mooncake-free-order`) }
+function openCart() { goCakePage(CAKE_ROUTES.cart) }
+function openAccount() { goCakePage(CAKE_ROUTES.account) }
+function openProfile() { goCakePage('/pages/my/myLifeShowEdit/myLifeShowEdit') }
+function openMembership() { goCakePage('/pages/membership/upgrade') }
+
+function onQuickLink(link) {
+  if (link.route === CAKE_ROUTES.account) return openAccount()
+  if (link.route === CAKE_ROUTES.transport) return goTransport()
+  if (link.route === CAKE_ROUTES.shop) return goShop()
+  return undefined
+}
+
+function openProduct(product) {
+  goCakePage(`${CAKE_ROUTES.detail}?id=${product.id}`)
+}
+
+function closeSku() { skuOpen.value = false }
+
+async function addProduct(product) {
+  if (addingId.value) return
+  // 有规格的商品先让用户选规格，避免直接加到购物车后还要回购物车改。
+  if (Array.isArray(product?.skus) && product.skus.length) {
+    skuProduct.value = product
+    skuOpen.value = true
+    return
   }
-  
-  .scroll-content {
-    flex: 1;
-    height: 100%;
+  await submitCart(product, 0, 1)
+}
+
+async function confirmSku({ skuId, quantity }) {
+  await submitCart(skuProduct.value, skuId, quantity)
+}
+
+async function submitCart(product, skuId, quantity) {
+  if (!product || addingId.value) return
+  addingId.value = product.id
+  try {
+    const cart = await addCakeCartItemApi(product.id, skuId, quantity)
+    cakeCartState.apply(cart)
+    skuOpen.value = false
+    uni.showToast({ title: t('cake.addedToCart'), icon: 'none' })
+  } catch (_) {
+    uni.showToast({ title: t('cake.actionFailed'), icon: 'none' })
+  } finally {
+    addingId.value = 0
   }
-  
-  /* 1. 顶部 Banner */
-  .banner-section {
-    background: linear-gradient(to bottom, #D2B79A, #E4D1B9, #F1E4CE);
-    padding: 100rpx 30rpx 40rpx;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
+}
+
+async function loadHotProducts() {
+  hotState.value = 'loading'
+  try {
+    const data = await getCakeProductsApi({ sort: 'sales', pageSize: 4 })
+    hotProducts.value = Array.isArray(data?.items) ? data.items : []
+    hotState.value = hotProducts.value.length ? 'ready' : 'empty'
+  } catch (_) {
+    hotState.value = 'error'
   }
-  
-  .banner-title-box {
-    text-align: center;
-    margin-bottom: 30rpx;
-    .title-main {
-      font-size: 64rpx;
-      font-weight: bold;
-      color: #FDF9F1;
-      text-shadow: 0 4rpx 8rpx rgba(0,0,0,0.1);
-      display: block;
-      font-family: serif;
-    }
-    .title-sub {
-      font-size: 24rpx;
-      color: #FDF9F1;
-      margin-top: 10rpx;
-      display: block;
-    }
+}
+
+async function loadBanners() {
+  try {
+    const data = await getCakeBannersApi()
+    banners.value = Array.isArray(data?.items) ? data.items : []
+  } catch (_) {
+    // Banner 是装饰性内容，失败时静默使用内置文案，不打扰用户。
+    banners.value = []
   }
-  
-  .tags-row {
-    display: flex;
-    justify-content: space-between;
-    width: 100%;
-    margin-bottom: 40rpx;
+}
+
+async function loadCart() {
+  try {
+    const cart = await getCakeCartApi()
+    cakeCartState.apply(cart)
+  } catch (_) {
+    cakeCartState.reset()
   }
-  .tag-item {
-    background: rgba(255, 255, 255, 0.4);
-    border: 1px solid #DDB892;
-    border-radius: 12rpx;
-    padding: 10rpx 16rpx;
-    text-align: center;
-    width: 30%;
-    box-sizing: border-box;
-    .tag-t1 {
-      display: block;
-      font-size: 26rpx;
-      color: #5C3D22;
-      font-weight: bold;
-    }
-    .tag-t2 {
-      display: block;
-      font-size: 18rpx;
-      color: #5C3D22;
-    }
-  }
-  
-  .product-showcase {
-    width: 100%;
-    height: 300rpx;
-    background: rgba(255,255,255,0.2);
-    border-radius: 20rpx;
-    margin-bottom: 40rpx;
-  }
-  
-  .action-btn {
-    background-color: #8C6A4F;
-    color: #FFF;
-    font-size: 30rpx;
-    padding: 16rpx 60rpx;
-    border-radius: 50rpx;
-    font-weight: bold;
-  }
-  .action-tips {
-    font-size: 20rpx;
-    color: #999;
-    margin-top: 16rpx;
-  }
-  
-  /* 2. 核心服务入口 */
-  .main-services {
-    background: #FFF;
-    display: flex;
-    padding: 40rpx 0 20rpx;
-    border-radius: 20rpx 20rpx 0 0;
-    margin-top: -20rpx;
-    position: relative;
-    z-index: 2;
-  }
-  .service-item {
-    flex: 1;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    .s-title {
-      font-size: 36rpx;
-      font-weight: bold;
-      color: #000;
-    }
-    .s-desc {
-      font-size: 24rpx;
-      color: #888;
-      margin-top: 8rpx;
-    }
-  }
-  .divider {
-    width: 2rpx;
-    height: 60rpx;
-    background-color: #EEE;
-    align-self: center;
-  }
-  
-  /* 新增：点单与月饼到家卡片 */
-  .extra-services {
-    background: #FFF;
-    padding: 0 30rpx 30rpx;
-  }
-  .es-card {
-    background: #FDF9F1;
-    border-radius: 16rpx;
-    display: flex;
-    align-items: center;
-    padding: 24rpx 0;
-    border: 1px solid #F2E3CD;
-  }
-  .es-item {
-    flex: 1;
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    padding: 0 24rpx;
-  }
-  .es-info {
-    display: flex;
-    flex-direction: column;
-  }
-  .es-title {
-    font-size: 28rpx;
-    font-weight: bold;
-    color: #333;
-  }
-  .es-desc {
-    font-size: 20rpx;
-    color: #888;
-    margin-top: 6rpx;
-  }
-  .es-action {
-    font-size: 22rpx;
-    background: #FFF;
-    color: #6B4A2E;
-    border: 1px solid #6B4A2E;
-    padding: 6rpx 16rpx;
-    border-radius: 24rpx;
-    &.highlight {
-      background: #6B4A2E;
-      color: #FFF;
-    }
-  }
-  .es-divider {
-    width: 2rpx;
-    height: 50rpx;
-    background-color: #EAD4B8;
-  }
-  
-  /* 3. 通知栏 */
-  .notice-bar {
-    background: #FDF7E7;
-    padding: 16rpx 30rpx;
-    overflow: hidden;
-    white-space: nowrap;
-  }
-  .notice-text {
-    font-size: 24rpx;
-    color: #333;
-  }
-  
-  /* 4. 用户信息 */
-  .user-assets-card {
-    background: #FFF;
-    display: flex;
-    align-items: center;
-    justify-content: space-around;
-    padding: 30rpx 0;
-    border-bottom: 1rpx solid #F0F0F0;
-  }
-  .asset-item {
-    display: flex;
-    align-items: baseline;
-    .a-label {
-      font-size: 26rpx;
-      color: #666;
-      margin-right: 10rpx;
-    }
-    .a-val {
-      font-size: 32rpx;
-      font-weight: bold;
-      color: #000;
-    }
-  }
-  .code-box {
-    display: flex;
-    align-items: center;
-  }
-  .qr-icon-placeholder {
-    width: 40rpx;
-    height: 40rpx;
-    background: #CCC;
-    margin-left: 10rpx;
-  }
-  
-  /* 5. 快捷功能区 */
-  .quick-links {
-    background: #FFF;
-    display: flex;
-    padding: 40rpx 20rpx;
-    justify-content: space-between;
-  }
-  .link-item {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    width: 25%;
-    .icon-placeholder {
-      width: 80rpx;
-      height: 80rpx;
-      background: #EEE;
-      border-radius: 50%;
-      margin-bottom: 16rpx;
-    }
-    .l-title {
-      font-size: 26rpx;
-      color: #333;
-      font-weight: bold;
-    }
-    .l-tag {
-      font-size: 20rpx;
-      color: #C73B25;
-      margin-top: 6rpx;
-    }
-  }
-  
-  /* 6. 上滑提示 */
-  .scroll-hint {
-    text-align: center;
-    padding: 30rpx 0;
-    background: #FFF;
-    .hint-text {
-      font-size: 22rpx;
-      color: #AAA;
-    }
-  }
-  
-  /* 7. 会员活动横幅 */
-  .member-activities {
-    margin: 0 30rpx 40rpx;
-    background: linear-gradient(to right, #FFF7F0, #FDF0E2);
-    border-radius: 20rpx;
-    padding: 40rpx 30rpx;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    box-shadow: 0 4rpx 12rpx rgba(0,0,0,0.03);
-  }
-  .ma-left {
-    display: flex;
-    flex-direction: column;
-    .ma-eng {
-      font-size: 20rpx;
-      color: #555;
-      font-weight: bold;
-      margin-bottom: 10rpx;
-    }
-    .ma-title {
-      font-size: 36rpx;
-      font-weight: bold;
-      color: #333;
-      line-height: 1.4;
-    }
-    .ma-btn {
-      margin-top: 20rpx;
-      background: #E8B983;
-      color: #FFF;
-      font-size: 24rpx;
-      padding: 8rpx 24rpx;
-      border-radius: 30rpx;
-      align-self: flex-start;
-    }
-  }
-  .star-placeholder {
-    width: 140rpx;
-    height: 140rpx;
-    background: #F4C46A;
-    border-radius: 20rpx;
-    transform: rotate(45deg);
-  }
-  
-  /* 8. 等级活动指南 */
-  .section-title {
-    text-align: center;
-    font-size: 28rpx;
-    color: #666;
-    margin: 20rpx 0 40rpx;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-  }
-  .level-grid {
-    display: flex;
-    flex-wrap: wrap;
-    padding: 0 30rpx;
-    justify-content: space-between;
-  }
-  .level-card {
-    width: 48%;
-    height: 140rpx;
-    border-radius: 16rpx;
-    margin-bottom: 24rpx;
-    padding: 24rpx;
-    box-sizing: border-box;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    position: relative;
-    overflow: hidden;
-  }
-  .lvl-info {
-    display: flex;
-    flex-direction: column;
-    .lvl-name {
-      font-size: 32rpx;
-      font-weight: bold;
-    }
-    .lvl-eng {
-      font-size: 20rpx;
-      margin-top: 8rpx;
-      opacity: 0.8;
-    }
-  }
-  .lvl-badge {
-    font-size: 32rpx;
-    font-weight: bold;
-    font-style: italic;
-    border: 2rpx solid currentColor;
-    padding: 4rpx 10rpx;
-    border-radius: 8rpx;
-  }
-  
-  /* 9. 更多服务 */
-  .more-services {
-    padding: 0 30rpx;
-  }
-  .ms-item {
-    background: #FFF;
-    border-radius: 16rpx;
-    padding: 40rpx 30rpx;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    .ms-title {
-      font-size: 32rpx;
-      font-weight: bold;
-      color: #333;
-    }
-    .ms-action {
-      font-size: 24rpx;
-      color: #999;
-    }
-  }
-  
-  /* 页面底部留白，适配没有底部导航栏的情况下的系统小白条 */
-  .safe-area-bottom {
-    height: 60rpx;
-    padding-bottom: env(safe-area-inset-bottom);
-  }
-  </style>
+}
+
+onMounted(() => {
+  loadBanners()
+  loadHotProducts()
+})
+
+// 从详情页 / 购物车返回时刷新角标，避免数量与实际不一致。
+onShow(() => { loadCart() })
+</script>
+
+<style scoped lang="scss">
+.cake-page {
+  width: 100vw;
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+  background: #F7F5F1;
+  overflow: hidden;
+}
+
+.cake-scroll { flex: 1; height: 0; min-height: 0; }
+
+.cake-home-cart {
+  position: relative;
+  width: 72rpx;
+  height: 72rpx;
+  margin: 0;
+  padding: 0;
+  min-height: 72rpx;
+  line-height: 1;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.72);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.cake-home-cart-badge {
+  position: absolute;
+  top: -2rpx;
+  right: -6rpx;
+  min-width: 30rpx;
+  height: 30rpx;
+  padding: 0 6rpx;
+  box-sizing: border-box;
+  border-radius: 15rpx;
+  background: #E0552B;
+  color: #FFFFFF;
+  font-size: 18rpx;
+  line-height: 30rpx;
+  text-align: center;
+}
+
+/* 1. Hero */
+.cake-hero {
+  background: linear-gradient(180deg, #D8BFA1 0%, #E7D6BE 46%, #F7F5F1 100%);
+  padding: 0 32rpx 44rpx;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.cake-hero-swiper { width: 100%; height: 152rpx; }
+
+.cake-hero-title-box {
+  height: 152rpx;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+}
+
+.cake-hero-title {
+  font-size: 58rpx;
+  line-height: 1.2;
+  font-weight: 700;
+  color: #FFFFFF;
+  letter-spacing: -1rpx;
+  text-align: center;
+  text-shadow: 0 4rpx 12rpx rgba(90, 62, 34, 0.18);
+  overflow-wrap: anywhere;
+}
+
+.cake-hero-subtitle {
+  margin-top: 10rpx;
+  font-size: 24rpx;
+  color: #FFFFFF;
+  opacity: 0.92;
+  text-align: center;
+}
+
+.cake-hero-dots {
+  display: flex;
+  gap: 8rpx;
+  margin-top: 4rpx;
+}
+
+.cake-hero-dot {
+  width: 12rpx;
+  height: 6rpx;
+  border-radius: 4rpx;
+  background: rgba(255, 255, 255, 0.5);
+  transition-property: width, background-color;
+  transition-duration: 160ms;
+  transition-timing-function: cubic-bezier(0.32, 0.72, 0, 1);
+}
+
+.cake-hero-dot.is-active { width: 28rpx; background: #FFFFFF; }
+
+.cake-hero-terms {
+  display: flex;
+  gap: 14rpx;
+  width: 100%;
+  margin-top: 26rpx;
+}
+
+.cake-hero-term {
+  flex: 1;
+  min-width: 0;
+  background: rgba(255, 255, 255, 0.46);
+  border: 1rpx solid rgba(140, 106, 79, 0.28);
+  border-radius: 14rpx;
+  padding: 12rpx 10rpx;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.cake-hero-term-main {
+  font-size: 24rpx;
+  font-weight: 700;
+  color: #5C3D22;
+  text-align: center;
+  overflow-wrap: anywhere;
+}
+
+.cake-hero-term-note {
+  margin-top: 4rpx;
+  font-size: 18rpx;
+  color: #7A5A3A;
+  text-align: center;
+  overflow-wrap: anywhere;
+}
+
+.cake-hero-showcase {
+  width: 100%;
+  height: 320rpx;
+  margin-top: 30rpx;
+  border-radius: 24rpx;
+  background: rgba(255, 255, 255, 0.34);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+}
+
+.cake-hero-image { width: 100%; height: 100%; }
+
+.cake-hero-cta {
+  margin: 32rpx 0 0;
+  min-height: 88rpx;
+  line-height: 88rpx;
+  padding: 0 64rpx;
+  border-radius: 44rpx;
+  background: #7A5334;
+  color: #FFFFFF;
+  font-size: 30rpx;
+  font-weight: 600;
+  transition-property: transform;
+  transition-duration: 110ms;
+  transition-timing-function: cubic-bezier(0.32, 0.72, 0, 1);
+}
+
+.cake-hero-cta:active { transform: scale(0.97); }
+
+.cake-hero-disclaimer {
+  margin-top: 16rpx;
+  font-size: 20rpx;
+  color: #8A6E52;
+  text-align: center;
+}
+
+/* 2. 服务入口 */
+.cake-services {
+  display: flex;
+  align-items: center;
+  background: #FFFFFF;
+  border-radius: 28rpx 28rpx 0 0;
+  margin-top: -24rpx;
+  padding: 36rpx 0 28rpx;
+  position: relative;
+  z-index: 2;
+}
+
+.cake-service {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8rpx;
+  padding: 0 20rpx;
+  transition-property: transform;
+  transition-duration: 110ms;
+  transition-timing-function: cubic-bezier(0.32, 0.72, 0, 1);
+}
+
+.cake-service:active { transform: scale(0.97); }
+
+.cake-service-icon {
+  width: 84rpx;
+  height: 84rpx;
+  border-radius: 26rpx;
+  background: #FDF3EC;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.cake-service-title {
+  font-size: 32rpx;
+  font-weight: 650;
+  color: #26241F;
+  text-align: center;
+}
+
+.cake-service-note {
+  font-size: 22rpx;
+  color: #8A857C;
+  text-align: center;
+}
+
+.cake-service-divider { width: 1rpx; height: 96rpx; background: #EFEBE4; }
+
+/* 3. 快捷入口 */
+.cake-quick {
+  background: #FFFFFF;
+  padding: 0 28rpx 28rpx;
+}
+
+.cake-quick-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20rpx;
+  padding: 26rpx 24rpx;
+  background: #FBF9F5;
+  border: 1rpx solid #F0EBE2;
+  border-radius: 20rpx;
+  transition-property: transform, background-color;
+  transition-duration: 110ms;
+  transition-timing-function: cubic-bezier(0.32, 0.72, 0, 1);
+}
+
+.cake-quick-row:active { transform: scale(0.99); background: #F5F1E9; }
+
+.cake-quick-line { height: 16rpx; }
+
+.cake-quick-info { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+
+.cake-quick-title { font-size: 28rpx; font-weight: 650; color: #26241F; }
+
+.cake-quick-note { margin-top: 6rpx; font-size: 22rpx; color: #8A857C; }
+
+.cake-quick-action {
+  flex: 0 0 auto;
+  font-size: 22rpx;
+  padding: 8rpx 22rpx;
+  border-radius: 26rpx;
+  background: #FFFFFF;
+  color: #7A5334;
+  border: 1rpx solid #7A5334;
+}
+
+.cake-quick-action.is-solid { background: #7A5334; color: #FFFFFF; border-color: #7A5334; }
+
+/* 4. 通知 */
+.cake-notice {
+  display: flex;
+  align-items: center;
+  gap: 12rpx;
+  background: #FDF6E7;
+  padding: 16rpx 28rpx;
+  overflow: hidden;
+}
+
+.cake-notice-badge {
+  flex: 0 0 auto;
+  width: 36rpx;
+  height: 36rpx;
+  border-radius: 50%;
+  background: #F7E4BC;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.cake-notice-viewport { flex: 1; min-width: 0; overflow: hidden; }
+
+.cake-notice-track {
+  display: flex;
+  align-items: center;
+  gap: 60rpx;
+  white-space: nowrap;
+  animation: cake-notice-marquee 26s linear infinite;
+}
+
+.cake-notice-text { font-size: 22rpx; color: #6B4A2E; }
+
+@keyframes cake-notice-marquee {
+  0% { transform: translateX(0); }
+  100% { transform: translateX(calc(-50% - 30rpx)); }
+}
+
+/* 5. 资产 */
+.cake-assets {
+  display: flex;
+  align-items: center;
+  background: #FFFFFF;
+  padding: 26rpx 0;
+}
+
+.cake-asset {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6rpx;
+}
+
+.cake-asset-label { font-size: 22rpx; color: #8A857C; }
+
+.cake-asset-value { font-size: 30rpx; font-weight: 700; color: #26241F; }
+
+.cake-asset-qr {
+  width: 44rpx;
+  height: 44rpx;
+  border-radius: 10rpx;
+  background: #F1EEE8;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.cake-asset-line { width: 1rpx; height: 52rpx; background: #EFEBE4; }
+
+/* 6. 快捷功能 */
+.cake-links {
+  display: flex;
+  background: #FFFFFF;
+  padding: 8rpx 16rpx 32rpx;
+}
+
+.cake-link {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8rpx;
+  padding: 0 6rpx;
+  transition-property: transform;
+  transition-duration: 110ms;
+  transition-timing-function: cubic-bezier(0.32, 0.72, 0, 1);
+}
+
+.cake-link:active { transform: scale(0.95); }
+
+.cake-link-icon {
+  width: 88rpx;
+  height: 88rpx;
+  border-radius: 50%;
+  background: #FBF3E4;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.cake-link-title { font-size: 24rpx; font-weight: 600; color: #26241F; text-align: center; overflow-wrap: anywhere; }
+
+.cake-link-note { font-size: 18rpx; color: #B4442A; text-align: center; overflow-wrap: anywhere; }
+
+/* 7. 通用区块 */
+.cake-section { margin-top: 20rpx; background: #FFFFFF; padding: 28rpx 28rpx 32rpx; }
+
+.cake-section-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 24rpx;
+}
+
+.cake-section-title { font-size: 32rpx; font-weight: 700; color: #26241F; }
+
+.cake-section-more {
+  margin: 0;
+  padding: 0 4rpx;
+  min-height: 48rpx;
+  line-height: 48rpx;
+  background: transparent;
+  color: #8A857C;
+  font-size: 22rpx;
+  display: flex;
+  align-items: center;
+  gap: 4rpx;
+}
+
+.cake-grid {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 20rpx 0;
+}
+
+.cake-grid > * { width: 48.5%; }
+
+.cake-section-label {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 16rpx;
+  margin: 32rpx 0 22rpx;
+  padding: 0 28rpx;
+}
+
+.cake-label-line { flex: 1; max-width: 120rpx; height: 1rpx; background: #DED8CD; }
+
+.cake-label-text {
+  font-size: 24rpx;
+  color: #8A857C;
+  text-align: center;
+  overflow-wrap: anywhere;
+}
+
+/* 8. 会员活动 */
+.cake-member {
+  margin: 20rpx 28rpx 0;
+  padding: 32rpx 28rpx;
+  border-radius: 24rpx;
+  background: linear-gradient(120deg, #FFF8F0 0%, #FBEDDD 100%);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20rpx;
+  transition-property: transform;
+  transition-duration: 110ms;
+  transition-timing-function: cubic-bezier(0.32, 0.72, 0, 1);
+}
+
+.cake-member:active { transform: scale(0.99); }
+
+.cake-member-left { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+
+.cake-member-eng { font-size: 18rpx; font-weight: 700; color: #A98C63; letter-spacing: 1rpx; }
+
+.cake-member-title { margin-top: 8rpx; font-size: 34rpx; font-weight: 700; color: #33291D; line-height: 1.35; overflow-wrap: anywhere; }
+
+.cake-member-btn {
+  align-self: flex-start;
+  margin-top: 20rpx;
+  padding: 10rpx 26rpx;
+  border-radius: 30rpx;
+  background: #E4B27C;
+  color: #FFFFFF;
+  font-size: 22rpx;
+}
+
+.cake-member-star {
+  flex: 0 0 auto;
+  width: 132rpx;
+  height: 132rpx;
+  border-radius: 28rpx;
+  background: #FBE9C8;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* 9. 等级 */
+.cake-levels {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 18rpx 0;
+  padding: 0 28rpx;
+}
+
+.cake-level {
+  width: 48.5%;
+  min-height: 132rpx;
+  border-radius: 20rpx;
+  padding: 22rpx;
+  box-sizing: border-box;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12rpx;
+}
+
+.cake-level-info { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+
+.cake-level-name { font-size: 30rpx; font-weight: 700; overflow-wrap: anywhere; }
+
+.cake-level-eng { margin-top: 6rpx; font-size: 18rpx; opacity: 0.78; overflow-wrap: anywhere; }
+
+.cake-level-badge {
+  flex: 0 0 auto;
+  font-size: 26rpx;
+  font-weight: 700;
+  font-style: italic;
+  border: 2rpx solid currentColor;
+  border-radius: 8rpx;
+  padding: 2rpx 10rpx;
+}
+
+/* 10. 更多 */
+.cake-more { padding: 0 28rpx; }
+
+.cake-more-row {
+  background: #FFFFFF;
+  border-radius: 20rpx;
+  padding: 32rpx 28rpx;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20rpx;
+}
+
+.cake-more-title { font-size: 30rpx; font-weight: 650; color: #26241F; }
+
+.cake-more-action { display: flex; align-items: center; gap: 6rpx; }
+
+.cake-more-action-text { font-size: 24rpx; color: #8A857C; }
+
+.cake-bottom-space { height: 200rpx; }
+
+button::after { border: 0; }
+
+@media (prefers-reduced-motion: reduce) {
+  .cake-notice-track { animation: none; }
+  .cake-hero-cta,
+  .cake-service,
+  .cake-quick-row,
+  .cake-link,
+  .cake-member,
+  .cake-hero-dot { transition-duration: 0ms; }
+}
+</style>

@@ -1,12 +1,11 @@
 <template>
   <CakeProductList
-    nav-title-key="cake.transportTitle"
-    tab-key="transport"
+    nav-title-key="cake.shopTitle"
+    tab-key="cake"
     :category-codes="categoryCodes"
     :mode="mode"
     :store-id="storeId"
     :marketing="marketing"
-    :include-notice="true"
   />
 </template>
 
@@ -15,10 +14,10 @@ import { ref } from 'vue'
 import { onLoad } from '@dcloudio/uni-app'
 import CakeProductList from '@/components/cake/CakeProductList.vue'
 
-// 月饼到家只展示月饼相关分类；后端新增分类时在这里补 code 即可。
-const categoryCodes = ['mooncake-gift', 'mooncake-fresh', 'mooncake-set', 'cookie-gift']
+// 蛋糕页覆盖蛋糕、面包与茶饮；点单页选中门店后会带 storeId 与 pickup 进来。
+const categoryCodes = ['cake-birthday', 'cake-slice', 'bread', 'drink']
 
-const mode = ref('delivery')
+const mode = ref('pickup')
 const storeId = ref(0)
 const marketing = ref('')
 

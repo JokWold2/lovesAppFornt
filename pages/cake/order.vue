@@ -1,558 +1,711 @@
 <template>
-    <view class="page-container">
-        <!-- 顶部自定义导航栏 -->
-        <view class="custom-nav-bar" :style="{ paddingTop: statusBarHeight + 'px' }">
-            <view class="nav-content">
-                <!-- 左侧首页图标 -->
-                <view class="nav-left">
-                    <view class="icon-home"></view>
-                </view>
+  <view class="cake-page">
+    <CakeNavBar
+      :title="t('cake.tabOrder')"
+      :progress="navProgress"
+      :spacer="true"
+      :bottom-height="84"
+      show-home
+      :z-index="70"
+      @height="onNavHeight"
+    >
+      <template #right>
+        <button class="cake-order-locate" :disabled="locating" :aria-label="locating ? t('cake.locating') : t('cake.locateMe')" @click="locate">
+          <uni-icons type="navigate" :size="19" :color="locating ? '#C4BFB6' : '#171717'" />
+        </button>
+      </template>
 
-                <!-- 中间 Tab 切换 -->
-                <view class="nav-tabs">
-                    <view class="tab-item" :class="{ active: currentTab === 0 }" @click="switchTab(0)">附近</view>
-                    <view class="tab-item" :class="{ active: currentTab === 1 }" @click="switchTab(1)">收藏</view>
-                </view>
-
-                <!-- 右侧定位控制 -->
-                <view class="nav-right">
-                    <view class="icon-navigation"></view>
-                    <view class="icon-target"></view>
-                </view>
+      <template #bottom>
+        <view class="cake-order-toolbar">
+          <view class="cake-order-tabs">
+            <view
+              v-for="tab in tabs"
+              :key="tab.key"
+              class="cake-order-tab"
+              :class="{ 'is-active': tab.key === activeTab }"
+              role="button"
+              :aria-label="tab.label"
+              :aria-selected="tab.key === activeTab ? 'true' : 'false'"
+              @click="switchTab(tab.key)"
+            >
+              <text class="cake-order-tab-text">{{ tab.label }}</text>
+              <view v-if="tab.key === activeTab" class="cake-order-tab-underline" aria-hidden="true"></view>
             </view>
-        </view>
+          </view>
 
-        <!-- 搜索与城市选择栏 -->
-        <view class="search-header">
-            <view class="search-bar">
-                <view class="city-selector">
-                    <text class="city-name">成都市</text>
-                    <text class="arrow-down"></text>
-                </view>
-                <view class="divider"></view>
-                <input class="search-input" type="text" placeholder="请输入门店名称或地址关键字"
-                    placeholder-class="placeholder-style" />
+          <view class="cake-order-searchrow">
+            <view class="cake-order-search">
+              <view class="cake-order-city" role="button" :aria-label="t('cake.selectCity')" @click="openCityPicker">
+                <text class="cake-order-city-text">{{ cityLabel }}</text>
+                <uni-icons type="bottom" :size="12" color="#6E6961" />
+              </view>
+              <view class="cake-order-search-divider" aria-hidden="true"></view>
+              <input
+                v-model="keyword"
+                class="cake-order-input"
+                type="text"
+                :placeholder="t('cake.searchStorePlaceholder')"
+                placeholder-class="cake-order-placeholder"
+                confirm-type="search"
+                @confirm="onSearchConfirm"
+              />
+              <button v-if="keyword" class="cake-order-clear" :aria-label="t('cake.cancel')" @click="clearKeyword">
+                <uni-icons type="closeempty" :size="16" color="#8A857C" />
+              </button>
             </view>
-            <!-- 地图与列表切换按钮 -->
-            <view class="map-toggle-btn" @click="toggleMapView">
-                <view :class="isMapView ? 'icon-list' : 'icon-map'"></view>
-            </view>
+            <button class="cake-order-view-toggle" :aria-label="isMapView ? t('cake.switchToList') : t('cake.switchToMap')" @click="toggleMapView">
+              <uni-icons :type="isMapView ? 'list' : 'map-pin'" :size="20" color="#171717" />
+            </button>
+          </view>
         </view>
+      </template>
+    </CakeNavBar>
 
-        <!-- ================= 页面主体内容 ================= -->
-        <view class="main-content">
+    <!-- ===== 地图模式 ===== -->
+    <view v-if="isMapView" class="cake-map" :style="{ height: `${mapHeight}px` }">
+      <map
+        class="cake-map-canvas"
+        :latitude="mapCenter.latitude"
+        :longitude="mapCenter.longitude"
+        :markers="markers"
+        :scale="13"
+        :show-location="true"
+        @markertap="onMarkerTap"
+      ></map>
 
-            <!-- 1. 列表模式 -->
-            <block v-if="!isMapView">
+      <view v-if="!stores.length" class="cake-map-empty">
+        <text class="cake-map-empty-text">{{ t('cake.storesEmpty') }}</text>
+      </view>
 
-                <!-- 1.1 附近 (还原图中的空状态) -->
-                <view class="empty-state" v-if="currentTab === 0">
-                    <view class="empty-image-placeholder">
-                        <!-- 这里替换为实际的店铺插画图片 -->
-                        <view class="shop-icon-mock"></view>
-                    </view>
-                    <text class="empty-text">当前城市没有门店</text>
-                    <view class="action-btn">选择其他城市</view>
-                </view>
-
-                <!-- 1.2 收藏 (补充设计的收藏门店列表) -->
-                <scroll-view scroll-y class="store-list" v-if="currentTab === 1">
-                    <view class="store-card" v-for="(store, index) in favoriteStores" :key="index">
-                        <view class="store-header">
-                            <text class="store-name">{{ store.name }}</text>
-                            <text class="store-distance">{{ store.distance }}</text>
-                        </view>
-                        <view class="store-tags">
-                            <text class="tag" v-if="store.isOpen">营业中</text>
-                            <text class="time">{{ store.time }}</text>
-                        </view>
-                        <view class="store-address">{{ store.address }}</text>
-                            <view class="store-actions">
-                                <view class="icon-heart-active"></view>
-                                <view class="order-btn">去点单</view>
-                            </view>
-                        </view>
-                        <view class="no-more">没有更多了~</view>
-                </scroll-view>
-            </block>
-
-            <!-- 2. 地图模式 (补充设计的地图选店) -->
-            <block v-if="isMapView">
-                <view class="map-container">
-                    <!-- 注意：在小程序/APP中使用真实map组件。H5下需配置对应地图SDK -->
-                    <map class="full-map" :latitude="latitude" :longitude="longitude" :markers="markers"
-                        scale="14"></map>
-
-                    <!-- 底部悬浮的选中门店信息 -->
-                    <view class="map-bottom-panel">
-                        <view class="panel-store-card">
-                            <view class="store-info-left">
-                                <text class="store-name">成都春熙路旗舰店</text>
-                                <text class="store-address">锦江区春熙路步步高广场一楼</text>
-                                <text class="store-time">营业时间: 08:00 - 22:30</text>
-                            </view>
-                            <view class="store-info-right">
-                                <text class="distance">距您 1.2km</text>
-                                <view class="nav-btn">导航</view>
-                                <view class="order-btn">去点单</view>
-                            </view>
-                        </view>
-                    </view>
-                </view>
-            </block>
-
-        </view>
+      <view v-if="selectedStore" class="cake-map-panel">
+        <CakeStoreCard
+          :store="selectedStore"
+          :locale="locale"
+          :favorite="!!selectedStore.favorite"
+          :favorite-pending="favoritePendingId === selectedStore.id"
+          @favorite="toggleFavorite"
+          @navigate="navigateTo"
+          @call="callStore"
+          @order="orderAtStore"
+          @select="selectStore"
+        />
+      </view>
     </view>
+
+    <!-- ===== 列表模式 ===== -->
+    <template v-else>
+      <view v-if="state === 'loading'" class="cake-list">
+        <CakeStateView state="loading" :title="t('cake.loading')" />
+      </view>
+
+      <view v-else-if="state === 'error'" class="cake-list">
+        <CakeStateView
+          state="error"
+          :title="t('cake.loadFailed')"
+          :hint="t('cake.actionFailed')"
+          @retry="loadStores(true)"
+        />
+      </view>
+
+      <view v-else-if="state === 'empty'" class="cake-list">
+        <CakeStateView
+          state="empty"
+          :title="emptyTitle"
+          :hint="emptyHint"
+          :action-label="emptyActionLabel"
+          @action="onEmptyAction"
+        />
+      </view>
+
+      <view v-else class="cake-list">
+        <CakeStoreCard
+          v-for="store in stores"
+          :key="store.id"
+          :store="store"
+          :locale="locale"
+          :favorite="!!store.favorite"
+          :favorite-pending="favoritePendingId === store.id"
+          @favorite="toggleFavorite"
+          @navigate="navigateTo"
+          @call="callStore"
+          @order="orderAtStore"
+          @select="orderAtStore"
+        />
+
+        <view class="cake-list-more">
+          <button v-if="loadingMore" class="cake-list-more-btn" disabled>{{ t('cake.loadingMore') }}</button>
+          <button v-else-if="moreError" class="cake-list-more-btn is-error" @click="loadStores(false)">{{ t('cake.loadMoreFailed') }}</button>
+          <button v-else-if="hasMore" class="cake-list-more-btn" @click="loadStores(false)">{{ t('cake.loadMore') }}</button>
+          <text v-else class="cake-list-end">{{ t('cake.noMore') }}</text>
+        </view>
+      </view>
+    </template>
+
+    <view class="cake-bottom-space" aria-hidden="true"></view>
+
+    <!-- 城市选择 -->
+    <SlideUpPanel :open="cityPickerOpen" fixed :label="t('cake.selectCity')" @dismiss="closeCityPicker">
+      <view class="cake-city">
+        <view class="cake-city-head">
+          <text class="cake-city-title">{{ t('cake.selectCity') }}</text>
+          <button class="cake-city-close" :aria-label="t('cake.close')" @click="closeCityPicker">
+            <uni-icons type="closeempty" :size="20" color="#6E6961" />
+          </button>
+        </view>
+        <scroll-view class="cake-city-scroll" scroll-y>
+          <view
+            v-for="city in cities"
+            :key="city.code || 'all'"
+            class="cake-city-item"
+            :class="{ 'is-active': city.code === cityCode }"
+            role="button"
+            :aria-label="cityLabelOf(city)"
+            @click="chooseCity(city)"
+          >
+            <text class="cake-city-name">{{ cityLabelOf(city) }}</text>
+            <text class="cake-city-count">{{ city.storeCount ? t('cake.mineFavoritesCount', { count: city.storeCount }) : '' }}</text>
+            <uni-icons v-if="city.code === cityCode" type="checkmarkempty" :size="18" color="#C4551F" />
+          </view>
+        </scroll-view>
+      </view>
+    </SlideUpPanel>
+
+    <CakeTabBar active-key="order" />
+  </view>
 </template>
 
 <script setup>
-import { ref } from 'vue'
+import { computed, onMounted, ref } from 'vue'
+import { onPageScroll, onPullDownRefresh } from '@dcloudio/uni-app'
+import CakeNavBar from '@/components/cake/CakeNavBar.vue'
+import CakeTabBar from '@/components/cake/CakeTabBar.vue'
+import CakeStoreCard from '@/components/cake/CakeStoreCard.vue'
+import CakeStateView from '@/components/cake/CakeStateView.vue'
+import SlideUpPanel from '@/components/common/SlideUpPanel.vue'
+import { currentLocale, t } from '@/utils/localeRuntime.js'
+import { getCakeCitiesApi, getCakeStoresApi, setCakeStoreFavoriteApi } from '@/api/cake.js'
+import { CAKE_ROUTES, createCakeScrollProgress, getCakeLocation, goCakePage, pickCakeText } from '@/utils/cake.js'
 
-// 状态栏高度适配 (刘海屏)
-const statusBarHeight = ref(44) // 默认值，实际开发中可通过 uni.getSystemInfoSync().statusBarHeight 获取
+const locale = currentLocale
+const { progress: navProgress, update: updateScroll } = createCakeScrollProgress(40)
 
-const currentTab = ref(0) // 0: 附近, 1: 收藏
-const isMapView = ref(false) // 是否开启地图模式
+const PAGE_SIZE = 20
+// 地图要精确占满导航栏之外的剩余高度：高度由 CakeNavBar 实测后回传，不用固定值硬凑。
+const navHeightPx = ref(0)
+const windowHeight = ref(0)
+try { windowHeight.value = Number(uni.getWindowInfo?.().windowHeight || uni.getSystemInfoSync?.().windowHeight || 0) } catch (_) { windowHeight.value = 0 }
+const mapHeight = computed(() => Math.max(320, windowHeight.value - (navHeightPx.value || 128)))
 
-// 切换附近/收藏
-const switchTab = (index) => {
-    currentTab.value = index
-    isMapView.value = false // 切换tab时默认关闭地图
+function onNavHeight(height) {
+  navHeightPx.value = Number(height) || 0
 }
 
-// 切换列表/地图模式
-const toggleMapView = () => {
-    isMapView.value = !isMapView.value
+const tabs = computed(() => [
+  { key: 'nearby', label: t('cake.navNearby') },
+  { key: 'favorite', label: t('cake.navFavorite') }
+])
+
+const activeTab = ref('nearby')
+const isMapView = ref(false)
+const keyword = ref('')
+const cityCode = ref('')
+const cities = ref([])
+const cityPickerOpen = ref(false)
+
+const stores = ref([])
+const selectedStore = ref(null)
+const state = ref('loading')
+const loadingMore = ref(false)
+const moreError = ref(false)
+const hasMore = ref(false)
+const page = ref(0)
+const favoritePendingId = ref(0)
+const locating = ref(false)
+const coordinates = ref(null)
+
+// 空状态的文案取决于「为什么空」，不要一律显示同一句话。
+const emptyTitle = computed(() => {
+  if (keyword.value) return activeTab.value === 'favorite' ? t('cake.noFavoriteMatch') : t('cake.emptySearch')
+  return activeTab.value === 'favorite' ? t('cake.noFavoriteStores') : t('cake.noStoresInCity')
+})
+
+const emptyHint = computed(() => {
+  if (keyword.value) return t('cake.emptyProductsHint')
+  return activeTab.value === 'favorite' ? t('cake.noFavoriteHint') : t('cake.noStoresInCityHint')
+})
+
+const emptyActionLabel = computed(() => (activeTab.value === 'favorite'
+  ? (keyword.value ? '' : t('cake.goShopping'))
+  : t('cake.chooseOtherCity')))
+
+const cityLabel = computed(() => {
+  if (!cityCode.value) return t('cake.allCities')
+  const match = cities.value.find(city => city.code === cityCode.value)
+  return match ? cityLabelOf(match) : t('cake.allCities')
+})
+
+const mapCenter = computed(() => {
+  if (coordinates.value) return coordinates.value
+  const first = stores.value.find(store => Number.isFinite(store.latitude) && Number.isFinite(store.longitude))
+  if (first) return { latitude: Number(first.latitude), longitude: Number(first.longitude) }
+  return { latitude: 22.5431, longitude: 114.0579 }
+})
+
+const markers = computed(() => stores.value
+  .filter(store => Number.isFinite(store.latitude) && Number.isFinite(store.longitude))
+  .map(store => ({
+    id: store.id,
+    latitude: Number(store.latitude),
+    longitude: Number(store.longitude),
+    title: pickCakeText(store.name, locale.value),
+    iconPath: '/static/img/icon-location.png',
+    width: 26,
+    height: 26,
+    callout: {
+      content: pickCakeText(store.name, locale.value),
+      color: '#26241F',
+      fontSize: 12,
+      borderRadius: 6,
+      bgColor: '#FFFFFF',
+      padding: 6,
+      display: 'BYCLICK'
+    }
+  })))
+
+function cityLabelOf(city) {
+  const text = pickCakeText(city?.name, locale.value)
+  return text || t('cake.allCities')
 }
 
-// 补充设计的收藏数据
-const favoriteStores = ref([
-    {
-        name: '高新大源店',
-        distance: '3.5km',
-        isOpen: true,
-        time: '08:00 - 22:00',
-        address: '成都市武侯区剑南大道中段世豪广场1楼'
-    },
-    {
-        name: '天府三街店',
-        distance: '5.2km',
-        isOpen: true,
-        time: '07:30 - 21:00',
-        address: '成都市武侯区天府三街腾讯大厦A座底商'
-    }
-])
+function handlePageScroll(event) {
+  updateScroll(event?.scrollTop)
+}
 
-// 地图模式数据
-const latitude = ref(30.5728)
-const longitude = ref(104.0668)
-const markers = ref([
-    {
-        id: 1,
-        latitude: 30.5728,
-        longitude: 104.0668,
-        title: '成都春熙路旗舰店',
-        iconPath: '/static/marker.png', // 需替换为真实图片路径
-        width: 30,
-        height: 30,
-        callout: {
-            content: '春熙路旗舰店',
-            color: '#ffffff',
-            fontSize: 12,
-            borderRadius: 4,
-            bgColor: '#E65C2B',
-            padding: 6,
-            display: 'ALWAYS'
-        }
+function switchTab(key) {
+  if (key === activeTab.value) return
+  activeTab.value = key
+  loadStores(true)
+}
+
+function openCityPicker() { cityPickerOpen.value = true }
+function closeCityPicker() { cityPickerOpen.value = false }
+
+function chooseCity(city) {
+  cityPickerOpen.value = false
+  const next = city.code || ''
+  if (next === cityCode.value) return
+  cityCode.value = next
+  selectedStore.value = null
+  loadStores(true)
+}
+
+function onSearchConfirm() {
+  loadStores(true)
+}
+
+function clearKeyword() {
+  if (!keyword.value) return
+  keyword.value = ''
+  loadStores(true)
+}
+
+function toggleMapView() {
+  isMapView.value = !isMapView.value
+  if (isMapView.value && !selectedStore.value) selectedStore.value = stores.value[0] || null
+}
+
+async function locate() {
+  if (locating.value) return
+  locating.value = true
+  try {
+    const position = await getCakeLocation()
+    if (!position) {
+      uni.showToast({ title: t('cake.locateFailed'), icon: 'none' })
+      return
     }
-])
+    coordinates.value = position
+    // 定位成功后切回「附近」并清掉收藏筛选，否则结果会被过滤成空。
+    if (activeTab.value !== 'nearby') activeTab.value = 'nearby'
+    uni.showToast({ title: t('cake.locationApplied'), icon: 'none' })
+    await loadStores(true)
+  } finally {
+    locating.value = false
+  }
+}
+
+async function loadStores(reset) {
+  if (reset) {
+    page.value = 0
+    moreError.value = false
+    state.value = 'loading'
+  } else {
+    if (loadingMore.value || !hasMore.value) return
+    loadingMore.value = true
+    moreError.value = false
+  }
+
+  const target = reset ? 1 : page.value + 1
+  try {
+    const data = await getCakeStoresApi({
+      cityCode: cityCode.value || undefined,
+      keyword: keyword.value.trim() || undefined,
+      favoriteOnly: activeTab.value === 'favorite',
+      latitude: coordinates.value?.latitude,
+      longitude: coordinates.value?.longitude,
+      page: target,
+      pageSize: PAGE_SIZE
+    })
+    const items = Array.isArray(data?.items) ? data.items : []
+    stores.value = reset ? items : stores.value.concat(items)
+    page.value = target
+    hasMore.value = !!data?.hasMore
+    state.value = stores.value.length ? 'ready' : 'empty'
+    if (isMapView.value) {
+      const stillThere = stores.value.find(store => store.id === selectedStore.value?.id)
+      selectedStore.value = stillThere || stores.value[0] || null
+    }
+  } catch (error) {
+    if (reset) state.value = 'error'
+    else { moreError.value = true; hasMore.value = true }
+  } finally {
+    loadingMore.value = false
+    uni.stopPullDownRefresh?.()
+  }
+}
+
+async function loadCities() {
+  try {
+    const data = await getCakeCitiesApi()
+    const items = Array.isArray(data?.items) ? data.items : []
+    // 「全部城市」始终可用，避免后端没有城市数据时选择器是空的。
+    cities.value = [{ code: '', name: null, storeCount: 0 }].concat(items)
+    if (!cityCode.value && items.length) cityCode.value = items[0].code
+  } catch (_) {
+    cities.value = [{ code: '', name: null, storeCount: 0 }]
+  }
+}
+
+async function toggleFavorite(store) {
+  if (!store || favoritePendingId.value) return
+  favoritePendingId.value = store.id
+  const next = !store.favorite
+  try {
+    await setCakeStoreFavoriteApi(store.id, next)
+    store.favorite = next
+    if (!next && activeTab.value === 'favorite') {
+      stores.value = stores.value.filter(item => item.id !== store.id)
+      if (selectedStore.value?.id === store.id) selectedStore.value = stores.value[0] || null
+      if (!stores.value.length) state.value = 'empty'
+    }
+    uni.showToast({ title: next ? t('cake.favoriteAdded') : t('cake.favoriteRemoved'), icon: 'none' })
+  } catch (_) {
+    uni.showToast({ title: t('cake.favoriteFailed'), icon: 'none' })
+  } finally {
+    favoritePendingId.value = 0
+  }
+}
+
+function navigateTo(store) {
+  if (!Number.isFinite(store?.latitude) || !Number.isFinite(store?.longitude)) return
+  uni.openLocation({
+    latitude: Number(store.latitude),
+    longitude: Number(store.longitude),
+    name: pickCakeText(store.name, locale.value),
+    address: pickCakeText(store.address, locale.value),
+    fail: () => uni.showToast({ title: t('cake.actionFailed'), icon: 'none' })
+  })
+}
+
+function callStore(store) {
+  if (!store?.phone) return
+  uni.makePhoneCall({ phoneNumber: String(store.phone), fail: () => {} })
+}
+
+function orderAtStore(store) {
+  if (!store) return
+  goCakePage(`${CAKE_ROUTES.shop}?storeId=${store.id}&mode=pickup`)
+}
+
+// 地图面板里的卡片已被选中，点卡片只保持选中，下单走「去点单」按钮。
+function selectStore(store) {
+  if (store) selectedStore.value = store
+}
+
+function onMarkerTap(event) {
+  const id = Number(event?.detail?.markerId)
+  const match = stores.value.find(store => store.id === id)
+  if (match) selectedStore.value = match
+}
+
+function onEmptyAction() {
+  if (activeTab.value === 'favorite') {
+    if (keyword.value) { clearKeyword(); return }
+    switchTab('nearby')
+    return
+  }
+  openCityPicker()
+}
+
+onMounted(async () => {
+  await loadCities()
+  await loadStores(true)
+})
+
+onPullDownRefresh(() => { loadStores(true) })
 </script>
 
-<style lang="scss" scoped>
-.page-container {
-    width: 100vw;
-    height: 100vh;
-    display: flex;
-    flex-direction: column;
-    background-color: #FFFFFF;
+<style scoped lang="scss">
+.cake-page {
+  min-height: 100vh;
+  box-sizing: border-box;
+  background: #F7F5F1;
 }
 
-/* ================= 自定义导航栏 ================= */
-.custom-nav-bar {
-    background-color: #FFFFFF;
-    z-index: 99;
+.cake-order-locate {
+  width: 72rpx;
+  height: 72rpx;
+  margin: 0;
+  padding: 0;
+  min-height: 72rpx;
+  line-height: 1;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.78);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition-property: transform, background-color;
+  transition-duration: 110ms;
+  transition-timing-function: cubic-bezier(0.32, 0.72, 0, 1);
 }
 
-.nav-content {
-    height: 44px;
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    padding: 0 30rpx;
+.cake-order-locate:active { transform: scale(0.94); }
+
+.cake-order-toolbar {
+  background: #F7F5F1;
+  border-bottom: 1rpx solid #EDE9E2;
 }
 
-.nav-left,
-.nav-right {
-    display: flex;
-    align-items: center;
-    width: 120rpx; // 占位保持居中对齐
+.cake-order-tabs {
+  display: flex;
+  gap: 44rpx;
+  padding: 6rpx 32rpx 0;
 }
 
-.nav-right {
-    justify-content: flex-end;
-    gap: 20rpx;
+.cake-order-tab {
+  position: relative;
+  padding: 12rpx 0 14rpx;
+  transition-property: transform;
+  transition-duration: 110ms;
+  transition-timing-function: cubic-bezier(0.32, 0.72, 0, 1);
 }
 
-/* 图标占位 (使用CSS模拟，开发时请替换为图片或字体图标) */
-.icon-home {
-    width: 36rpx;
-    height: 36rpx;
-    border: 3rpx solid #333;
-    border-radius: 8rpx 8rpx 0 0;
-    position: relative;
+.cake-order-tab:active { transform: scale(0.96); }
+
+.cake-order-tab-text { font-size: 30rpx; color: #8A857C; }
+
+.cake-order-tab.is-active .cake-order-tab-text { color: #26241F; font-weight: 650; }
+
+.cake-order-tab-underline {
+  position: absolute;
+  left: 50%;
+  bottom: 4rpx;
+  transform: translateX(-50%);
+  width: 40rpx;
+  height: 5rpx;
+  border-radius: 4rpx;
+  background: #C4551F;
 }
 
-.icon-home::before {
-    content: '';
-    position: absolute;
-    top: -10rpx;
-    left: -6rpx;
-    border: 18rpx solid transparent;
-    border-bottom-color: #333;
+.cake-order-searchrow {
+  display: flex;
+  align-items: center;
+  gap: 16rpx;
+  padding: 8rpx 28rpx 16rpx;
 }
 
-.icon-navigation {
-    width: 0;
-    height: 0;
-    border: 16rpx solid transparent;
-    border-bottom-color: #333;
-    transform: rotate(45deg);
+.cake-order-search {
+  flex: 1;
+  min-width: 0;
+  height: 76rpx;
+  border-radius: 38rpx;
+  background: #FFFFFF;
+  display: flex;
+  align-items: center;
+  padding: 0 20rpx;
+  box-sizing: border-box;
 }
 
-.icon-target {
-    width: 36rpx;
-    height: 36rpx;
-    border: 4rpx solid #333;
-    border-radius: 50%;
-    position: relative;
+.cake-order-city {
+  flex: 0 0 auto;
+  max-width: 200rpx;
+  display: flex;
+  align-items: center;
+  gap: 4rpx;
 }
 
-.icon-target::after {
-    content: '';
-    position: absolute;
-    top: 12rpx;
-    left: 12rpx;
-    width: 12rpx;
-    height: 12rpx;
-    background: #333;
-    border-radius: 50%;
+.cake-order-city-text {
+  font-size: 24rpx;
+  font-weight: 600;
+  color: #26241F;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
 }
 
-.nav-tabs {
-    display: flex;
-    gap: 40rpx;
+.cake-order-search-divider { width: 1rpx; height: 28rpx; background: #E4DFD6; margin: 0 16rpx; }
+
+.cake-order-input { flex: 1; min-width: 0; font-size: 24rpx; color: #26241F; }
+
+.cake-order-placeholder { color: #A9A39A; }
+
+.cake-order-clear {
+  flex: 0 0 auto;
+  width: 44rpx;
+  height: 44rpx;
+  margin: 0;
+  padding: 0;
+  min-height: 44rpx;
+  line-height: 1;
+  border-radius: 50%;
+  background: #F1EEE8;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
-.tab-item {
-    font-size: 32rpx;
-    color: #666;
-    font-weight: 500;
-    position: relative;
-    padding-bottom: 8rpx;
-
-    &.active {
-        color: #333;
-        font-weight: bold;
-
-        &::after {
-            content: '';
-            position: absolute;
-            bottom: 0;
-            left: 50%;
-            transform: translateX(-50%);
-            width: 40rpx;
-            height: 6rpx;
-            background-color: #DC6E43; // 橘色下划线
-            border-radius: 4rpx;
-        }
-    }
+.cake-order-view-toggle {
+  flex: 0 0 auto;
+  width: 76rpx;
+  height: 76rpx;
+  margin: 0;
+  padding: 0;
+  min-height: 76rpx;
+  line-height: 1;
+  border-radius: 50%;
+  background: #FFFFFF;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition-property: transform;
+  transition-duration: 110ms;
+  transition-timing-function: cubic-bezier(0.32, 0.72, 0, 1);
 }
 
-/* ================= 搜索栏 ================= */
-.search-header {
-    display: flex;
-    align-items: center;
-    padding: 10rpx 30rpx 20rpx;
-    background-color: #FFFFFF;
-    box-shadow: 0 4rpx 10rpx rgba(0, 0, 0, 0.02);
-    z-index: 98;
+.cake-order-view-toggle:active { transform: scale(0.94); }
+
+/* 列表 */
+.cake-list {
+  display: flex;
+  flex-direction: column;
+  gap: 20rpx;
+  padding: 24rpx 28rpx 0;
 }
 
-.search-bar {
-    flex: 1;
-    height: 72rpx;
-    background-color: #F6F6F6;
-    border-radius: 36rpx;
-    display: flex;
-    align-items: center;
-    padding: 0 30rpx;
+.cake-list-more {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20rpx 0 8rpx;
 }
 
-.city-selector {
-    display: flex;
-    align-items: center;
-
-    .city-name {
-        font-size: 28rpx;
-        color: #333;
-        font-weight: bold;
-    }
-
-    .arrow-down {
-        margin-left: 8rpx;
-        border: 8rpx solid transparent;
-        border-top-color: #666;
-        margin-top: 8rpx;
-    }
+.cake-list-more-btn {
+  margin: 0;
+  min-height: 76rpx;
+  line-height: 76rpx;
+  padding: 0 48rpx;
+  border-radius: 38rpx;
+  background: #FFFFFF;
+  color: #57534B;
+  font-size: 26rpx;
 }
 
-.divider {
-    width: 2rpx;
-    height: 24rpx;
-    background-color: #DDD;
-    margin: 0 20rpx;
+.cake-list-more-btn.is-error { color: #B4442A; }
+
+.cake-list-end { font-size: 24rpx; color: #A9A39A; }
+
+/* 地图 */
+.cake-map { position: relative; width: 100%; }
+
+.cake-map-canvas { width: 100%; height: 100%; }
+
+.cake-map-empty {
+  position: absolute;
+  top: 24rpx;
+  left: 50%;
+  transform: translateX(-50%);
+  padding: 12rpx 28rpx;
+  border-radius: 30rpx;
+  background: rgba(255, 255, 255, 0.92);
 }
 
-.search-input {
-    flex: 1;
-    font-size: 26rpx;
-    color: #333;
+.cake-map-empty-text { font-size: 24rpx; color: #6E6961; }
+
+.cake-map-panel {
+  position: absolute;
+  left: 28rpx;
+  right: 28rpx;
+  bottom: 28rpx;
+  border-radius: 24rpx;
+  box-shadow: 0 12rpx 32rpx rgba(38, 36, 31, 0.16);
 }
 
-.placeholder-style {
-    color: #999;
+/* 城市选择 */
+.cake-city { display: flex; flex-direction: column; max-height: 70vh; background: #F7F5F1; }
+
+.cake-city-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 30rpx 30rpx 20rpx;
 }
 
-.map-toggle-btn {
-    width: 72rpx;
-    height: 72rpx;
-    background: #F6F6F6;
-    border-radius: 50%;
-    margin-left: 20rpx;
-    display: flex;
-    justify-content: center;
-    align-items: center;
+.cake-city-title { font-size: 32rpx; font-weight: 650; color: #26241F; }
+
+.cake-city-close {
+  width: 60rpx;
+  height: 60rpx;
+  margin: 0;
+  padding: 0;
+  min-height: 60rpx;
+  line-height: 1;
+  border-radius: 50%;
+  background: #EFEBE4;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
-.icon-map {
-    width: 36rpx;
-    height: 36rpx;
-    background: url('data:image/svg+xml;utf8,<svg fill="%23333" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M20.5 3l-.16.03L15 5.1 9 3 3.36 4.9c-.21.07-.36.25-.36.48V20.5c0 .28.22.5.5.5l.16-.03L9 18.9l6 2.1 5.64-1.9c.21-.07.36-.25.36-.48V3.5c0-.28-.22-.5-.5-.5zM15 19l-6-2.11V5l6 2.11V19z"/></svg>') no-repeat center/contain;
+.cake-city-scroll { flex: 1; min-height: 0; padding: 0 30rpx; box-sizing: border-box; }
+
+.cake-city-item {
+  display: flex;
+  align-items: center;
+  gap: 12rpx;
+  padding: 26rpx 24rpx;
+  background: #FFFFFF;
+  border-radius: 18rpx;
+  margin-bottom: 16rpx;
+  transition-property: background-color, transform;
+  transition-duration: 110ms;
+  transition-timing-function: cubic-bezier(0.32, 0.72, 0, 1);
 }
 
-.icon-list {
-    width: 36rpx;
-    height: 36rpx;
-    background: url('data:image/svg+xml;utf8,<svg fill="%23333" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M3 13h2v-2H3v2zm0 4h2v-2H3v2zm0-8h2V7H3v2zm4 4h14v-2H7v2zm0 4h14v-2H7v2zM7 7v2h14V7H7z"/></svg>') no-repeat center/contain;
-}
+.cake-city-item:active { transform: scale(0.99); }
 
+.cake-city-item.is-active { background: #FDF3EC; }
 
-/* ================= 页面主体内容 ================= */
-.main-content {
-    flex: 1;
-    background-color: #FFFFFF;
-    position: relative;
-    overflow: hidden;
-}
+.cake-city-name { flex: 1; min-width: 0; font-size: 28rpx; color: #26241F; overflow-wrap: anywhere; }
 
-/* 1.1 空状态 (附近) */
-.empty-state {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    height: 100%;
-    padding-bottom: 200rpx;
-}
+.cake-city-count { font-size: 22rpx; color: #A9A39A; }
 
-.empty-image-placeholder {
-    width: 300rpx;
-    height: 300rpx;
-    margin-bottom: 40rpx;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-}
+.cake-bottom-space { height: 200rpx; }
 
-.shop-icon-mock {
-    width: 240rpx;
-    height: 200rpx;
-    background: #F0F0F0;
-    border-radius: 20rpx;
-    border-top: 40rpx solid #E4E4E4;
-    position: relative;
+button::after { border: 0; }
 
-    &::after {
-        content: '';
-        position: absolute;
-        width: 60rpx;
-        height: 80rpx;
-        background: #E4E4E4;
-        bottom: 0;
-        right: 40rpx;
-    }
-}
-
-.empty-text {
-    font-size: 28rpx;
-    color: #999;
-    margin-bottom: 60rpx;
-}
-
-.action-btn {
-    background-color: #DC6E43;
-    color: #FFF;
-    font-size: 32rpx;
-    padding: 24rpx 80rpx;
-    border-radius: 50rpx;
-    font-weight: bold;
-}
-
-/* 1.2 收藏列表 */
-.store-list {
-    height: 100%;
-    background: #F8F8F8;
-    padding: 20rpx 30rpx;
-    box-sizing: border-box;
-}
-
-.store-card {
-    background: #FFF;
-    border-radius: 20rpx;
-    padding: 30rpx;
-    margin-bottom: 20rpx;
-}
-
-.store-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 12rpx;
-}
-
-.store-name {
-    font-size: 32rpx;
-    font-weight: bold;
-    color: #333;
-}
-
-.store-distance {
-    font-size: 24rpx;
-    color: #999;
-}
-
-.store-tags {
-    display: flex;
-    align-items: center;
-    gap: 12rpx;
-    margin-bottom: 16rpx;
-}
-
-.tag {
-    background: #E8F5E9;
-    color: #4CAF50;
-    font-size: 20rpx;
-    padding: 4rpx 10rpx;
-    border-radius: 4rpx;
-}
-
-.time {
-    font-size: 22rpx;
-    color: #666;
-}
-
-.store-address {
-    font-size: 24rpx;
-    color: #666;
-    margin-bottom: 30rpx;
-}
-
-.store-actions {
-    display: flex;
-    justify-content: flex-end;
-    align-items: center;
-    gap: 30rpx;
-}
-
-.icon-heart-active {
-    width: 40rpx;
-    height: 40rpx;
-    background: url('data:image/svg+xml;utf8,<svg fill="%23DC6E43" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/></svg>') no-repeat center/contain;
-}
-
-.order-btn {
-    background: #DC6E43;
-    color: #FFF;
-    font-size: 24rpx;
-    padding: 12rpx 36rpx;
-    border-radius: 30rpx;
-}
-
-.no-more {
-    text-align: center;
-    font-size: 24rpx;
-    color: #CCC;
-    padding: 20rpx 0;
-}
-
-/* 2. 地图视图 */
-.map-container {
-    position: relative;
-    width: 100%;
-    height: 100%;
-}
-
-.full-map {
-    width: 100%;
-    height: 100%;
-}
-
-.map-bottom-panel {
-    position: absolute;
-    bottom: 40rpx;
-    left: 30rpx;
-    right: 30rpx;
-}
-
-.panel-store-card {
-    background: #FFF;
-    border-radius: 20rpx;
-    padding: 30rpx;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    box-shadow: 0 10rpx 30rpx rgba(0, 0, 0, 0.1);
-}
-
-.store-info-left {
-    flex: 1;
-    display: flex;
-    flex-direction: column;
-    gap: 8rpx;
-}
-
-.store-info-right {
-    display: flex;
-    flex-direction: column;
-    align-items: flex-end;
-    gap: 16rpx;
-}
-
-.nav-btn {
-    background: #F6F6F6;
-    color: #333;
-    font-size: 22rpx;
-    padding: 8rpx 20rpx;
-    border-radius: 24rpx;
+@media (prefers-reduced-motion: reduce) {
+  .cake-order-tab,
+  .cake-order-locate,
+  .cake-order-view-toggle,
+  .cake-city-item { transition-duration: 0ms; }
 }
 </style>

@@ -1300,6 +1300,8 @@ const originalEntries = computed(() => [
 	{ name: t('home.searchPeople'), page: "/pages/searchPerson/searchPerson", searchOnly: true },
 	{ name: '社区', page: "/pages/community/index" },
 	{ name: '需求市场', page: "/pages/demandhall/index" },
+	// 蛋糕 / 月饼商城（pages/cake 分包），文案走 cake 命名空间的多语言。
+	{ name: t('cake.promotionEntry'), page: "/pages/cake/index" },
 ]);
 
 const currentEntryIndex = ref(1);

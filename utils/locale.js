@@ -10,6 +10,7 @@ import { messageInboxMessages } from './messageInboxMessages.js'
 import { profileActivityMessages } from './profileActivityMessages.js'
 import { marketSearchMessages } from './marketSearchMessages.js'
 import { marketDetailMessages } from './marketDetailMessages.js'
+import { cakeMessages } from './cakeMessages.js'
 
 export const SUPPORTED_LOCALES = ['zh-Hans', 'zh-Hant', 'en', 'ru', 'ja', 'ko']
 const countryLocales = { CN: 'zh-Hans', HK: 'zh-Hant', MO: 'zh-Hant', TW: 'zh-Hant', US: 'en', RU: 'ru', JP: 'ja', KR: 'ko' }
@@ -2051,5 +2052,7 @@ for (const locale of SUPPORTED_LOCALES) {
   messages[locale].onboarding = onboardingMessages[locale] || onboardingMessages.en
   messages[locale].blessAuth = blessAuthMessages[locale] || blessAuthMessages.en
   messages[locale].trade = tradeMessages[locale] || tradeMessages.en
+  // 蛋糕 / 月饼商城（pages/cake）文案独立成模块，避免继续膨胀本文件。
+  messages[locale].cake = cakeMessages[locale] || cakeMessages.en
 }
 export { messages }

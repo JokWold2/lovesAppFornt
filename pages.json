@@ -305,6 +305,85 @@
 					}
 				}
 			]
+		},
+		{
+			"root": "pages/cake",
+			"pages": [
+				{
+					"path": "index",
+					"style": {
+						"navigationStyle": "custom",
+						"backgroundColor": "#F7F5F1",
+						"navigationBarTitleText": "蛋糕月饼"
+					}
+				},
+				{
+					"path": "order",
+					"style": {
+						"navigationStyle": "custom",
+						"backgroundColor": "#F7F5F1",
+						"navigationBarTitleText": "门店点单",
+						"enablePullDownRefresh": true
+					}
+				},
+				{
+					"path": "shop",
+					"style": {
+						"navigationStyle": "custom",
+						"backgroundColor": "#F7F5F1",
+						"navigationBarTitleText": "蛋糕烘焙"
+					}
+				},
+				{
+					"path": "transport",
+					"style": {
+						"navigationStyle": "custom",
+						"backgroundColor": "#F7F5F1",
+						"navigationBarTitleText": "月饼到家"
+					}
+				},
+				{
+					"path": "mine",
+					"style": {
+						"navigationStyle": "custom",
+						"backgroundColor": "#F7F5F1",
+						"navigationBarTitleText": "我的"
+					}
+				},
+				{
+					"path": "detail",
+					"style": {
+						"navigationStyle": "custom",
+						"backgroundColor": "#F7F5F1",
+						"navigationBarTitleText": "商品详情"
+					}
+				},
+				{
+					"path": "cart",
+					"style": {
+						"navigationStyle": "custom",
+						"backgroundColor": "#F7F5F1",
+						"navigationBarTitleText": "购物车"
+					}
+				},
+				{
+					"path": "orders",
+					"style": {
+						"navigationStyle": "custom",
+						"backgroundColor": "#F7F5F1",
+						"navigationBarTitleText": "我的订单",
+						"enablePullDownRefresh": true
+					}
+				},
+				{
+					"path": "orderDetail",
+					"style": {
+						"navigationStyle": "custom",
+						"backgroundColor": "#F7F5F1",
+						"navigationBarTitleText": "订单详情"
+					}
+				}
+			]
 		}
 	],
 	"globalStyle": {
