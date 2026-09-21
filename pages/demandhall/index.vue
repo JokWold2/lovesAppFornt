@@ -361,7 +361,7 @@
 						</view>
 						<view class="form-switch-row" @click="form.isNegotiable = !form.isNegotiable">
 							<text class="switch-label">价格可议</text>
-							<switch :checked="form.isNegotiable" color="#ffce00" style="transform: scale(0.7)" />
+							<switch :checked="form.isNegotiable" color="var(--bless-primary, #C2A052)" style="transform: scale(0.7)" />
 						</view>
 					</view>
 
@@ -394,14 +394,14 @@
 								<text class="switch-label">标记为急单</text>
 								<text class="switch-hint">急单会显示醒目标签，优先被看到</text>
 							</view>
-							<switch :checked="form.isUrgent" color="#ffce00" style="transform: scale(0.7)" />
+							<switch :checked="form.isUrgent" color="var(--bless-primary, #C2A052)" style="transform: scale(0.7)" />
 						</view>
 						<view class="form-switch-row" @click="form.requireVerified = !form.requireVerified">
 							<view class="switch-copy">
 								<text class="switch-label">需要认证服务者</text>
 								<text class="switch-hint">勾选后卡片会展示「需认证」，提示对方资质</text>
 							</view>
-							<switch :checked="form.requireVerified" color="#ffce00" style="transform: scale(0.7)" />
+							<switch :checked="form.requireVerified" color="var(--bless-primary, #C2A052)" style="transform: scale(0.7)" />
 						</view>
 					</view>
 
@@ -910,7 +910,7 @@ onShow(() => {
 
 <style scoped lang="scss">
 // 与首页 index360 统一的品牌色板
-$brand-yellow: #ffce00;
+$brand-yellow: var(--bless-primary, #C2A052);
 $bg-color: #ffffff;
 $text-main: #1a1a1a;
 $text-sub: #999999;
@@ -982,7 +982,7 @@ $line-color: #f2f2f4;
 	padding: 0 24rpx;
 	border-radius: 30rpx;
 	background: $brand-yellow;
-	box-shadow: 0 4rpx 12rpx rgba(255, 206, 0, 0.35);
+	box-shadow: 0 4rpx 12rpx rgba(194,160,82,0.35);
 	transition: transform 160ms ease-out;
 
 	&:active {
@@ -1028,7 +1028,7 @@ $line-color: #f2f2f4;
 
 	&.active {
 		background: $brand-yellow;
-		box-shadow: 0 4rpx 12rpx rgba(255, 206, 0, 0.35);
+		box-shadow: 0 4rpx 12rpx rgba(194,160,82,0.35);
 
 		.tab-label {
 			color: $text-main;
@@ -1365,7 +1365,7 @@ $line-color: #f2f2f4;
 }
 
 .badge-verified {
-	background: rgba(255, 206, 0, 0.28);
+	background: rgba(194,160,82,0.28);
 	color: $text-main;
 }
 
@@ -1553,7 +1553,7 @@ $line-color: #f2f2f4;
 	height: 92rpx;
 	border-radius: 46rpx;
 	background: $brand-yellow;
-	box-shadow: 0 8rpx 20rpx rgba(255, 206, 0, 0.45);
+	box-shadow: 0 8rpx 20rpx rgba(194,160,82,0.45);
 }
 
 .fab-text {

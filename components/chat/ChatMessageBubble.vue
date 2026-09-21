@@ -157,7 +157,7 @@ function onLongPress(event) {
 	word-break: break-word;
 }
 .mention {
-	color: #856719;
+	color: var(--bless-text, #775E25);
 	font-weight: 600;
 }
 .message-image {

@@ -174,7 +174,7 @@
   </script>
 
   <style scoped lang="scss">
-  $brand-yellow: #FFCE00;
+  $brand-yellow: var(--bless-primary, #C2A052);
   $text-main: #1A1A1A;
   $text-sub: #999999;
   $gray-bg: #F5F6F8;
@@ -319,8 +319,8 @@
         .era-tag {
           display: inline-block;
           font-size: 20rpx;
-          color: #A87E00;
-          background-color: #FFF6D9;
+          color: var(--bless-text, #775E25);
+          background-color: var(--bless-soft, #F1E4BD);
           padding: 4rpx 14rpx;
           border-radius: 8rpx;
         }
@@ -379,7 +379,7 @@
     display: flex;
     justify-content: center;
     align-items: center;
-    box-shadow: 0 8rpx 16rpx rgba(255, 206, 0, 0.4);
+    box-shadow: 0 8rpx 16rpx rgba(194,160,82,0.4);
     z-index: 99;
   }
   </style>

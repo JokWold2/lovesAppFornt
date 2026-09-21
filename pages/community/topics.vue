@@ -442,7 +442,7 @@ watch(currentLocale, updatePageTitle)
 
 <style lang="scss" scoped>
 // 与首页 / 社区统一的品牌色板
-$brand-yellow: #ffce00;
+$brand-yellow: var(--bless-primary, #C2A052);
 $text-main: #1a1a1a;
 $text-sub: #999999;
 $gray-bg: #f5f6f8;
@@ -568,7 +568,7 @@ $line-color: #f2f2f4;
 		}
 
 		&.tier-gold {
-			background: linear-gradient(135deg, #ffd76a, #f0a800);
+			background: linear-gradient(135deg, var(--bless-soft, #F1E4BD), var(--bless-pressed, #AA873C));
 		}
 
 		&.tier-silver {
@@ -790,8 +790,8 @@ $line-color: #f2f2f4;
 	text-align: center;
 	font-size: 26rpx;
 	font-weight: 600;
-	color: #8a6d00;
-	background: rgba(255, 206, 0, 0.14);
+	color: var(--bless-text, #775E25);
+	background: rgba(194,160,82,0.14);
 	border-radius: 20rpx;
 }
 
@@ -806,7 +806,7 @@ $line-color: #f2f2f4;
 	color: $text-sub;
 
 	&.retry {
-		color: #8a6d00;
+		color: var(--bless-text, #775E25);
 		font-weight: 600;
 	}
 }

@@ -22,7 +22,7 @@
         </view>
         <view v-if="item.location_name" class="post-location"><uni-icons type="location" size="14" color="#8f9587" /><text>{{ item.location_name }}</text></view>
         <view class="post-actions">
-          <button :disabled="item.pending" :aria-label="t('momentsHub.likeAction')" :aria-pressed="!!item.is_liked" @tap.stop="like(item)"><uni-icons :type="item.is_liked ? 'heart-filled' : 'heart'" size="23" :color="item.is_liked ? '#c49b22' : '#7e8677'" /><text>{{ item.like_count || 0 }}</text></button>
+          <button :disabled="item.pending" :aria-label="t('momentsHub.likeAction')" :aria-pressed="!!item.is_liked" @tap.stop="like(item)"><uni-icons :type="item.is_liked ? 'heart-filled' : 'heart'" size="23" :color="item.is_liked ? 'var(--bless-primary, #C2A052)' : '#7e8677'" /><text>{{ item.like_count || 0 }}</text></button>
           <button :aria-label="t('life.saySomething')" @tap.stop="open(item)"><uni-icons type="chatbubble" size="22" color="#7e8677" /><text>{{ item.comment_count || 0 }}</text></button>
         </view>
       </view>
@@ -79,8 +79,8 @@ async function like(item) {
 button{margin:0;border:0;background:transparent;line-height:1.5;}button::after{border:0;}
 .moments-tabs{display:flex;gap:22px;align-items:stretch;border-bottom:1px solid #e4e5dc;margin:0 4px 14px;}
 .moments-tab{position:relative;display:flex;justify-content:center;align-items:center;min-width:0;min-height:51px;font-size:16px;color:#969b8d;padding:10px 1px;border-radius:0;text-align:left;overflow-wrap:anywhere;}
-.moments-tab.active{font-weight:650;color:#292e25;}.moments-tab.active::before{content:'';position:absolute;bottom:-1px;left:0;right:0;height:3px;background:#ffda46;border-radius:4px;}
-.hub-state{display:flex;flex-direction:column;align-items:center;gap:12px;padding:36px 18px;color:#8c9182;background:#fff;border-radius:23px;margin-bottom:14px;font-size:14px;}.hub-state button{padding:10px 22px;background:#ffda46;border-radius:22px;color:#292e25;}
+.moments-tab.active{font-weight:650;color:#292e25;}.moments-tab.active::before{content:'';position:absolute;bottom:-1px;left:0;right:0;height:3px;background:var(--bless-primary, #C2A052);border-radius:4px;}
+.hub-state{display:flex;flex-direction:column;align-items:center;gap:12px;padding:36px 18px;color:#8c9182;background:#fff;border-radius:23px;margin-bottom:14px;font-size:14px;}.hub-state button{padding:10px 22px;background:var(--bless-primary, #C2A052);border-radius:22px;color:#292e25;}
 .post-card{padding:18px;background:#fff;border:1px solid #edeee5;border-radius:23px;margin-bottom:14px;}.post-header{display:flex;align-items:center;gap:10px;margin-bottom:13px;}.post-avatar{width:38px;height:38px;border-radius:50%;flex:none;}.avatar-fallback{display:flex;align-items:center;justify-content:center;background:#e9e9de;}.post-author{flex:1;min-width:0;}.post-name{display:block;font-size:14px;font-weight:600;overflow-wrap:anywhere;}.post-date,.post-pin{display:block;font-size:11px;color:#969d8b;margin-top:3px;}.post-text{display:block;font-size:14px;line-height:1.75;white-space:pre-wrap;overflow-wrap:anywhere;margin-bottom:12px;}.post-images{display:flex;flex-wrap:wrap;gap:6px;}.post-images image{width:calc((100% - 12px)/3);height:100px;border-radius:10px;}.post-images.single image{width:100%;height:230px;border-radius:15px;}.post-video{width:100%;height:230px;border-radius:15px;margin-bottom:10px;}.post-location{display:flex;gap:5px;align-items:center;color:#8f9587;font-size:11px;margin-top:10px;}.post-actions{display:flex;gap:20px;margin-top:10px;}.post-actions button{display:flex;align-items:center;gap:6px;min-height:44px;padding:0 4px;color:#7e8677;font-size:12px;}
 @media(max-width:350px){.moments-tabs{gap:16px;}.moments-tab{font-size:14px;}.post-card{padding:14px;}.post-images.single image{height:185px;}}
 </style>

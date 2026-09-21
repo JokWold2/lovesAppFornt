@@ -4,7 +4,7 @@
       <view class="feed-state-halo"></view>
       <view class="feed-state-sheet-back"></view>
       <view class="feed-state-sheet">
-        <uni-icons :type="kind === 'blessing' ? 'heart' : 'star'" size="29" color="#bf9c43" />
+        <uni-icons :type="kind === 'blessing' ? 'heart' : 'star'" size="29" color="var(--bless-primary, #C2A052)" />
         <view class="feed-state-line"></view>
         <view class="feed-state-line is-short"></view>
       </view>
@@ -51,16 +51,16 @@ function onAction() {
 .feed-state-sheet { position: absolute; width: 59px; height: 72px; top: 12px; left: 35px; border: 1px solid #e8e2d5; border-radius: 13px; display: flex; flex-direction: column; align-items: center; justify-content: center; background: #fffefa; box-shadow: 0 3px 7px rgba(81, 66, 34, .04); transform: rotate(8deg); }
 .feed-state-line { width: 26px; height: 3px; margin-top: 7px; border-radius: 2px; background: #e9e1ce; }
 .feed-state-line.is-short { width: 17px; margin-top: 5px; }
-.feed-state-badge { position: absolute; right: 7px; bottom: 9px; width: 27px; height: 27px; display: flex; align-items: center; justify-content: center; border: 3px solid #fff; border-radius: 50%; background: #efdfaf; }
-.feed-state-mark { color: #735f32; font-size: 19px; line-height: 1; font-weight: 600; }
+.feed-state-badge { position: absolute; right: 7px; bottom: 9px; width: 27px; height: 27px; display: flex; align-items: center; justify-content: center; border: 3px solid #fff; border-radius: 50%; background: var(--bless-soft, #F1E4BD); }
+.feed-state-mark { color: var(--bless-text, #775E25); font-size: 19px; line-height: 1; font-weight: 600; }
 .feed-state-title { display: block; max-width: 310px; color: #292a2d; font-size: 18px; font-weight: 600; line-height: 1.45; overflow-wrap: break-word; }
 .feed-state-hint { display: block; max-width: 290px; margin-top: 9px; color: #7a7975; font-size: 13px; line-height: 1.7; overflow-wrap: break-word; }
-.feed-state-action { min-width: 136px; max-width: 100%; min-height: 44px; margin: 23px 0 0; padding: 12px 25px; border: 0; border-radius: 24px; display: flex; align-items: center; justify-content: center; background: #ffd400; color: #2a2517; font-size: 14px; font-weight: 600; line-height: 1.5; transition: transform 140ms cubic-bezier(.23, 1, .32, 1); }
+.feed-state-action { min-width: 136px; max-width: 100%; min-height: 44px; margin: 23px 0 0; padding: 12px 25px; border: 0; border-radius: 24px; display: flex; align-items: center; justify-content: center; background: var(--bless-primary, #C2A052); color: #2a2517; font-size: 14px; font-weight: 600; line-height: 1.5; transition: transform 140ms cubic-bezier(.23, 1, .32, 1); }
 .feed-state-action::after { border: 0; }
 .feed-state-action:active, .feed-state-action-pressed { transform: scale(.97); }
 .feed-state-action[disabled] { opacity: .5; }
 .feed-state-secondary { margin-top: 8px; max-width: 100%; }
-.feed-state-spinner { width: 13px; height: 13px; border: 2px solid rgba(115, 95, 50, .2); border-top-color: #735f32; border-radius: 50%; animation: feed-state-spin .7s linear infinite; }
+.feed-state-spinner { width: 13px; height: 13px; border: 2px solid rgba(115, 95, 50, .2); border-top-color: var(--bless-text, #775E25); border-radius: 50%; animation: feed-state-spin .7s linear infinite; }
 @keyframes feed-state-spin { to { transform: rotate(360deg); } }
 @media (prefers-reduced-motion: reduce) { .feed-state-action { transition: none; } .feed-state-action:active, .feed-state-action-pressed { transform: none; } .feed-state-spinner { animation: none; } }
 </style>

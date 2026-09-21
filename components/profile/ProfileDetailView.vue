@@ -370,7 +370,7 @@ function goBack() {
 .profile-like { position: relative; overflow: visible; margin: 0; padding: 0; flex: 0 0 64px; width: 64px; height: 64px; border-radius: 50%; display: flex; justify-content: center; align-items: center; background: #fff; box-shadow: 0 3px 16px rgba(39,32,20,.07); }
 .profile-like--active { background: #fff6f3; }
 .profile-like-count { position: absolute; min-width: 15px; max-width: 64px; right: -3px; top: -2px; padding: 2px 6px; box-sizing: border-box; border: 2px solid #f5f4f1; border-radius: 15px; background: #2d2b28; color: #fff; font-size: 10px; font-weight: 600; line-height: 15px; overflow-wrap: anywhere; }
-.chat-request { min-width: 0; flex: 1; min-height: 60px; margin: 0; padding: 14px 18px; box-sizing: border-box; display: flex; align-items: center; justify-content: center; gap: 9px; border-radius: 34px; background: #ffd451; color: #29261d; text-align: center; font-size: 16px; font-weight: 600; line-height: 1.4; box-shadow: 0 3px 16px rgba(39,32,20,.06); }
+.chat-request { min-width: 0; flex: 1; min-height: 60px; margin: 0; padding: 14px 18px; box-sizing: border-box; display: flex; align-items: center; justify-content: center; gap: 9px; border-radius: 34px; background: var(--bless-primary, #C2A052); color: #29261d; text-align: center; font-size: 16px; font-weight: 600; line-height: 1.4; box-shadow: 0 3px 16px rgba(39,32,20,.06); }
 .chat-request text { min-width: 0; overflow-wrap: anywhere; word-break: break-word; }
 .chat-request--muted { background: #e5e2dc; color: #6f6960; }
 .chat-request--approved { background: #dce9df; color: #2e6041; }

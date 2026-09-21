@@ -9,7 +9,7 @@
 				class="photo-swiper"
 				circular
 				indicator-dots
-				indicator-active-color="#FFCE00"
+				indicator-active-color="var(--bless-primary, #C2A052)"
 			>
 				<swiper-item v-for="photo in auction.photos" :key="photo"
 					><image :src="photo" class="photo" mode="aspectFit"
@@ -245,7 +245,7 @@ function pad(value) {
 </script>
 
 <style scoped lang="scss">
-$brand-yellow: #ffce00;
+$brand-yellow: var(--bless-primary, #C2A052);
 $page-bg: #f7f7f7;
 .auction-detail {
 	padding-bottom: calc(140rpx + env(safe-area-inset-bottom));
@@ -305,15 +305,15 @@ $page-bg: #f7f7f7;
 }
 .price {
 	margin-left: 16rpx;
-	color: #d89000;
+	color: var(--bless-text, #775E25);
 	font-size: 36rpx;
 	font-weight: bold;
 }
 .countdown {
 	padding: 10rpx 16rpx;
-	background: rgba(255, 206, 0, 0.2);
+	background: rgba(194,160,82,0.2);
 	border-radius: 8rpx;
-	color: #765b00;
+	color: var(--bless-text, #775E25);
 	font-size: 24rpx;
 }
 .service-row {
@@ -387,7 +387,7 @@ $page-bg: #f7f7f7;
 	font-size: 22rpx;
 }
 .bid-amount {
-	color: #c67f00;
+	color: var(--bless-text, #775E25);
 	font-size: 28rpx;
 	font-weight: 600;
 }

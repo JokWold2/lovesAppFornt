@@ -7,14 +7,18 @@
 		></view> -->
 
 		<view
-			v-if="recommendationHeaderFixed"
 			class="recommendation-sticky-placeholder"
 			:style="{ height: recommendationHeaderHeight + 'px' }"
 		></view>
 		<view
 			class="recommendation-sticky-header"
-			:class="{ 'is-fixed': recommendationHeaderFixed }"
+			:class="{ 'is-fixed': true, 'is-collapsed': recommendationHeaderFixed }"
+            :style="homeHeaderStyle"
 		>
+            <view class="home-brand-row" :style="{ paddingRight: homeGeometry.contentRight + 'px' }" aria-label="BLESS">
+                <image class="home-brand-symbol" src="/static/brand/bless-heart-mark.svg" mode="aspectFit" />
+                <text class="home-brand-wordmark">BLESS</text>
+            </view>
 			<!-- 顶部导航栏 -->
 			<view class="header-nav">
 			<view class="nav-left">
@@ -35,7 +39,7 @@
 				</view>
 			</view>
 
-			<view class="nav-center">
+			<scroll-view class="nav-center" scroll-x :show-scrollbar="false"><view class="nav-links">
 				<view
 					class="nav-tab"
 					:class="{ active: model === 'tutorial' }"
@@ -49,7 +53,7 @@
 					:class="{ active: model === 'recommend' }"
 					@click="setHomeModel('recommend')"
 				>
-					<text class="tab-text">{{ t('home.recommend') }}</text>
+					<text class="tab-text">{{ hs('recommend') }}</text>
 					<view class="tab-line" v-if="model === 'recommend'"></view>
 				</view>
 				<view
@@ -61,23 +65,16 @@
 					<view class="tab-line" v-if="model === 'activity'"></view>
 				</view>
 				<view class="nav-tab" @click="goFinancial">
-					<text class="tab-text">财务</text>
+					<text class="tab-text">{{ hs('finance') }}</text>
 				</view>
-			</view>
+			</view></scroll-view>
 
 			<view class="nav-right">
 				<!-- 右侧消息图标 -->
 				<uni-icons type="mail" size="28" color="#333"></uni-icons>
 			</view>
 			</view>
-			<view v-if="model === 'recommend'">
-			<!-- 搜索栏 -->
-			<view v-if="membership?.canSearch && (currentEntryIndex === 0 || currentEntryIndex === 1)" class="search-container" @click="openSearch">
-				<view class="search-box">
-					<text class="search-placeholder">{{ t('home.search') }}</text>
-				</view>
-			</view>
-
+			<view v-show="model === 'recommend'">
 			<!-- 滚动 Tab 栏 (整合了原来所有的页面入口) -->
 			<view class="scroll-tabs-wrapper">
 				<scroll-view
@@ -98,14 +95,16 @@
 						</view>
 					</view>
 				</scroll-view>
+                <button class="home-search-trigger" :aria-label="homeSearchLabel" @click="openHomeSearch"><uni-icons type="search" size="22" color="#45413a"/><view v-if="currentEntryIndex === 0 && (featuredKeyword || featuredTypes.length)" class="search-active-dot"/></button>
 			</view>
 		</view>
 		</view>
-		<view v-if="model === 'recommend'">
-			<MarketPreviewSection v-if="currentEntryIndex === 2" category="antique" :title="t('home.antique')" />
-			<MarketPreviewSection v-if="currentEntryIndex === 3" category="second_hand" :title="t('home.secondHand')" />
+		<view v-show="model === 'recommend'">
+			<MarketPreviewSection v-if="visitedEntries[2]" v-show="currentEntryIndex === 2" ref="antiqueList" :active="model === 'recommend' && currentEntryIndex === 2" category="antique" compact :title="t('home.antique')" />
+			<MarketPreviewSection v-if="visitedEntries[3]" v-show="currentEntryIndex === 3" ref="secondHandList" :active="model === 'recommend' && currentEntryIndex === 3" category="second_hand" compact :title="t('home.secondHand')" />
 			<!-- 精选混排信息流 -->
-			<view class="feed-container" v-if="currentEntryIndex === 0">
+			<view class="feed-container" v-show="currentEntryIndex === 0">
+                <view v-if="featuredKeyword || featuredTypes.length" class="featured-search-summary" @click="openHomeSearch"><text v-if="featuredKeyword">{{ featuredKeyword }}</text><text v-for="type in featuredTypes" :key="type">{{ hs(type) }}</text><uni-icons type="settings" size="16" color="var(--bless-text, #775E25)"/></view>
 				<FeedContentState
 					v-if="visibleFeaturedItems.length === 0"
 					kind="featured"
@@ -216,7 +215,7 @@
 										v-if="isFeaturedLikeAvailable(item)"
 										@click.stop="toggleFeaturedLike(item)"
 									>
-										<uni-icons :type="item.isLiked ? 'heart-filled' : 'heart'" size="18" :color="item.isLiked ? '#c49b22' : '#77787d'" />
+										<uni-icons :type="item.isLiked ? 'heart-filled' : 'heart'" size="18" :color="item.isLiked ? 'var(--bless-primary, #C2A052)' : '#77787d'" />
 										<text class="action-num">{{
 											item.likeCount || 0
 										}}</text>
@@ -342,26 +341,22 @@
 			</view>
 
 			<!-- 祝福：同一份资料数据可切换卡片和原列表。 -->
-			<view class="blessing-section" v-if="currentEntryIndex === 1">
-				<view class="blessing-toolbar">
-					<text class="blessing-heading">{{ t('home.blessing') }}</text>
+			<view class="blessing-section" v-show="currentEntryIndex === 1">
+				<view class="blessing-toolbar" :class="{ 'list-toolbar': blessingViewMode === 'list' }">
+					<text class="blessing-heading">{{ t('home.blessing') }}</text><button class="blessing-quota-inline" :aria-label="remainingQuota" :disabled="membershipLoading" @click="onMembershipQuotaTap"><uni-icons :type="membershipLoadError ? 'refreshempty' : 'heart-filled'" size="14" color="var(--bless-text, #775E25)" /><text>{{ compactQuota }}</text></button>
 					<view class="blessing-view-switch">
 						<button :class="{ selected: blessingViewMode === 'cards' }" :aria-label="t('deck.cardMode')" :aria-pressed="blessingViewMode === 'cards'" :disabled="blessingActionBusy" @click="setBlessingViewMode('cards')"><uni-icons type="images" size="17" :color="blessingViewMode === 'cards' ? '#1c1c1e' : '#77787d'" /><text>{{ t('deck.cards') }}</text></button>
 						<button :class="{ selected: blessingViewMode === 'list' }" :aria-label="t('deck.listMode')" :aria-pressed="blessingViewMode === 'list'" :disabled="blessingActionBusy" @click="setBlessingViewMode('list')"><uni-icons type="list" size="17" :color="blessingViewMode === 'list' ? '#1c1c1e' : '#77787d'" /><text>{{ t('deck.list') }}</text></button>
 					</view>
 				</view>
-				<button v-if="blessingViewMode === 'list' || !deckProfiles.length" class="blessing-quota" :class="{ 'has-error': membershipLoadError }" :disabled="membershipLoading" @click="onMembershipQuotaTap">
-					<uni-icons v-if="membershipLoadError" type="refreshempty" size="16" color="#87713b" />
-					<text>{{ remainingQuota }}</text>
-				</button>
 				<BlessingCardDeck
 					v-show="blessingViewMode === 'cards'"
 					:items="deckProfiles"
-					:quota-text="remainingQuota"
+					:quota-text="''"
 					:quota-loading="membershipLoading"
 					:quota-error="membershipLoadError"
 					@quota-tap="onMembershipQuotaTap"
-					:active="blessingViewMode === 'cards'"
+					:active="model === 'recommend' && currentEntryIndex === 1 && blessingViewMode === 'cards'"
 					:loading="loading"
 					:loading-more="loadingMore"
 					:has-more="hasMore"
@@ -387,153 +382,24 @@
 					@action="retryProfileFeed"
 				/>
 
-				<view
-					class="post-card"
-					v-for="item in deckProfiles"
-					:key="item.profileId"
-				>
-					<!-- 帖子头部: 用户信息 -->
-					<view class="post-header" @click="openBlessingProfile(item)">
-						<view class="post-avatar">
-							<image
-								v-if="item.avatarUrl"
-								class="avatar-img"
-								:src="getFullImageUrl(item.avatarUrl)"
-								mode="aspectFill"
-							>
-							</image>
-							<uni-icons
-								v-else
-								type="person-filled"
-								color="#ccc"
-								size="28"
-							></uni-icons>
-						</view>
-						<view class="post-user-info">
-							<text class="username">{{ item.displayName }}</text>
-							<view class="location-box">
-								<text class="location">{{
-									formatLocation(item)
-								}}</text>
-							</view>
-						</view>
-					</view>
-
-					<!-- 帖子图片 -->
-					<view class="post-media" v-if="getMainImage(item)" @click="openBlessingProfile(item)">
-						<view v-if="!isImageLoaded(item.profileId)" class="media-skeleton">
-							<view class="skeleton-line skeleton-line-wide"></view>
-							<view class="skeleton-line skeleton-line-short"></view>
-						</view>
-						<image
-							class="media-img"
-							:src="getMainImage(item)"
-							mode="widthFix"
-							@load="markImageLoaded(item.profileId)"
-							@error="markImageLoaded(item.profileId)"
-						></image>
-					</view>
-
-					<!-- 帖子底部操作栏 -->
-					<view class="post-actions">
-						<view class="actions-left">
-							<view class="action-btn" :class="{ 'is-like-busy': item.likeBusy }" @click="toggleLike(item)">
-								<text class="action-icon">{{
-									item.isLiked ? "❤️" : "🤍"
-								}}</text>
-								<text class="action-num">{{
-									item.likeCount || 0
-								}}</text>
-							</view>
-							<view
-								class="action-btn"
-								@click="toggleCommentPanel(item)"
-							>
-								<uni-icons
-									type="chat"
-									size="24"
-									color="#666"
-								></uni-icons>
-								<text class="action-num">{{
-									item.commentCount || 0
-								}}</text>
-							</view>
-						</view>
-					</view>
-
-					<!-- 点赞人 + 评论区：仿朋友圈灰底信息区 -->
-					<view v-if="item.showComments" class="meta-box" @click.stop>
-						<view
-							v-if="item.commentsLoading"
-							class="comment-loading"
-						>
-							<text>{{ t('home.loading') }}</text>
-						</view>
-						<template v-else>
-							<view
-								v-for="c in item.comments"
-								:key="c.id"
-								class="comment-item"
-								@click="startReply(item, c)"
-							>
-								<text class="comment-author">{{
-									commentDisplayName(c, t('common.user'))
-								}}</text>
-								<text
-									v-if="commentReplyDisplayName(c, '')"
-									class="comment-reply-arrow"
-								>
-									{{ t('home.replyTo', { name: commentReplyDisplayName(c, t('common.user')) }) }}</text
-								>
-								<text class="comment-colon">：</text>
-								<text class="comment-content">{{
-									c.content
-								}}</text>
-							</view>
-							<view
-								v-if="
-									item.comments && item.comments.length === 0
-								"
-								class="comment-empty"
-							>
-								<text>{{ t('home.noComments') }}</text>
-							</view>
-						</template>
-
-						<!-- 评论输入框 -->
-						<view class="comment-input-row">
-							<view
-								v-if="item.replyTarget"
-								class="reply-target-tag"
-							>
-								<text>{{ t('home.replyTo', { name: item.replyTarget.email }) }}</text>
-								<text
-									class="reply-cancel"
-									@click="cancelReply(item)"
-									>×</text
-								>
-							</view>
-							<view class="comment-input-inner">
-								<input
-									class="comment-input"
-									v-model="item.commentDraft"
-									confirm-type="send"
-									:placeholder="
-										item.replyTarget
-										? t('home.replyTo', { name: item.replyTarget.email })
-										: t('home.saySomething')
-									"
-									@confirm="submitComment(item)"
-								/>
-								<text
-									class="comment-send-btn"
-									@click="submitComment(item)"
-									>{{ t('home.send') }}</text
-								>
-							</view>
-						</view>
-					</view>
-				</view>
+                <view v-for="item in deckProfiles" :key="item.profileId" class="blessing-profile-card">
+                  <view class="blessing-profile-header" @click="openBlessingProfile(item)">
+                    <image v-if="item.avatarUrl" class="blessing-avatar" :src="getFullImageUrl(item.avatarUrl)" mode="aspectFill" />
+                    <view v-else class="blessing-avatar avatar-empty"><uni-icons type="person-filled" size="25" color="#bcb8b0" /></view>
+                    <view class="blessing-identity"><view class="blessing-name-row"><text class="blessing-name">{{ item.displayName }}</text><text v-if="getProfileAge(item.birthYear) !== null" class="blessing-age">{{ getProfileAge(item.birthYear) }}</text></view><text class="blessing-location">{{ formatLocation(item) }}</text></view>
+                    <uni-icons type="right" size="18" color="#b6b1a8" />
+                  </view>
+                  <view class="blessing-photo">
+                    <swiper v-if="getProfilePhotos(item, config.baseURL).length" class="blessing-photo-swiper" :current="listPhotoIndexes[item.profileId] || 0" :autoplay="false" :circular="false" @change="listPhotoIndexes[item.profileId] = $event.detail.current">
+                      <swiper-item v-for="url in getProfilePhotos(item, config.baseURL)" :key="url"><image :src="url" mode="aspectFit" class="blessing-photo-image" :lazy-load="true" @click="openBlessingProfile(item)" /></swiper-item>
+                    </swiper>
+                    <view v-else class="blessing-no-photo" @click="openBlessingProfile(item)"><uni-icons type="image" size="40" color="#c7c0b3" /><text>{{ t('deck.noPhoto') }}</text></view>
+                    <text v-if="getProfilePhotos(item, config.baseURL).length > 1" class="blessing-photo-count">{{ (listPhotoIndexes[item.profileId] || 0) + 1 }}/{{ getProfilePhotos(item, config.baseURL).length }}</text>
+                  </view>
+                  <view class="blessing-card-footer">
+                    <view class="blessing-footer-row"><text class="blessing-facts">{{ item.occupation || '' }}</text><button class="blessing-like" :disabled="item.likeBusy" :aria-label="t('deck.like')" @click.stop="toggleLike(item)"><uni-icons :type="item.isLiked ? 'heart-filled' : 'heart'" size="25" color="var(--bless-text, #775E25)" /><text>{{ item.likeCount || 0 }}</text></button></view>
+                  </view>
+                </view>
 
 				<!-- 上滑加载更多状态 -->
 				<view v-if="loadingMore" class="load-more-tip">
@@ -559,6 +425,15 @@
 		<!-- 底部安全区留白 -->
 		<view class="safe-area-bottom"></view>
 		<LiquidGlassTabBar active-route="pages/index/index360" :hidden="sheetProfileId != null" />
+        <SlideUpPanel fixed :open="featuredFilterOpen" :z-index="350" :label="hs('featured')" @dismiss="featuredFilterOpen = false">
+          <view class="home-search-sheet">
+            <view class="sheet-handle"/><view class="home-sheet-title"><text>{{ hs('featured') }}</text><button :aria-label="hs('close')" @click="featuredFilterOpen = false"><uni-icons type="closeempty" size="24"/></button></view>
+            <view class="home-keyword"><uni-icons type="search" size="21" color="#918b80"/><input v-model="draftFeaturedKeyword" :placeholder="hs('featured')" maxlength="100" confirm-type="search" @confirm="applyFeaturedSearch"/></view>
+            <view class="home-type-heading"><text>{{ hs('types') }}</text><text>{{ hs('hint') }}</text></view>
+            <view class="home-type-options"><button :class="{selected: !draftFeaturedTypes.length}" @click="draftFeaturedTypes = []">{{ hs('all') }}</button><button v-for="type in featuredTypeOptions" :key="type" :class="{selected: draftFeaturedTypes.includes(type)}" @click="toggleFeaturedType(type)">{{ hs(type) }}</button></view>
+            <view class="home-search-actions"><button @click="resetFeaturedDraft">{{ hs('reset') }}</button><button class="apply" @click="applyFeaturedSearch">{{ hs('apply') }}</button></view>
+          </view>
+        </SlideUpPanel>
 		<ProfileDetailSheet :profile-id="sheetProfileId" :page-visible="sheetPageVisible" native-header @closed="closeProfileSheet" />
 	</view>
 </template>
@@ -566,7 +441,7 @@
 <script setup>
 import { toggleMarketLikeApi, getMarketCommentsApi, addMarketCommentApi } from '@/api/market.js';
 import { ref, onMounted, onBeforeUnmount, computed, nextTick, watch } from "vue";
-import { onPullDownRefresh, onReachBottom, onPageScroll, onShow, onResize } from "@dcloudio/uni-app";
+import { onPullDownRefresh, onReachBottom, onPageScroll, onShow, onResize, onBackPress, onHide } from "@dcloudio/uni-app";
 import {
 	getExploreFeedApi,
 	getFeaturedFeedApi,
@@ -588,7 +463,7 @@ import ProfileDetailSheet from '@/components/profile/ProfileDetailSheet.vue';
 import { useProfileDetailSheet } from '@/utils/useProfileDetailSheet.js';
 import FeedContentState from '@/components/feedback/FeedContentState.vue';
 import LiquidGlassTabBar from '@/components/navigation/LiquidGlassTabBar.vue';
-import { getProfilePhotos, mergeProfileBatch } from '@/utils/blessingDeck.js';
+import { getProfileAge, getProfilePhotos, mergeProfileBatch } from '@/utils/blessingDeck.js';
 import { createBlessingOperations, filterBlessingCandidates, filterFeaturedBlessings, reconcileBlessingExclusions } from '@/utils/blessingInteractions.js';
 import { getMembershipApi, decideBlessingApi, rewindBlessingApi } from '@/api/membership.js';
 import { createMembershipRequestId, handleMembershipError, notifyBlessingChanged, openMembershipUpgrade } from '@/utils/membership.js';
@@ -599,18 +474,17 @@ import {
 	featuredItemImage,
 	featuredItemRoute,
 } from "@/utils/featuredFeed.js";
+import SlideUpPanel from '@/components/common/SlideUpPanel.vue';
+import { readChatHeaderGeometry } from '@/utils/chatHeaderLayout.js';
+import { homeSearchMessages } from '@/utils/homeSearchMessages.js';
 import { currentLocale, t, updateTabBarLocale } from '@/utils/localeRuntime.js';
 
-let homeShown = false;
+
 const { profileId: sheetProfileId, pageVisible: sheetPageVisible, open: openProfileSheet, close: closeProfileSheet } = useProfileDetailSheet();
 onShow(() => {
 	updateTabBarLocale();
 	refreshMembership().catch(() => {});
-	if (homeShown && sheetProfileId.value == null && !blessingActionBusy.value && !rewindBusy.value) {
-		loadFeed({ isRefresh: true });
-		if (featuredItems.value.length) loadFeaturedFeed({ isRefresh: true });
-	}
-	homeShown = true;
+
 });
 
 // 状态栏高度适配
@@ -651,6 +525,9 @@ async function refreshMembership() {
 	}
 }
 
+const listPhotoIndexes = ref({});
+
+const compactQuota = computed(() => remainingQuota.value);
 const remainingQuota = computed(() => {
 	if (!membership.value?.usage) return t(membershipLoadError.value ? 'deck.quotaRetry' : 'deck.quotaLoading');
 	const amount = value => value === null ? t('deck.unlimited') : String(value ?? '—');
@@ -662,8 +539,33 @@ function onMembershipQuotaTap() {
 	if (!membership.value || membershipLoadError.value) refreshMembership().catch(() => {});
 	else openMembershipUpgrade();
 }
+const hs = key => (homeSearchMessages[currentLocale.value] || homeSearchMessages.en)[key] || homeSearchMessages.en[key];
+let homePlatform = '';
+// #ifdef MP-WEIXIN
+homePlatform = 'mp-weixin';
+// #endif
+const homeGeometry = ref(readChatHeaderGeometry(uni, { clearCapsule: false }, homePlatform));
+const headerScroll = ref(0);
+const homeHeaderStyle = computed(() => ({ paddingTop: homeGeometry.value.contentTop + 'px', backgroundColor: 'rgba(245,245,247,' + (.92 + Math.min(headerScroll.value / 80, 1) * .06) + ')', backdropFilter: 'blur(' + Math.min(headerScroll.value / 4, 12) + 'px)', WebkitBackdropFilter: 'blur(' + Math.min(headerScroll.value / 4, 12) + 'px)' }));
+const featuredFilterOpen = ref(false), featuredKeyword = ref(''), featuredTypes = ref([]);
+const draftFeaturedKeyword = ref(''), draftFeaturedTypes = ref([]);
+const featuredTypeOptions = ['moment', 'blessing', 'antique', 'second_hand'];
+const homeSearchLabel = computed(() => currentEntryIndex.value === 0 ? hs('featured') : currentEntryIndex.value === 1 ? hs('people') : t(currentEntryIndex.value === 2 ? 'marketSearch.antique' : 'marketSearch.secondHand'));
+function openHomeSearch() {
+ if (currentEntryIndex.value === 0) { draftFeaturedKeyword.value = featuredKeyword.value; draftFeaturedTypes.value = [...featuredTypes.value]; featuredFilterOpen.value = true; }
+ else if (currentEntryIndex.value === 1) openSearch();
+ else (currentEntryIndex.value === 2 ? antiqueList.value : secondHandList.value)?.openFilters();
+}
+function toggleFeaturedType(type) { draftFeaturedTypes.value = draftFeaturedTypes.value.includes(type) ? draftFeaturedTypes.value.filter(item => item !== type) : [...draftFeaturedTypes.value, type]; }
+function resetFeaturedDraft() { draftFeaturedKeyword.value = ''; draftFeaturedTypes.value = []; }
+function applyFeaturedSearch() {
+ featuredKeyword.value = draftFeaturedKeyword.value.trim(); featuredTypes.value = [...draftFeaturedTypes.value]; featuredFilterOpen.value = false;
+ featuredItems.value = []; loadFeaturedFeed({ isRefresh: true }); uni.pageScrollTo({ scrollTop: 0, duration: 0 });
+}
+onBackPress(() => { if (featuredFilterOpen.value) { featuredFilterOpen.value = false; return true; } });
+onHide(() => { featuredFilterOpen.value = false; });
 const recommendationHeaderFixed = ref(false);
-const recommendationHeaderHeight = ref(0);
+const recommendationHeaderHeight = ref(homeGeometry.value.contentTop + 161);
 
 function measureRecommendationHeader() {
 	nextTick(() => {
@@ -671,7 +573,7 @@ function measureRecommendationHeader() {
 			.select(".recommendation-sticky-header")
 			.boundingClientRect((rect) => {
 				if (rect && rect.height) {
-					recommendationHeaderHeight.value = rect.height;
+					recommendationHeaderHeight.value = rect.height + (recommendationHeaderFixed.value ? 56 : 0);
 				}
 			})
 			.exec();
@@ -711,7 +613,7 @@ onMounted(async () => {
 });
 
 watch(currentLocale, updatePageTitle);
-onResize(measureRecommendationHeader);
+onResize(() => { homeGeometry.value = readChatHeaderGeometry(uni, { clearCapsule: false }, homePlatform); measureRecommendationHeader(); });
 
 // ------- 回到顶部 -------
 function scrollToTop() {
@@ -746,7 +648,10 @@ function syncProfileLikeState(profile) {
 }
 
 function setHomeModel(mode) {
-	if (!blessingActionBusy.value && !rewindBusy.value) model.value = mode;
+ if (blessingActionBusy.value || rewindBusy.value) return;
+ model.value = mode;
+ recommendationHeaderFixed.value = false;
+ measureRecommendationHeader();
 }
 
 async function decideBlessingProfile(profile, decision) {
@@ -1016,6 +921,7 @@ async function loadFeaturedFeed({ isRefresh }) {
 	try {
 		const res = await getFeaturedFeedApi({
 			limit: 15,
+            keyword: featuredKeyword.value, types: featuredTypes.value,
 			seed: isRefresh ? undefined : featuredSeed.value,
 			cursor: isRefresh ? undefined : featuredCursor.value,
 		});
@@ -1062,20 +968,24 @@ function openFeaturedItem(item) {
 	uni.navigateTo({ url: route });
 }
 
-onPullDownRefresh(() => {
+onPullDownRefresh(async () => {
 	refreshMembership().catch(() => {});
 	if (currentEntryIndex.value === 0) {
 		loadFeaturedFeed({ isRefresh: true });
 	} else if (currentEntryIndex.value === 1) {
 		loadFeed({ isRefresh: true });
+	} else if (currentEntryIndex.value === 2 || currentEntryIndex.value === 3) {
+		try { await (currentEntryIndex.value === 2 ? antiqueList.value : secondHandList.value)?.refresh(); }
+		finally { uni.stopPullDownRefresh(); }
 	} else {
 		uni.stopPullDownRefresh();
 	}
 });
 
 onPageScroll(({ scrollTop }) => {
+    headerScroll.value = Math.max(0, scrollTop);
 	recommendationHeaderFixed.value =
-		model.value === "recommend" && !(currentEntryIndex.value === 1 && blessingViewMode.value === 'cards') && scrollTop > 8;
+		model.value === "recommend" && !(currentEntryIndex.value === 1 && blessingViewMode.value === 'cards') && scrollTop > 80;
 });
 
 onReachBottom(() => {
@@ -1297,14 +1207,14 @@ const originalEntries = computed(() => [
 	{ name: t('home.blessing'), page: "/pages/wishes/index" },
 	{ name: t('home.antique'), page: "/pages/market/marketList?category=antique" },
 	{ name: t('home.secondHand'), page: "/pages/market/marketList?category=second_hand" },
-	{ name: t('home.searchPeople'), page: "/pages/searchPerson/searchPerson", searchOnly: true },
-	{ name: '社区', page: "/pages/community/index" },
-	{ name: '需求市场', page: "/pages/demandhall/index" },
-	// 蛋糕 / 月饼商城（pages/cake 分包），文案走 cake 命名空间的多语言。
+	{ name: hs('community'), page: "/pages/community/index" },
+	{ name: hs('requests'), page: "/pages/demandhall/index" },
 	{ name: t('cake.promotionEntry'), page: "/pages/cake/index" },
 ]);
 
 const currentEntryIndex = ref(1);
+const visitedEntries = ref({ 1: true });
+const antiqueList = ref(null), secondHandList = ref(null);
 
 watch(() => [visibleFeaturedItems.value.length, featuredLoading.value, featuredLoadingMore.value, currentEntryIndex.value, model.value], () => {
 	if (model.value === 'recommend' && currentEntryIndex.value === 0 && visibleFeaturedItems.value.length === 0
@@ -1328,13 +1238,13 @@ const handleEntryClick = (index, url) => {
 		});
 		return;
 	}
+	const firstVisit = !visitedEntries.value[index];
+	visitedEntries.value[index] = true;
 	currentEntryIndex.value = index;
 	recommendationHeaderFixed.value = false;
 	measureRecommendationHeader();
 	if (
-		index === 0 &&
-		featuredItems.value.length === 0 &&
-		!featuredSeed.value &&
+		index === 0 && firstVisit &&
 		!featuredLoading.value
 	) {
 		loadFeaturedFeed({ isRefresh: true });
@@ -1344,7 +1254,7 @@ const handleEntryClick = (index, url) => {
 
 <style scoped lang="scss">
 // Insta360 风格品牌色
-$brand-yellow: #ffce00;
+$brand-yellow: var(--bless-primary, #C2A052);
 $bg-color: #ffffff;
 $text-main: #1a1a1a;
 $text-sub: #999999;
@@ -1828,7 +1738,7 @@ $gray-bg: #f5f6f8;
 	display: flex;
 	justify-content: center;
 	align-items: center;
-	box-shadow: 0 8rpx 16rpx rgba(255, 206, 0, 0.4);
+	box-shadow: 0 8rpx 16rpx rgba(194,160,82,0.4);
 	z-index: 99;
 }
 /* #ifndef H5 */
@@ -1850,7 +1760,7 @@ $gray-bg: #f5f6f8;
 }
 .blessing-toolbar { max-width: 460px; margin: 0 auto 4px; min-height: 48px; display: flex; align-items: center; justify-content: space-between; gap: 12px; }
 .blessing-heading { font-size: 16px; font-weight: 600; letter-spacing: .5px; color: #28292d; padding-left: 5px; }
-.blessing-quota { max-width: 460px; width: 100%; min-height: 44px; padding: 8px 12px; margin: 0 auto 8px; display: flex; align-items: center; justify-content: center; gap: 6px; border: 0; border-radius: 14px; font-size: 12px; line-height: 1.6; color: #87713b; background: transparent; }
+.blessing-quota { max-width: 460px; width: 100%; min-height: 44px; padding: 8px 12px; margin: 0 auto 8px; display: flex; align-items: center; justify-content: center; gap: 6px; border: 0; border-radius: 14px; font-size: 12px; line-height: 1.6; color: var(--bless-text, #775E25); background: transparent; }
 .blessing-quota::after { border: 0; }
 .blessing-quota.has-error { background: #faf6e9; }
 .blessing-quota[disabled] { color: #8b8983; background: transparent; }
@@ -1860,7 +1770,7 @@ $gray-bg: #f5f6f8;
 .blessing-view-switch button.selected { color: #1c1c1e; background: #fff; box-shadow: 0 1px 4px rgba(15,15,20,.08); }
 .blessing-view-switch button[disabled] { opacity: .55; }
 .blessing-list { padding: 8px 0 0; }
-.blessing-retry { margin: 12px auto; padding: 12px 18px; max-width: 320px; min-height: 44px; font-size: 13px; line-height: 1.5; color: #6c592e; text-align: center; background: #faf6e9; border: 0; border-radius: 22px; transition: transform 140ms cubic-bezier(.23,1,.32,1); }
+.blessing-retry { margin: 12px auto; padding: 12px 18px; max-width: 320px; min-height: 44px; font-size: 13px; line-height: 1.5; color: var(--bless-text, #775E25); text-align: center; background: #faf6e9; border: 0; border-radius: 22px; transition: transform 140ms cubic-bezier(.23,1,.32,1); }
 .blessing-retry::after { border: 0; }
 .blessing-retry:active { transform: scale(.97); }
 .is-like-busy { opacity: .5; pointer-events: none; }
@@ -1876,6 +1786,33 @@ $gray-bg: #f5f6f8;
 .is-card-home .scroll-tabs-wrapper { padding-top: 4px; padding-bottom: 4px; background: transparent; }
 .fab-button { --app-fixed-bottom-base: calc(108px + env(safe-area-inset-bottom)); bottom: calc(108px + env(safe-area-inset-bottom)); }
 @media (prefers-reduced-motion: reduce) { .blessing-view-switch button { transition: none; } }
+
+.blessing-toolbar{gap:6px;margin-bottom:12px}
+.blessing-heading{flex-shrink:0;font-size:19px;letter-spacing:0}
+.blessing-quota-inline{display:flex;align-items:center;justify-content:center;gap:4px;min-width:0;flex:1 1 0;margin:0;padding:6px 7px;border-radius:20px;background:var(--bless-soft, #F1E4BD);color:var(--bless-text, #775E25);font-size:11px;line-height:1.35;text-align:center;white-space:normal}
+.blessing-quota-inline::after{border:0}
+.blessing-quota-inline text{min-width:0;overflow-wrap:anywhere}
+.blessing-view-switch button{min-width:58px;padding:0 8px}
+@media(max-width:360px){.blessing-view-switch button{min-width:50px;padding:0 5px}.blessing-heading{font-size:16px}.blessing-quota-inline{font-size:10px}}
+.blessing-view-switch{flex-shrink:0}
+
+
+.blessing-list{max-width:460px;margin:0 auto;padding-top:0}
+.blessing-profile-card{background:white;border-radius:24px;overflow:hidden;margin-bottom:16px;box-shadow:0 4px 16px rgba(53,46,31,.025)}
+.blessing-profile-header{display:flex;align-items:center;gap:10px;padding:14px}
+.blessing-avatar{width:44px;height:44px;border-radius:50%;flex-shrink:0;background:#f3f2ef}
+.avatar-empty{display:flex;align-items:center;justify-content:center}
+.blessing-identity{flex:1;min-width:0}.blessing-name-row{display:flex;align-items:baseline;gap:8px}
+.blessing-name{font-size:17px;font-weight:600;color:#2e2d29;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.blessing-age{font-size:16px;color:#929088;flex-shrink:0}
+.blessing-location{display:block;margin-top:4px;font-size:12px;color:#99948a;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.blessing-photo{position:relative;margin:0 8px;height:440px;height:min(120vw,560px);border-radius:18px;overflow:hidden;background:#efede8}
+.blessing-photo-swiper{width:100%;height:100%}
+.blessing-photo-image{width:100%;height:100%;display:block}.blessing-no-photo{height:100%;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;font-size:13px;color:#a49b8b}
+.blessing-photo-count{position:absolute;bottom:12px;right:12px;color:white;background:rgba(35,33,28,.42);border-radius:16px;padding:4px 10px;font-size:12px}
+.blessing-card-footer{padding:12px 16px 10px}.blessing-bio{display:block;white-space:nowrap;text-overflow:ellipsis;overflow:hidden;font-size:14px;color:#555148;line-height:1.6}
+.blessing-footer-row{display:flex;align-items:center;justify-content:space-between;gap:12px}.blessing-facts{flex:1;min-width:0;white-space:nowrap;text-overflow:ellipsis;overflow:hidden;font-size:12px;color:#9b968d}
+.blessing-like{flex-shrink:0;display:flex;align-items:center;gap:6px;padding:6px 0 6px 12px;min-height:44px;margin:0;background:transparent;color:var(--bless-text, #775E25);font-size:14px;line-height:1.3}.blessing-like::after{border:0}.blessing-like[disabled]{opacity:.5}
+
 </style>
 <style scoped>
 .post-card.featured-card{padding:0;border-radius:18px;background:#fff;box-shadow:0 2px 8px rgba(45,42,34,.025);}
@@ -1883,7 +1820,7 @@ $gray-bg: #f5f6f8;
 .post-card.featured-card .media-img{display:block;width:100%;}
 .featured-kind{position:absolute;top:9px;right:9px;max-width:calc(100% - 34px);padding:3px 7px;border:1px solid rgba(255,255,255,.7);border-radius:8px;background:rgba(45,42,34,.28);color:#fff;font-size:10px;line-height:1.4;overflow-wrap:anywhere;}
 .post-card.featured-card .featured-title,.post-card.featured-card .featured-summary{margin:9px 10px 0;font-size:14px;font-weight:500;line-height:1.5;color:#292825;display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:2;overflow:hidden;overflow-wrap:anywhere;}
-.post-card.featured-card .featured-price{margin:4px 10px 0;font-size:14px;font-weight:600;color:#b58c22;}
+.post-card.featured-card .featured-price{margin:4px 10px 0;font-size:14px;font-weight:600;color:var(--bless-text, #775E25);}
 .post-card.featured-card.featured-market-card .featured-summary{display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;-webkit-line-clamp:unset;}
 .featured-footer{display:flex;align-items:center;flex-wrap:wrap;gap:2px 6px;padding:6px 10px 8px;min-width:0;}
 .post-card.featured-card .post-header{flex:1 1 52px;min-width:0;margin:0;gap:5px;}
@@ -1899,4 +1836,28 @@ $gray-bg: #f5f6f8;
 /* #ifndef H5 */
 .container { min-height: 100vh; }
 /* #endif */
+</style>
+
+<style scoped>
+.recommendation-sticky-header.is-fixed{top:0!important;z-index:100;box-sizing:border-box;padding-left:env(safe-area-inset-left);padding-right:env(safe-area-inset-right);}
+.recommendation-sticky-header::after{content:"";position:absolute;top:100%;left:0;right:0;height:8px;background:linear-gradient(rgba(245,245,247,.65),transparent);pointer-events:none}
+.recommendation-sticky-header .header-nav{height:56px;box-sizing:border-box;padding:4px 16px!important;gap:16px;background:transparent!important;overflow:hidden;}
+.recommendation-sticky-header.is-collapsed .header-nav{height:0;padding-top:0!important;padding-bottom:0!important;opacity:0;pointer-events:none;}
+.header-nav .nav-left .avatar-circle{width:36px;height:36px}.header-nav .nav-center{flex:1;min-width:0;width:0;white-space:nowrap;}.header-nav .nav-center .nav-tab,.header-nav .nav-center .nav-tab.active{font-size:16px;flex-shrink:0;padding:10px 0}.header-nav .nav-center .nav-tab .tab-line{background:var(--bless-primary, #C2A052);width:22px;height:3px;bottom:3px}.header-nav .nav-right{display:none;}
+.recommendation-sticky-header .scroll-tabs-wrapper{padding:7px 12px 10px;gap:8px;background:transparent!important;}.scroll-tabs-wrapper .scroll-tabs{min-width:0;width:0}.scroll-tabs-wrapper .scroll-tabs .tabs-content{padding-right:0}.scroll-tabs-wrapper .scroll-tabs .tab-pill{height:44px;padding:0 18px;margin-right:10px;background:#fff;flex-shrink:0}.scroll-tabs-wrapper .scroll-tabs .tab-pill text{font-size:16px}.scroll-tabs-wrapper .scroll-tabs .tab-pill.active{background:var(--bless-soft, #F1E4BD);}
+.home-search-trigger{position:relative;margin:0;padding:0;width:44px;height:44px;flex-shrink:0;border-radius:50%;background:white;display:flex;align-items:center;justify-content:center}.home-search-trigger::after{border:0}.search-active-dot{position:absolute;right:7px;top:7px;width:6px;height:6px;border-radius:50%;background:var(--bless-primary, #C2A052);}
+.home-search-sheet{padding:10px 20px calc(24px + env(safe-area-inset-bottom));background:#fff;max-height:80vh;overflow-y:auto;box-sizing:border-box;}.sheet-handle{width:36px;height:4px;border-radius:3px;background:#ddd;margin:0 auto 14px}.home-sheet-title{display:flex;align-items:center;justify-content:space-between;font-size:20px;font-weight:600;gap:12px}.home-sheet-title button{margin:0;padding:0;width:44px;height:44px;background:transparent;display:flex;align-items:center;justify-content:center;flex-shrink:0}.home-search-sheet button::after{border:0;}.home-keyword{display:flex;align-items:center;gap:10px;border-radius:24px;background:#f4f3f1;padding:12px 16px;margin-top:18px}.home-keyword input{flex:1;min-width:0;font-size:15px;height:28px}.home-type-heading{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:8px;margin:26px 0 14px;font-size:15px;font-weight:600}.home-type-heading text+text{font-size:12px;font-weight:400;color:#99948b}.home-type-options{display:flex;flex-wrap:wrap;gap:10px}.home-type-options button{margin:0;min-width:70px;padding:10px 16px;line-height:1.5;font-size:14px;border-radius:24px;background:#f5f4f2;color:#777168}.home-type-options button.selected{background:var(--bless-soft, #F1E4BD);color:var(--bless-text, #775E25)}.home-search-actions{display:flex;gap:12px;margin-top:32px}.home-search-actions button{flex:1;margin:0;padding:13px 12px;line-height:1.5;font-size:15px;border-radius:22px;background:#f3f2ef;color:#655d51}.home-search-actions .apply{flex:1.6;background:var(--bless-primary, #C2A052);color:white}.featured-search-summary{display:flex;flex-wrap:wrap;align-items:center;gap:8px;padding:0 4px 12px;color:var(--bless-text, #775E25);font-size:12px}.featured-search-summary text{background:var(--bless-soft, #F1E4BD);padding:5px 9px;border-radius:12px;max-width:100%;overflow-wrap:anywhere;}
+</style>
+
+<style scoped>
+.home-brand-row{height:44px;box-sizing:border-box;display:flex;align-items:center;gap:8px;padding-left:16px;overflow:hidden;}
+.home-brand-symbol{width:44px;height:36px;flex-shrink:0;}
+.home-brand-wordmark{font-size:24px;line-height:32px;font-weight:800;letter-spacing:3px;color:#35322e;white-space:nowrap;}
+.header-nav .nav-left{flex-shrink:0;}
+.header-nav .nav-center .nav-links{display:inline-flex;align-items:center;gap:22px;padding-right:10px;}
+.home-search-trigger{overflow:visible;}
+.home-search-trigger::before{content:"";position:absolute;right:100%;top:-2px;bottom:-2px;width:12px;background:linear-gradient(90deg,rgba(245,245,247,0),#f5f5f7);pointer-events:none;}
+@media(max-width:350px){.home-brand-row{gap:6px;}.home-brand-wordmark{font-size:22px;letter-spacing:2px;}.header-nav .nav-center .nav-links{gap:18px;}}
+.recommendation-sticky-header .header-nav{transition:height 180ms cubic-bezier(.23,1,.32,1),opacity 150ms ease-out;}
+@media(prefers-reduced-motion:reduce){.recommendation-sticky-header .header-nav{transition:none;}}
 </style>

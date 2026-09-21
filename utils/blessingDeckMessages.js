@@ -22,3 +22,13 @@ for (const [locale, [stampLike, stampPass]] of Object.entries(stamps)) Object.as
 
 const quotaRetry = { 'zh-Hans': '今日额度读取失败，点击重试', 'zh-Hant': '今日額度讀取失敗，點擊重試', en: 'Could not load today’s allowance. Tap to retry.', ru: 'Не удалось загрузить лимиты. Нажмите, чтобы повторить.', ja: '本日の利用枠を読み込めません。タップして再試行', ko: '오늘의 이용 횟수를 불러오지 못했습니다. 눌러서 다시 시도하세요.' }
 for (const [locale, message] of Object.entries(quotaRetry)) blessingDeckMessages[locale].quotaRetry = message
+
+const listQuotaMessages = {
+ 'zh-Hans': ['今日剩余 {count} 赞', '无限赞', '更新中', '点击重试'],
+ 'zh-Hant': ['今日剩餘 {count} 讚', '無限讚', '更新中', '點擊重試'],
+ en: ['{count} likes left today', 'Unlimited likes', 'Updating', 'Retry'],
+ ru: ['Сегодня: {count} лайков', 'Безлимитные лайки', 'Обновление', 'Повторить'],
+ ja: ['本日残り {count} いいね', 'いいね無制限', '更新中', '再試行'],
+ ko: ['오늘 좋아요 {count}회 남음', '무제한 좋아요', '업데이트 중', '다시 시도']
+}
+for (const [locale, [likesRemaining, unlimitedLikes, quotaLoadingShort, quotaRetryShort]] of Object.entries(listQuotaMessages)) Object.assign(blessingDeckMessages[locale], { likesRemaining, unlimitedLikes, quotaLoadingShort, quotaRetryShort })

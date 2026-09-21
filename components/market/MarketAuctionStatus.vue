@@ -18,5 +18,5 @@ onMounted(() => { timer = setInterval(() => { now.value = Date.now() + offset },
 onBeforeUnmount(() => clearInterval(timer))
 </script>
 <style scoped>
-.auction-status{display:flex;flex-wrap:wrap;align-items:center;gap:5px;margin:0 0 7px}.auction-badge{display:inline-block;padding:3px 7px;border-radius:12px;background:#fff3d4;color:#a5811d;font-size:11px;line-height:1.5}.auction-badge.ended{background:#f1f1f3;color:#999}.auction-time{font-size:11px;line-height:1.6;color:#a5811d;font-variant-numeric:tabular-nums;overflow-wrap:anywhere}
+.auction-status{display:flex;flex-wrap:wrap;align-items:center;gap:5px;margin:0 0 7px}.auction-badge{display:inline-block;padding:3px 7px;border-radius:12px;background:var(--bless-soft, #F1E4BD);color:var(--bless-text, #775E25);font-size:11px;line-height:1.5}.auction-badge.ended{background:#f1f1f3;color:#999}.auction-time{font-size:11px;line-height:1.6;color:var(--bless-text, #775E25);font-variant-numeric:tabular-nums;overflow-wrap:anywhere}
 </style>

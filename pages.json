@@ -20,6 +20,7 @@
 			"path": "pages/index/index360",
 			"style": {
 				"navigationBarTitleText": "幸福人生",
+                "navigationStyle": "custom",
 				"navigationBarBackgroundColor": "#f5f5f7",
 				"enablePullDownRefresh": true,
 				"onReachBottomDistance": 100
@@ -62,7 +63,9 @@
 		{
 			"path": "pages/notice/interactionMessages",
 			"style": {
-				"navigationBarTitleText": "互动消息"
+				"navigationBarTitleText": "互动消息",
+                "navigationStyle": "custom",
+                "backgroundColor": "#f3f2ef"
 			}
 		},
 		{
@@ -88,7 +91,9 @@
 		{
 			"path": "pages/my/myLifeShowEdit/myLifeShowEdit",
 			"style": {
-				"navigationBarTitleText": ""
+				"navigationBarTitleText": "",
+                "navigationStyle": "custom",
+                "app-plus": { "softinputMode": "adjustResize" }
 			}
 		},
 		{

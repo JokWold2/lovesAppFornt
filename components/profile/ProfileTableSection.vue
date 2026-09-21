@@ -29,7 +29,7 @@ const emit = defineEmits(['edit'])
 </script>
 
 <style scoped lang="scss">
-$primary-color: #fff6df;
+$primary-color: var(--bless-soft, #F1E4BD);
 $border-color: #e0e0e0;
 .section { background: #fff; border-radius: 12rpx; padding: 24rpx; margin-bottom: 30rpx; box-shadow: 0 4rpx 12rpx rgba(0, 0, 0, .05); }
 .section-title { display: flex; align-items: center; justify-content: space-between; font-size: 32rpx; font-weight: bold; color: #333; margin-bottom: 24rpx; padding-left: 16rpx; border-left: 8rpx solid $primary-color; }
@@ -52,6 +52,6 @@ $border-color: #e0e0e0;
 .section-edit { flex: 0 0 auto; min-width: 44px; min-height: 44px; max-width: 50%; margin: -8px -8px -8px 8px; padding: 10px 8px; border: 0; border-radius: 16px; background: transparent; color: #777269; font-size: 13px; font-weight: 500; line-height: 24px; white-space: normal; word-break: break-word; overflow-wrap: anywhere; transition: transform 140ms cubic-bezier(.23, 1, .32, 1), background-color 140ms ease; }
 .section-edit::after { border: 0; }
 .section-edit--pressed, .section-edit:active { transform: scale(.97); background: #f5f4f1; }
-.section-edit:focus-visible { outline: 2px solid #ba9400; outline-offset: -2px; }
+.section-edit:focus-visible { outline: 2px solid var(--bless-primary, #C2A052); outline-offset: -2px; }
 @media (prefers-reduced-motion: reduce) { .section-edit { transition: none; }.section-edit--pressed, .section-edit:active { transform: none; } }
 </style>

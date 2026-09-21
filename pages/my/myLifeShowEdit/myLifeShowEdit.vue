@@ -1,624 +1,81 @@
 <template>
-  <view class="container app-h5-min-screen">
-    <!-- 顶部状态栏占位 -->
-    <view class="status-bar"></view>
-
-    <!-- 顶部导航栏 -->
-    <view class="header">
-      <text class="cancel-btn" @click="onCancel">{{ t('common.cancel') }}</text>
-      <view class="publish-btn" :class="{ disabled: publishing }" @click="onPublish">
-        <text class="publish-text">{{ publishing ? t('publish.publishing') : t('publish.publish') }}</text>
-      </view>
-    </view>
-
-    <!-- 文本输入区域 -->
-    <view class="content-wrapper">
-      <textarea
-        v-model="postContent"
-        class="textarea"
-        :placeholder="t('publish.thought')"
-        auto-height
-        placeholder-style="color: #BBBBBB; font-size: 32rpx;"
-        :maxlength="2000"
-      />
-
-      <!-- 图片上传区域 -->
-      <view class="image-grid" v-if="config.baseURL" >
-        <!-- 已上传的图片 -->
-        <view v-for="(img, index) in imageList" :key="index" class="image-item uploaded">
-          <image :src="getFullImageUrl(img.url)" mode="aspectFill" @click="previewImage(index)" />
-          <view class="delete-btn" @click="deleteImage(index)">
-            <text class="delete-icon">×</text>
-          </view>
-        </view>
-
-        <!-- 添加图片按钮 (最多9张) -->
-        <view v-if="imageList.length < 9" class="image-item add-btn" @click="addImages">
-          <text class="plus-icon">+</text>
-        </view>
-      </view>
-
-      <!-- 上传进度 -->
-      <view v-if="uploading" class="upload-progress">
-        <text class="progress-text">{{ t('publish.uploading') }}</text>
-      </view>
-    </view>
-
-    <!-- 设置列表 -->
-    <view class="settings-list">
-      <!-- 所在位置 -->
-      <view class="settings-item" @click="selectLocation">
-        <view class="item-left">
-          <view class="item-icon location-icon">📍</view>
-          <text class="item-title">{{ t('publish.location') }}</text>
-        </view>
-        <view class="item-right">
-          <text class="item-value">{{ location.name || t('publish.notSelected') }}</text>
-          <view class="arrow-right"></view>
-        </view>
-      </view>
-
-      <!-- 提醒谁看 -->
-      <view class="settings-item" @click="selectRemind">
-        <view class="item-left">
-          <view class="item-icon at-icon">@</view>
-          <text class="item-title">{{ t('publish.remind') }}</text>
-        </view>
-        <view class="item-right">
-          <text class="item-value">{{ remindUsers.length > 0 ? t('publish.friends', { count: remindUsers.length }) : t('publish.notSelected') }}</text>
-          <view class="arrow-right"></view>
-        </view>
-      </view>
-
-      <!-- 谁可以看 -->
-      <view class="settings-item" @click="selectVisibility">
-        <view class="item-left">
-          <view class="item-icon people-icon">👥</view>
-          <text class="item-title">{{ t('publish.visibility') }}</text>
-        </view>
-        <view class="item-right">
-          <text class="item-value">{{ visibilityLabel }}</text>
-          <view class="arrow-right"></view>
-        </view>
-      </view>
-
-      <!-- 部分可见好友列表 -->
-      <view v-if="visibility === 'partial' && visibleUsers.length > 0" class="visible-users-list">
-        <text class="visible-users-label">{{ t('publish.visibleFriends') }}</text>
-        <view class="visible-user-tags">
-          <view v-for="user in visibleUsers" :key="user.id" class="user-tag">
-            <text class="user-tag-text">{{ user.username }}</text>
-          </view>
-        </view>
-      </view>
-    </view>
-
-    <!-- 底部安全区域占位 -->
-    <view class="footer-spacer"></view>
+ <view class="composer" :style="{paddingTop: navHeight + 'px'}">
+  <view class="nav" :style="navStyle"><button class="back" :aria-label="t('common.cancel')" @click="cancel"><uni-icons type="left" size="23" color="#35322e"/></button><text class="nav-title">{{ c('title') }}</text></view>
+  <view class="body">
+   <view class="card editor">
+    <view class="author"><image v-if="avatar" :src="avatar" mode="aspectFill"/><view v-else class="avatar"><uni-icons type="person-filled" size="26" color="#b9b1a1"/></view><view><text class="name">{{ authorName }}</text><text class="hint">{{ c('hint') }}</text></view></view>
+    <textarea v-model="content" :disabled="publishing" :placeholder="t('publish.thought')" maxlength="2000" auto-height :adjust-position="true" :cursor-spacing="100" class="writing"/>
+    <text class="counter">{{ content.length }} / 2000</text>
+    <view class="photo-heading"><text>{{ c('photos') }}</text><text>{{ images.length }} / 9</text></view>
+    <view class="photos"><view v-for="(photo,index) in images" :key="photo.url" class="photo"><image :src="fullUrl(photo.url)" mode="aspectFill" @click="preview(index)"/><button v-if="!busy" class="remove" :aria-label="t('publish.deleteImage')" @click="deleteIndex = index; sheet = 'delete'">×</button><view v-if="photo.uploading" class="upload-mask">{{ t('publish.uploading') }}</view></view><button v-if="images.length < 9" class="add photo" :disabled="busy" @click="addPhotos"><uni-icons type="plusempty" size="27" color="#9e8b62"/><text>{{ c('add') }}</text></button></view>
+    <text class="photo-hint">{{ c('photoHint') }}</text>
+   </view>
+   <view class="card settings">
+    <button :disabled="busy" @click="selectLocation"><uni-icons type="location" size="23"/><text>{{ t('publish.location') }}</text><text class="value">{{ location.name || t('publish.notSelected') }}</text><uni-icons type="right" size="16" color="#aaa"/></button>
+    <button :disabled="busy || visibility === 'private'" @click="openReminders"><text class="at">@</text><text>{{ t('publish.remind') }}</text><text class="value">{{ visibility === 'private' ? t('publish.private') : selected.length ? c('selected', {count:selected.length}) : t('publish.notSelected') }}</text><uni-icons type="right" size="16" color="#aaa"/></button>
+    <button :disabled="busy" @click="draftVisibility = visibility; sheet = 'visibility'"><uni-icons :type="visibility === 'private' ? 'locked' : 'eye'" size="23"/><text>{{ t('publish.visibility') }}</text><text class="value">{{ t('publish.' + visibility) }}</text><uni-icons type="right" size="16" color="#aaa"/></button>
+   </view>
   </view>
+  <view class="footer"><button class="primary" :disabled="busy" @click="publish">{{ publishing ? t('publish.publishing') : uploading ? t('publish.uploading') : c('title') }}</button></view>
+  <SlideUpPanel fixed :open="!!sheet" :z-index="300" :label="sheetTitle" @dismiss="sheet = ''" @after-close="afterClose">
+   <view class="sheet"><view class="handle"/><view class="sheet-heading"><text>{{ sheetTitle }}</text><button :aria-label="t('common.cancel')" @click="sheet = ''"><uni-icons type="closeempty" size="24"/></button></view>
+    <template v-if="renderedSheet === 'visibility'"><button v-for="option in ['public','private']" :key="option" class="visibility-row" @click="draftVisibility = option"><uni-icons :type="option === 'public' ? 'eye' : 'locked'" size="25"/><view><text>{{ t('publish.'+option) }}</text><text class="hint">{{ c(option === 'public' ? 'publicHint' : 'onlyMe') }}</text></view><uni-icons :type="draftVisibility === option ? 'checkbox-filled' : 'circle'" size="24" :color="draftVisibility === option ? '#C2A052' : '#bbb'"/></button><button class="primary" @click="applyVisibility">{{ t('common.confirm') }}</button></template>
+    <template v-else-if="renderedSheet === 'remind'">
+     <scroll-view scroll-y class="people"><button v-for="person in candidates" :key="person.id" class="person" @click="togglePerson(person)"><image v-if="person.avatar_url" :src="fullUrl(person.avatar_url)" mode="aspectFill"/><view v-else class="avatar"><uni-icons type="person-filled" size="24" color="#aaa"/></view><text>{{ person.name }}</text><uni-icons :type="selectedIds.includes(person.id) ? 'checkbox-filled' : 'circle'" size="23" :color="selectedIds.includes(person.id) ? '#C2A052' : '#bbb'"/></button><view v-if="peopleLoading" class="state">{{ t('home.loading') }}</view><button v-else-if="peopleError" class="state" @click="loadPeople">{{ c('failed') }}</button><view v-else-if="!candidates.length" class="state">{{ c('empty') }}</view><button v-else-if="hasMore" class="state" @click="loadPeople">{{ c('more') }}</button></scroll-view>
+     <button class="primary" :disabled="peopleLoading || peopleError" @click="selected = [...draftSelected]; sheet = ''">{{ t('common.confirm') }} · {{ draftSelected.length }}</button>
+    </template>
+    <template v-else><text class="confirm-copy">{{ t(renderedSheet === 'delete' ? 'publish.deleteImage' : 'publish.discard') }}</text><view class="confirm-actions"><button @click="sheet = ''">{{ t('common.cancel') }}</button><button class="primary" @click="confirmAction">{{ t('common.confirm') }}</button></view></template>
+   </view>
+  </SlideUpPanel>
+ </view>
 </template>
-
 <script setup>
-import { ref, computed } from 'vue'
-import { onLoad, onUnload } from '@dcloudio/uni-app'
-import { uploadMomentImagesApi, createMomentApi } from '@/api/index.js'
-import {config} from '@/utils/config.js'
-import { t } from '@/utils/localeRuntime.js'
-
-// 页面状态
-const pageReady = ref(false)
-
-// 文本内容
-const postContent = ref('')
-
-// 图片列表
-const imageList = ref([])
-const uploading = ref(false)
-const publishing = ref(false)
-
-// 位置信息
-const location = ref({
-  name: '',
-  latitude: null,
-  longitude: null
-})
-
-// 提醒的好友
-const remindUsers = ref([])
-
-// 可见性
-const visibilityOptions = [
-  { value: 'public', label: () => t('publish.public') },
-  { value: 'friends', label: () => t('publish.friendsOnly') },
-  { value: 'partial', label: () => t('publish.partial') },
-  { value: 'private', label: () => t('publish.private') }
-]
-const visibility = ref('public')
-
-// 可见用户列表
-const visibleUsers = ref([])
-
-// 计算可见性标签
-const visibilityLabel = computed(() => {
-  const option = visibilityOptions.find(v => v.value === visibility.value)
-  return option ? option.label() : t('publish.public')
-})
-
-// 页面加载
-onLoad((options) => {
-  if (options && options.id) {
-    // 编辑模式
-    loadMoment(options.id)
-  }
-
-  // 监听从选择好友页面返回的事件
-  uni.$on('onFriendSelected', (data) => {
-    if (data.mode === 'remind') {
-      remindUsers.value = data.users
-    } else if (data.mode === 'visible') {
-      visibleUsers.value = data.users
-    }
-  })
-})
-
-onUnload(() => {
-  uni.$off('onFriendSelected')
-})
-
-// 加载动态数据
-async function loadMoment(id) {
-  // TODO: 从 API 获取动态详情
-  console.log('加载动态', id)
-}
-
-// 取消
-const onCancel = () => {
-  if (postContent.value.trim() || imageList.value.length > 0) {
-    uni.showModal({
-      title: t('publish.notice'),
-      content: t('publish.discard'),
-      cancelText: t('common.cancel'),
-      confirmText: t('common.confirm'),
-      success: (res) => {
-        if (res.confirm) {
-          uni.navigateBack()
-        }
-      }
-    })
-  } else {
-    uni.navigateBack()
-  }
-}
-function getFullImageUrl(path) {
-  if (!path) return ''
-  if (path.startsWith('http')) return path
-  return config.baseURL + path
-}
-// 发表
-const onPublish = async () => {
-  if (publishing.value) return
-
-  // 验证内容
-  if (!postContent.value.trim() && imageList.value.length === 0) {
-    uni.showToast({ title: t('publish.contentRequired'), icon: 'none' })
-    return
-  }
-
-  publishing.value = true
-
-  try {
-    const payload = {
-      content: postContent.value.trim(),
-      images: imageList.value.map(img => img.url)
-    }
-
-    // 添加位置信息
-    if (location.value.latitude && location.value.longitude) {
-      payload.locationName = location.value.name
-      payload.locationLat = location.value.latitude
-      payload.locationLng = location.value.longitude
-    }
-
-    // 添加可见性
-    payload.visibility = visibility.value
-
-    // 添加部分可见好友
-    if (visibility.value === 'partial' && visibleUsers.value.length > 0) {
-      payload.visibleUserIds = visibleUsers.value.map(u => u.id)
-    }
-
-    // 添加提醒好友
-    if (remindUsers.value.length > 0) {
-      payload.remindUserIds = remindUsers.value.map(u => u.id)
-    }
-
-    const res = await createMomentApi(payload)
-    console.log('发布成功', res)
-
-    uni.showToast({ title: t('publish.publishSuccess'), icon: 'success' })
-
-    // 返回上一页并刷新列表
-    setTimeout(() => {
-      const pages = getCurrentPages()
-      const prevPage = pages[pages.length - 2]
-      if (prevPage) {
-        prevPage.onRefresh && prevPage.onRefresh()
-      }
-      uni.navigateBack()
-    }, 1500)
-  } catch (e) {
-    console.error('发布失败', e)
-    uni.showToast({ title: t('publish.publishFailed'), icon: 'none' })
-  } finally {
-    publishing.value = false
-  }
-}
-
-// 添加图片
-const addImages = () => {
-  const remainCount = 9 - imageList.value.length
-  if (remainCount <= 0) {
-    uni.showToast({ title: t('publish.imageLimit'), icon: 'none' })
-    return
-  }
-
-  uni.chooseImage({
-    count: remainCount,
-    sizeType: ['compressed'],
-    sourceType: ['album', 'camera'],
-    success: async (res) => {
-      const tempFilePaths = res.tempFilePaths
-      if (tempFilePaths.length === 0) return
-
-      uploading.value = true
-
-      try {
-        // 先显示本地预览
-        const newImages = tempFilePaths.map(path => ({
-          url: path,
-          uploading: true
-        }))
-        imageList.value = [...imageList.value, ...newImages]
-
-        // 上传到服务器
-        const uploadedUrls = await uploadMomentImagesApi(tempFilePaths)
-
-        // 更新已上传的图片 URL
-        let urlIndex = 0
-        imageList.value = imageList.value.map(img => {
-          if (img.uploading && urlIndex < uploadedUrls.length) {
-            const url = uploadedUrls[urlIndex]
-            urlIndex++
-            return { url, uploading: false }
-          }
-          return img
-        })
-
-        uni.showToast({ title: t('publish.uploadSuccess'), icon: 'success' })
-      } catch (e) {
-        console.error('上传失败', e)
-        // 移除上传失败的图片
-        imageList.value = imageList.value.filter(img => !img.uploading)
-        uni.showToast({ title: t('publish.uploadFailed'), icon: 'none' })
-      } finally {
-        uploading.value = false
-      }
-    }
-  })
-}
-
-// 删除图片
-const deleteImage = (index) => {
-  uni.showModal({
-    title: t('publish.notice'),
-    content: t('publish.deleteImage'),
-    cancelText: t('common.cancel'),
-    confirmText: t('common.confirm'),
-    success: (res) => {
-      if (res.confirm) {
-        imageList.value.splice(index, 1)
-      }
-    }
-  })
-}
-
-// 预览图片
-const previewImage = (index) => {
-  const urls = imageList.value.map(img => img.url)
-  uni.previewImage({
-    urls,
-    current: index
-  })
-}
-
-// 选择位置
-const selectLocation = () => {
-  uni.chooseLocation({
-    success: (res) => {
-      console.log('选择的位置', res)
-      location.value = {
-        name: res.name || res.address,
-        latitude: res.latitude,
-        longitude: res.longitude
-      }
-    },
-    fail: (err) => {
-      console.log('选择位置失败', err)
-      // 如果用户拒绝了定位权限，给提示
-      if (err.errMsg && err.errMsg.includes('auth deny')) {
-        uni.showToast({ title: t('publish.locationPermission'), icon: 'none' })
-      }
-    }
-  })
-}
-
-// 提醒谁看
-const selectRemind = () => {
-  // 跳转到好友选择页面
-  uni.navigateTo({
-    url: '/pages/my/friendSelect/friendSelect?mode=remind&selected=' + JSON.stringify(remindUsers.value.map(u => u.id))
-  })
-}
-
-// 选择可见性
-const selectVisibility = () => {
-  uni.showActionSheet({
-    itemList: visibilityOptions.map(v => v.label()),
-    success: (res) => {
-      const selected = visibilityOptions[res.tapIndex]
-      visibility.value = selected.value
-
-      // 如果选择部分可见，跳转到好友选择
-      if (selected.value === 'partial') {
-        setTimeout(() => {
-          selectVisibleUsers()
-        }, 300)
-      }
-    }
-  })
-}
-
-// 选择可见的好友
-const selectVisibleUsers = () => {
-  uni.navigateTo({
-    url: '/pages/my/friendSelect/friendSelect?mode=visible&selected=' + JSON.stringify(visibleUsers.value.map(u => u.id))
-  })
-}
-
-onUnload(() => {
-  uni.$off('onFriendSelected')
-})
+import { ref, computed, watch } from 'vue'
+import { onPageScroll, onResize, onBackPress, onUnload } from '@dcloudio/uni-app'
+import SlideUpPanel from '@/components/common/SlideUpPanel.vue'
+import { uploadMomentImagesApi, createMomentApi, getMomentReminderCandidatesApi } from '@/api/index.js'
+import { config } from '@/utils/config.js'
+import { currentLocale, t } from '@/utils/localeRuntime.js'
+import { momentComposerMessages } from '@/utils/momentComposerMessages.js'
+import { readChatHeaderGeometry } from '@/utils/chatHeaderLayout.js'
+const c = (key, params={}) => Object.entries(params).reduce((text,[k,v]) => text.replace('{'+k+'}',String(v)), (momentComposerMessages[currentLocale.value] || momentComposerMessages.en)[key])
+let platform = ''
+// #ifdef MP-WEIXIN
+platform = 'mp-weixin'
+// #endif
+const geometry = ref(readChatHeaderGeometry(uni,{clearCapsule:false},platform)), scroll = ref(0)
+const navHeight = computed(() => geometry.value.contentTop + 56)
+const navStyle = computed(() => ({paddingTop:geometry.value.contentTop+'px',paddingRight:geometry.value.contentRight+'px',backgroundColor:'rgba(243,242,239,'+(.94+Math.min(scroll.value/80,1)*.04)+')',backdropFilter:'blur('+Math.min(scroll.value/4,12)+'px)',WebkitBackdropFilter:'blur('+Math.min(scroll.value/4,12)+'px)'}))
+onPageScroll(e => {scroll.value=Math.max(0,e.scrollTop)})
+onResize(() => {geometry.value=readChatHeaderGeometry(uni,{clearCapsule:false},platform)})
+let user={}; try {const stored=uni.getStorageSync('USER_INFO');user=typeof stored==='string'?JSON.parse(stored):stored||{}} catch (_) {}
+const avatar = user.avatar_url || user.avatarUrl || ''
+const authorName = user.displayName || user.en_first_name || user.native_first_name || t('moment.user')
+const content=ref(''), images=ref([]), uploading=ref(false), publishing=ref(false), visibility=ref('public'), draftVisibility=ref('public')
+const location=ref({name:'',latitude:null,longitude:null}), selected=ref([]), draftSelected=ref([])
+const sheet=ref(''), deleteIndex=ref(-1), candidates=ref([]), peopleLoading=ref(false), peopleError=ref(false), hasMore=ref(true), cursor=ref(0)
+const selectedIds=computed(()=>draftSelected.value.map(p=>p.id))
+const renderedSheet=ref('')
+watch(sheet,value=>{if(value)renderedSheet.value=value},{flush:'sync'})
+const busy=computed(()=>uploading.value||publishing.value)
+const sheetTitle=computed(()=>renderedSheet.value==='visibility'?t('publish.visibility'):renderedSheet.value==='remind'?c('mutual'):t('publish.notice'))
+let leaveAfterClose=false, leaving=false, alive=true, peopleRevision=0
+function fullUrl(url){return /^(https?:|wxfile:|blob:|file:|data:|_doc|_www)/i.test(url)?url:config.baseURL+url}
+function back(){leaving=true;uni.navigateBack()}
+function cancel(){if(busy.value)return;if(content.value.trim()||images.value.length)sheet.value='discard';else back()}
+onBackPress(e=>{if(leaving||e.from==='navigateBack')return false;if(sheet.value){sheet.value='';return true}cancel();return true})
+onUnload(()=>{alive=false;peopleRevision++})
+function afterClose(){if(leaveAfterClose){leaveAfterClose=false;back()}}
+function confirmAction(){if(sheet.value==='delete')images.value.splice(deleteIndex.value,1);else leaveAfterClose=true;sheet.value=''}
+function applyVisibility(){visibility.value=draftVisibility.value;if(visibility.value==='private')selected.value=[];sheet.value=''}
+async function openReminders(){if(busy.value||visibility.value==='private')return;draftSelected.value=[...selected.value];candidates.value=[];cursor.value=0;hasMore.value=true;peopleRevision++;peopleLoading.value=false;sheet.value='remind';await loadPeople()}
+async function loadPeople(){if(peopleLoading.value||!hasMore.value)return;const revision=peopleRevision;peopleLoading.value=true;peopleError.value=false;try{const data=await getMomentReminderCandidatesApi({after:cursor.value});if(!alive||revision!==peopleRevision)return;candidates.value=[...candidates.value,...data.items];cursor.value=data.nextCursor;hasMore.value=data.hasMore;if(!hasMore.value){const ids=new Set(candidates.value.map(p=>p.id));draftSelected.value=draftSelected.value.filter(p=>ids.has(p.id))}}catch(_){if(revision===peopleRevision)peopleError.value=true}finally{if(revision===peopleRevision)peopleLoading.value=false}}
+function togglePerson(person){const index=draftSelected.value.findIndex(p=>p.id===person.id);if(index>=0)draftSelected.value.splice(index,1);else if(draftSelected.value.length<100)draftSelected.value.push(person);else uni.showToast({title:c('limit'),icon:'none'})}
+function selectLocation(){uni.chooseLocation({success:res=>{location.value={name:res.name||res.address,latitude:res.latitude,longitude:res.longitude}},fail:err=>{if(!String(err.errMsg).includes('cancel'))uni.showToast({title:t('publish.locationPermission'),icon:'none'})}})}
+function preview(index){uni.previewImage({urls:images.value.map(p=>fullUrl(p.url)),current:index})}
+function addPhotos(){if(busy.value)return;uploading.value=true;uni.chooseImage({count:9-images.value.length,sizeType:['compressed'],sourceType:['album','camera'],success:async res=>{const batch=res.tempFilePaths.map(url=>({url,uploading:true}));images.value.push(...batch);try{const urls=await uploadMomentImagesApi(res.tempFilePaths);if(!alive)return;if(!Array.isArray(urls)||urls.length!==batch.length)throw new Error('Incomplete upload');const start=images.value.length-batch.length;images.value.splice(start,batch.length,...urls.map(url=>({url,uploading:false})))}catch(_){if(alive){images.value=images.value.filter(p=>!p.uploading);uni.showToast({title:t('publish.uploadFailed'),icon:'none'})}}finally{if(alive)uploading.value=false}},fail:()=>{uploading.value=false}})}
+async function publish(){if(busy.value)return;if(!content.value.trim()&&!images.value.length){uni.showToast({title:t('publish.contentRequired'),icon:'none'});return}publishing.value=true;try{const payload={content:content.value.trim(),images:images.value.map(p=>p.url),visibility:visibility.value,remindUserIds:visibility.value==='public'?selected.value.map(p=>p.id):[]};if(location.value.latitude!==null&&location.value.longitude!==null)Object.assign(payload,{locationName:location.value.name,locationLat:location.value.latitude,locationLng:location.value.longitude});await createMomentApi(payload);if(!alive)return;uni.showToast({title:t('publish.publishSuccess'),icon:'success'});const pages=getCurrentPages(),prev=pages[pages.length-2];prev?.onRefresh?.();back()}catch(_){if(alive){uni.showToast({title:t('publish.publishFailed'),icon:'none'});publishing.value=false}}}
 </script>
-
-<style lang="scss" scoped>
-.container {
-  display: flex;
-  flex-direction: column;
-  /* #ifndef H5 */
-  min-height: 100vh;
-  /* #endif */
-  background-color: #FFFFFF;
-}
-
-.status-bar {
-  height: var(--status-bar-height);
-  width: 100%;
-  background-color: #FFFFFF;
-}
-
-.header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 10rpx 30rpx;
-  height: 90rpx;
-  background-color: #FFFFFF;
-}
-
-.cancel-btn {
-  font-size: 32rpx;
-  color: #000000;
-}
-
-.publish-btn {
-  background-color: #fff6df;
-  color: #333333;
-  border-radius: 8rpx;
-  padding: 12rpx 36rpx;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-
-  &.disabled {
-    background-color: #e6dcc4;
-  }
-}
-
-.publish-text {
-  font-size: 28rpx;
-  font-weight: 500;
-}
-
-.content-wrapper {
-  padding: 30rpx;
-  flex: 1;
-}
-
-.textarea {
-  width: 100%;
-  min-height: 200rpx;
-  font-size: 32rpx;
-  line-height: 1.6;
-  color: #000000;
-  margin-bottom: 40rpx;
-}
-
-.image-grid {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 20rpx;
-}
-
-.image-item {
-  width: calc((100vw - 100rpx) / 3);
-  height: calc((100vw - 100rpx) / 3);
-  background-color: #F8F8F8;
-  border-radius: 4rpx;
-  overflow: hidden;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  position: relative;
-
-  &.uploaded {
-    image {
-      width: 100%;
-      height: 100%;
-    }
-  }
-
-  &.add-btn {
-    border: 2rpx solid #EEEEEE;
-  }
-}
-
-.delete-btn {
-  position: absolute;
-  top: 8rpx;
-  right: 8rpx;
-  width: 44rpx;
-  height: 44rpx;
-  background-color: rgba(0, 0, 0, 0.5);
-  border-radius: 50%;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-}
-
-.delete-icon {
-  font-size: 32rpx;
-  color: #FFFFFF;
-  line-height: 1;
-}
-
-.plus-icon {
-  font-size: 80rpx;
-  color: #AAAAAA;
-  line-height: 1;
-}
-
-.upload-progress {
-  margin-top: 20rpx;
-  padding: 20rpx;
-  background-color: #f5f5f5;
-  border-radius: 8rpx;
-  text-align: center;
-}
-
-.progress-text {
-  font-size: 28rpx;
-  color: #888888;
-}
-
-.settings-list {
-  padding: 0 30rpx;
-  margin-top: 40rpx;
-}
-
-.settings-item {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 35rpx 0;
-  border-bottom: 1rpx solid #EEEEEE;
-
-  &:last-child {
-    border-bottom: none;
-  }
-}
-
-.item-left {
-  display: flex;
-  align-items: center;
-}
-
-.item-icon {
-  width: 40rpx;
-  height: 40rpx;
-  margin-right: 25rpx;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  color: #000000;
-
-  &.location-icon { font-size: 38rpx; }
-  &.at-icon { font-size: 38rpx; font-weight: bold; }
-  &.people-icon { font-size: 36rpx; }
-}
-
-.item-title {
-  font-size: 32rpx;
-  color: #000000;
-}
-
-.item-right {
-  display: flex;
-  align-items: center;
-}
-
-.item-value {
-  font-size: 30rpx;
-  color: #888888;
-  margin-right: 12rpx;
-  max-width: 300rpx;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.arrow-right {
-  width: 16rpx;
-  height: 16rpx;
-  border-top: 2rpx solid #CCCCCC;
-  border-right: 2rpx solid #CCCCCC;
-  transform: rotate(45deg);
-}
-
-.visible-users-list {
-  padding: 20rpx 0;
-  border-bottom: 1rpx solid #EEEEEE;
-}
-
-.visible-users-label {
-  font-size: 28rpx;
-  color: #888888;
-  margin-bottom: 15rpx;
-  display: block;
-}
-
-.visible-user-tags {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 15rpx;
-}
-
-.user-tag {
-  background-color: #f0f0f0;
-  padding: 8rpx 20rpx;
-  border-radius: 20rpx;
-}
-
-.user-tag-text {
-  font-size: 26rpx;
-  color: #333333;
-}
-
-.footer-spacer {
-  height: calc(50rpx + var(--safe-area-inset-bottom));
-}
-</style>
 <style scoped>
-/* #ifndef H5 */
-.container { min-height: 100vh; }
-/* #endif */
+.composer{min-height:100vh;box-sizing:border-box;background:#f3f2ef;color:#35322e;padding-bottom:calc(112px + env(safe-area-inset-bottom))}.nav{position:fixed;top:0;left:0;right:0;z-index:20;display:flex;align-items:center;gap:16px;padding-left:20px;padding-bottom:12px;min-height:44px}.nav::after{content:"";position:absolute;top:100%;left:0;right:0;height:8px;background:linear-gradient(rgba(243,242,239,.5),transparent);pointer-events:none}.back{width:44px;height:44px;border-radius:50%;background:#fff;display:flex;align-items:center;justify-content:center;margin:0;padding:0;flex-shrink:0}.nav-title{font-size:19px;font-weight:650;overflow-wrap:anywhere}.body{max-width:560px;margin:auto;padding:14px 16px}.card{background:#fff;border-radius:24px;padding:20px;margin-bottom:16px}.author{display:flex;align-items:center;gap:12px}.author image,.avatar{width:44px;height:44px;border-radius:50%;background:#f3f1ec;flex-shrink:0}.avatar{display:flex;align-items:center;justify-content:center}.name{display:block;font-size:16px;font-weight:600}.hint{display:block;color:#99948c;font-size:12px;margin-top:5px;line-height:1.5}.writing{width:100%;min-height:124px;margin-top:22px;font-size:16px;line-height:1.8;box-sizing:border-box}.counter{display:block;text-align:right;font-size:12px;color:#aaa39a;margin:10px 0 24px}.photo-heading{display:flex;justify-content:space-between;font-size:14px;margin-bottom:12px}.photo-heading text+text{color:#999}.photos{display:flex;flex-wrap:wrap;gap:10px}.photo{position:relative;width:calc((100% - 20px)/3);aspect-ratio:1;border-radius:14px;overflow:hidden;background:#f5f4f1}.photo image{width:100%;height:100%;display:block}.remove{position:absolute;right:0;top:0;width:36px;height:36px;padding:0;margin:0;border-radius:0 0 0 14px;background:rgba(30,29,25,.6);color:#fff;line-height:36px;font-size:24px}.add{margin:0;padding:12px 3px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;line-height:1.5;font-size:12px;color:#8c8475}.upload-mask{position:absolute;inset:0;background:rgba(255,255,255,.7);display:flex;align-items:center;justify-content:center;font-size:11px}.photo-hint{display:block;font-size:11px;color:#a09a91;line-height:1.6;margin-top:12px}.settings{padding:5px 18px}.settings button{display:flex;align-items:center;gap:10px;width:100%;padding:17px 0;margin:0;background:transparent;color:#35322e;font-size:14px;text-align:left;line-height:1.5;border-radius:0}.settings button+button{border-top:1px solid #f4f2ee}.settings button[disabled]{opacity:.5}.settings .value{margin-left:auto;max-width:42%;color:#99938a;text-align:right;overflow-wrap:anywhere;font-size:12px}.at{width:23px;font-size:24px;text-align:center}.footer{position:fixed;bottom:0;left:0;right:0;z-index:25;background:#f3f2ef;padding:12px 20px calc(16px + env(safe-area-inset-bottom))}.primary{background:var(--bless-primary,#C2A052);color:#302719;border-radius:22px;padding:15px 14px;font-size:16px;line-height:1.5;margin:0;min-height:52px}.footer .primary{max-width:560px;margin:auto}.primary[disabled]{opacity:.5}button::after{border:0}button:active{opacity:.8}.sheet{padding:10px 20px calc(22px + env(safe-area-inset-bottom));background:#fff;max-height:82vh;overflow-y:auto;box-sizing:border-box}.handle{width:36px;height:4px;margin:0 auto 12px;border-radius:3px;background:#ddd}.sheet-heading{display:flex;align-items:center;justify-content:space-between;gap:12px;font-size:19px;font-weight:600;margin-bottom:12px}.sheet-heading button{width:44px;height:44px;flex-shrink:0;background:transparent;padding:0;margin:0;display:flex;align-items:center;justify-content:center}.visibility-row{display:flex;align-items:center;gap:15px;background:transparent;margin:0;padding:18px 0;line-height:1.5;text-align:left;font-size:16px}.visibility-row>view{flex:1}.sheet>.primary{margin-top:20px}.people{height:42vh}.person{display:flex;align-items:center;gap:12px;background:transparent;text-align:left;padding:12px 0;margin:0;font-size:15px;line-height:1.5}.person image{width:42px;height:42px;border-radius:50%;flex-shrink:0}.person>text{flex:1;overflow-wrap:anywhere}.state{display:block;padding:25px 10px;text-align:center;font-size:14px;color:#999;background:transparent;line-height:1.6}.confirm-copy{display:block;padding:16px 0 24px;color:#777;line-height:1.7}.confirm-actions{display:flex;gap:12px}.confirm-actions button{flex:1;margin:0;border-radius:22px;font-size:15px;line-height:1.5;padding:15px 10px}
 </style>
