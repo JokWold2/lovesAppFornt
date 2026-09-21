@@ -371,8 +371,10 @@ export function getExploreFeedApi({ limit = 15, excludeIds = [] } = {}) {
 }
 
 // 首页精选混合流：seed/cursor 仅在调用方已提供时发送。
-export function getFeaturedFeedApi({ limit = 15, seed, cursor } = {}) {
+export function getFeaturedFeedApi({ limit = 15, seed, cursor, keyword, types } = {}) {
   const params = { limit }
+  if (keyword) params.keyword = keyword
+  if (types?.length) params.types = types.join(',')
   if (seed) params.seed = seed
   if (cursor) params.cursor = cursor
   return get('/api/explore/featured-feed', params)
@@ -429,3 +431,5 @@ export default {
   getProfileCommentsApi,
   addProfileCommentApi
 }
+
+export const getMomentReminderCandidatesApi = params => get('/api/moments/reminder-candidates', params)

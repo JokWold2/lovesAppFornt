@@ -344,7 +344,7 @@ watch(currentLocale, updatePageTitle)
 </script>
 
 <style lang="scss" scoped>
-$brand-yellow: #ffce00;
+$brand-yellow: var(--bless-primary, #C2A052);
 $text-main: #1a1a1a;
 $text-sub: #999999;
 $gray-bg: #f5f6f8;
@@ -471,10 +471,10 @@ $line-color: #f2f2f4;
 
 /* 前三名用金银铜底色突出层级 */
 .entry-row.tier-gold {
-	background: linear-gradient(135deg, rgba(255, 215, 106, 0.35), rgba(255, 255, 255, 0.9) 55%);
+	background: linear-gradient(135deg, rgba(194, 160, 82, 0.35), rgba(255, 255, 255, 0.9) 55%);
 
 	.rank-number {
-		color: #d99a00;
+		color: var(--bless-text, #775E25);
 	}
 }
 
@@ -539,7 +539,7 @@ $line-color: #f2f2f4;
 	.category-tag {
 		padding: 2rpx 12rpx;
 		border-radius: 14rpx;
-		background: rgba(255, 206, 0, 0.35);
+		background: rgba(194,160,82,0.35);
 		font-size: 20rpx;
 		font-weight: 600;
 		color: $text-main;
@@ -730,7 +730,7 @@ $line-color: #f2f2f4;
 }
 
 .board-hint {
-	color: #8a6d00;
+	color: var(--bless-text, #775E25);
 }
 
 .load-more-tip {

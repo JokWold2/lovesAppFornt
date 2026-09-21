@@ -1223,7 +1223,7 @@ onUnmounted(stopNoticeRotation);
 
 <style lang="scss" scoped>
 // 与首页 index360 统一的品牌色板
-$brand-yellow: #ffce00;
+$brand-yellow: var(--bless-primary, #C2A052);
 $bg-color: #ffffff;
 $text-main: #1a1a1a;
 $text-sub: #999999;
@@ -1385,7 +1385,7 @@ $line-color: #f2f2f4;
 		border-radius: 30rpx;
 
 		&.hot {
-			background: rgba(255, 206, 0, 0.22);
+			background: rgba(194,160,82,0.22);
 			color: $text-main;
 			font-weight: 600;
 		}
@@ -1827,7 +1827,7 @@ $line-color: #f2f2f4;
 			font-size: 22rpx;
 			font-weight: 600;
 			color: $text-main;
-			background: rgba(255, 206, 0, 0.35);
+			background: rgba(194,160,82,0.35);
 			padding: 2rpx 14rpx;
 			border-radius: 16rpx;
 		}
@@ -1860,7 +1860,7 @@ $line-color: #f2f2f4;
 	.expand-toggle {
 		display: inline-block;
 		font-size: 24rpx;
-		color: #8a6d00;
+		color: var(--bless-text, #775E25);
 		margin-top: 8rpx;
 	}
 
@@ -2066,7 +2066,7 @@ $line-color: #f2f2f4;
 		display: block;
 		text-align: center;
 		font-size: 24rpx;
-		color: #8a6d00;
+		color: var(--bless-text, #775E25);
 		padding: 16rpx 0 6rpx;
 	}
 
@@ -2194,7 +2194,7 @@ $line-color: #f2f2f4;
 	height: 92rpx;
 	background-color: $brand-yellow;
 	border-radius: 46rpx;
-	box-shadow: 0 8rpx 20rpx rgba(255, 206, 0, 0.45);
+	box-shadow: 0 8rpx 20rpx rgba(194,160,82,0.45);
 	z-index: 90;
 
 	text {

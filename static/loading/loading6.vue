@@ -24,7 +24,7 @@
   <style scoped>
   .loader {
     width: fit-content;
-    color: #ffca27;
+    color: var(--bless-text, #775E25);
     font-size: 100rpx;
     /* 替换特殊字体，uniapp通用兜底 */
     font-family: sans-serif;

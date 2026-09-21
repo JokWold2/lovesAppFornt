@@ -1101,16 +1101,16 @@ async function onSubmit() {
 <style scoped>
 /* ====== 顏色 / 圓角變量（對應原設計稿 :root） ====== */
 .page {
-	--bg: #fff6df;
+	--bg: var(--bless-soft, #F1E4BD);
 	--paper: #FFFFFF;
 	--ink: #2B241F;
 	--ink-soft: #7A6F64;
 	--ink-faint: #B4A99C;
-	--wine: #fff6df;
+	--wine: var(--bless-soft, #F1E4BD);
 	--wine-dark: #e6dcc4;
-	--wine-soft: #fff6df;
+	--wine-soft: var(--bless-soft, #F1E4BD);
 	--gold: #e6dcc4;
-	--gold-soft: #fff6df;
+	--gold-soft: var(--bless-soft, #F1E4BD);
 	--line: #E9E1D3;
 	--radius: 20px;
 	--radius-sm: 12px;
@@ -1120,7 +1120,7 @@ async function onSubmit() {
 	/* #endif */
 	display: flex;
 	flex-direction: column;
-	background: linear-gradient(180deg, #fff6df 0%, #fff6df 100%);
+	background: linear-gradient(180deg, var(--bless-soft, #F1E4BD) 0%, var(--bless-soft, #F1E4BD) 100%);
 	background-color: var(--bg);
 	color: var(--ink);
 	font-size: 14px;
@@ -1450,9 +1450,9 @@ textarea.input {
 }
 
 .mini-btn.add {
-	color: #fff6df;
-	border-color: #fff6df;
-	background: #fff6df;
+	color: var(--bless-text, #775E25);
+	border-color: var(--bless-soft, #F1E4BD);
+	background: var(--bless-soft, #F1E4BD);
 }
 
 .career-block {
@@ -1485,7 +1485,7 @@ textarea.input {
 }
 
 .btn.primary {
-	background: linear-gradient(135deg, #fff6df, #e6dcc4);
+	background: linear-gradient(135deg, var(--bless-soft, #F1E4BD), #e6dcc4);
 	color: #333333;
 }
 

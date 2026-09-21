@@ -161,7 +161,7 @@
   </script>
   
   <style scoped lang="scss">
-  $brand-yellow: #FFCE00;
+  $brand-yellow: var(--bless-primary, #C2A052);
   $text-main: #1A1A1A;
   $text-sub: #999999;
   $gray-bg: #F5F6F8;
@@ -396,7 +396,7 @@
   
         .countdown-text {
           font-size: 22rpx;
-          color: #E08A00;
+          color: var(--bless-text, #775E25);
         }
   
         .ended-text {

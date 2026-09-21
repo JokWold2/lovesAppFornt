@@ -758,7 +758,7 @@ onShow(() => {
 
 <style scoped lang="scss">
 // 与 demandhall/index.vue 共用的品牌色板
-$brand-yellow: #ffce00;
+$brand-yellow: var(--bless-primary, #C2A052);
 $text-main: #1a1a1a;
 $text-sub: #999999;
 $gray-bg: #f5f6f8;
@@ -924,7 +924,7 @@ $line-color: #f2f2f4;
 
 	&.active {
 		background: $brand-yellow;
-		box-shadow: 0 4rpx 12rpx rgba(255, 206, 0, 0.35);
+		box-shadow: 0 4rpx 12rpx rgba(194,160,82,0.35);
 
 		.tab-label {
 			color: $text-main;
@@ -1131,7 +1131,7 @@ $line-color: #f2f2f4;
 }
 
 .badge-verified {
-	background: rgba(255, 206, 0, 0.28);
+	background: rgba(194,160,82,0.28);
 	color: $text-main;
 }
 
@@ -1353,7 +1353,7 @@ $line-color: #f2f2f4;
 	height: 92rpx;
 	border-radius: 46rpx;
 	background: $brand-yellow;
-	box-shadow: 0 8rpx 20rpx rgba(255, 206, 0, 0.45);
+	box-shadow: 0 8rpx 20rpx rgba(194,160,82,0.45);
 	transition: transform 160ms ease-out;
 
 	&:active {

@@ -298,18 +298,18 @@ onBeforeUnmount(() => { generation++; clearTimeout(leaveTimer); cancelGesture();
 
 <style scoped lang="scss">
 .blessing-deck { width: 100%; max-width: 460px; margin: 0 auto; }
-.deck-rewind { position: absolute; z-index: 5; top: 28px; right: 16px; display: flex; align-items: center; justify-content: center; width: 44px; height: 44px; margin: 0; padding: 0; border-radius: 50%; border: 1px solid rgba(242,214,139,.7); background: rgba(24,24,26,.52); }
+.deck-rewind { position: absolute; z-index: 5; top: 28px; right: 16px; display: flex; align-items: center; justify-content: center; width: 44px; height: 44px; margin: 0; padding: 0; border-radius: 50%; border: 1px solid rgba(194,160,82,.7); background: rgba(24,24,26,.52); }
 .deck-rewind::after { border: none; }
 .deck-rewind-arrow { position: relative; width: 24px; height: 24px; pointer-events: none; }
-.deck-rewind-arrow::before { content: ''; position: absolute; inset: 3px; border: 2px solid #f2d68b; border-left-color: transparent; border-radius: 50%; transform: rotate(-35deg); }
-.deck-rewind-arrow::after { content: ''; position: absolute; top: 2px; left: 2px; width: 7px; height: 7px; border-left: 2px solid #f2d68b; border-bottom: 2px solid #f2d68b; }
+.deck-rewind-arrow::before { content: ''; position: absolute; inset: 3px; border: 2px solid var(--bless-soft, #F1E4BD); border-left-color: transparent; border-radius: 50%; transform: rotate(-35deg); }
+.deck-rewind-arrow::after { content: ''; position: absolute; top: 2px; left: 2px; width: 7px; height: 7px; border-left: 2px solid var(--bless-soft, #F1E4BD); border-bottom: 2px solid var(--bless-soft, #F1E4BD); }
 .deck-rewind[disabled] { opacity: .4; }
-.deck-quota { position: absolute; z-index: 5; top: 28px; left: 16px; right: 76px; width: auto; min-height: 44px; box-sizing: border-box; padding: 7px 12px; margin: 0; display: flex; align-items: center; justify-content: center; border: 1px solid rgba(255,255,255,.2); border-radius: 22px; background: rgba(24,24,26,.52); color: #f3deb1; font-size: 11px; line-height: 1.5; text-align: center; overflow-wrap: anywhere; }
+.deck-quota { position: absolute; z-index: 5; top: 28px; left: 16px; right: 76px; width: auto; min-height: 44px; box-sizing: border-box; padding: 7px 12px; margin: 0; display: flex; align-items: center; justify-content: center; border: 1px solid rgba(255,255,255,.2); border-radius: 22px; background: rgba(24,24,26,.52); color: var(--bless-soft, #F1E4BD); font-size: 11px; line-height: 1.5; text-align: center; overflow-wrap: anywhere; }
 .deck-quota::after { border: none; }
 .deck-quota text { pointer-events: none; }
-.deck-quota.has-error { border-color: rgba(242,214,139,.7); }
+.deck-quota.has-error { border-color: rgba(194,160,82,.7); }
 .deck-quota[disabled] { color: #e0d6c1; background: rgba(24,24,26,.52); }
-.deck-empty-rewind { padding: 10px 22px; min-height: 44px; font-size: 13px; line-height: 1.5; border-radius: 24px; color: #795d1e; background: transparent; transition: transform 140ms cubic-bezier(.23,1,.32,1); }
+.deck-empty-rewind { padding: 10px 22px; min-height: 44px; font-size: 13px; line-height: 1.5; border-radius: 24px; color: var(--bless-text, #775E25); background: transparent; transition: transform 140ms cubic-bezier(.23,1,.32,1); }
 .deck-empty-rewind:active { transform: scale(.97); }
 .deck-stage { position: relative; height: var(--blessing-card-height, 540px); min-height: 280px; margin: 8px 0 12px; }
 .deck-card, .deck-back { position: absolute; inset: 0; border-radius: 28px; overflow: hidden; background: #242529; }

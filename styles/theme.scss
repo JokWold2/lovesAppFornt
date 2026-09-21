@@ -1,0 +1,15 @@
+// uni.scss provides these shared values to all SCSS files.
+page {
+  --bless-primary: #{$bless-primary};
+  --bless-soft: #{$bless-soft};
+  --bless-text: #{$bless-text};
+  --bless-pressed: #{$bless-pressed};
+}
+/* #ifdef H5 */
+:root {
+  --bless-primary: #{$bless-primary};
+  --bless-soft: #{$bless-soft};
+  --bless-text: #{$bless-text};
+  --bless-pressed: #{$bless-pressed};
+}
+/* #endif */

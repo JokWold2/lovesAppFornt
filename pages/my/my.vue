@@ -43,8 +43,8 @@ const goPage = (url) => {
 </script>
 
 <style scoped lang="scss">
-$primary-color: #fff6df;
-$background-color: #fff6df;
+$primary-color: var(--bless-soft, #F1E4BD);
+$background-color: var(--bless-soft, #F1E4BD);
 $text-color-black: #333;
 
 .container {

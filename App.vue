@@ -135,3 +135,7 @@
 	}
 	/* #endif */
 </style>
+
+<style lang="scss">
+@import "@/styles/theme.scss";
+</style>

@@ -15,7 +15,12 @@
 /* 颜色变量 */
 $maincolor: #fff6df;
 /* 行为相关颜色 */
-$uni-color-primary: #007aff;
+// BLESS brand tokens. Status colors retain their semantic meaning.
+$bless-primary: #C2A052;
+$bless-soft: #F1E4BD;
+$bless-text: #775E25;
+$bless-pressed: #AA873C;
+$uni-color-primary: $bless-primary;
 $uni-color-success: #4cd964;
 $uni-color-warning: #f0ad4e;
 $uni-color-error: #dd524d;

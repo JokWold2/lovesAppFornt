@@ -531,7 +531,7 @@ onShow(() => {
 </script>
 
 <style scoped lang="scss">
-$brand-yellow: #ffce00;
+$brand-yellow: var(--bless-primary, #C2A052);
 $text-main: #1a1a1a;
 $text-sub: #999999;
 $gray-bg: #f5f6f8;
@@ -633,7 +633,7 @@ $line-color: #f2f2f4;
 	.step.active & {
 		background: $brand-yellow;
 		color: $text-main;
-		box-shadow: 0 0 0 6rpx rgba(255, 206, 0, 0.28);
+		box-shadow: 0 0 0 6rpx rgba(194,160,82,0.28);
 	}
 }
 
@@ -815,7 +815,7 @@ $line-color: #f2f2f4;
 }
 
 .badge-verified {
-	background: rgba(255, 206, 0, 0.28);
+	background: rgba(194,160,82,0.28);
 	color: $text-main;
 }
 

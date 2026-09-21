@@ -477,7 +477,7 @@ watch(currentLocale, updatePageTitle)
 </script>
 
 <style lang="scss" scoped>
-$brand-yellow: #ffce00;
+$brand-yellow: var(--bless-primary, #C2A052);
 $text-main: #1a1a1a;
 $text-sub: #999999;
 $gray-bg: #f5f6f8;
@@ -671,7 +671,7 @@ $line-color: #f2f2f4;
 	.category-pill {
 		padding: 2rpx 14rpx;
 		border-radius: 16rpx;
-		background: rgba(255, 206, 0, 0.35);
+		background: rgba(194,160,82,0.35);
 		font-size: 22rpx;
 		font-weight: 600;
 		color: $text-main;
@@ -705,7 +705,7 @@ $line-color: #f2f2f4;
 		display: inline-block;
 		margin-top: 8rpx;
 		font-size: 24rpx;
-		color: #8a6d00;
+		color: var(--bless-text, #775E25);
 	}
 
 	.image-grid {
@@ -866,7 +866,7 @@ $line-color: #f2f2f4;
 	color: $text-sub;
 
 	&.retry {
-		color: #8a6d00;
+		color: var(--bless-text, #775E25);
 		font-weight: 600;
 	}
 }
@@ -885,7 +885,7 @@ $line-color: #f2f2f4;
 	height: 92rpx;
 	background-color: $brand-yellow;
 	border-radius: 46rpx;
-	box-shadow: 0 8rpx 20rpx rgba(255, 206, 0, 0.45);
+	box-shadow: 0 8rpx 20rpx rgba(194,160,82,0.45);
 	z-index: 90;
 
 	text {
