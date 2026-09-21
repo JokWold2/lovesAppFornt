@@ -1,53 +1,46 @@
 <template>
   <view class="page app-h5-min-screen">
-    <view class="profile-card">
-      <image v-if="account.avatar" class="avatar" :src="account.avatar" mode="aspectFill" />
-      <view v-else class="avatar-placeholder"><uni-icons type="person-filled" size="44" color="#ffffff" /></view>
-      <view class="profile-info">
-        <text class="name">{{ account.name }}</text>
-        <text class="email">{{ account.email || t('common.notBoundEmail') }}</text>
+    <ChatPageHeader :title="t('navigation.account')" />
+    <view class="page-content">
+      <view class="account-hero">
+        <image v-if="account.avatar" class="account-avatar" :src="account.avatar" mode="aspectFill" />
+        <view v-else class="account-avatar account-avatar--placeholder"><uni-icons type="person-filled" size="38" color="#ffffff" /></view>
+        <text class="account-name">{{ account.name }}</text>
+        <text class="account-email">{{ account.email || t('common.notBoundEmail') }}</text>
       </view>
+
+      <view class="settings-card">
+        <button class="setting-row language-row" @tap="openLanguageSheet">
+          <text class="setting-label">{{ t('common.language') }}</text><view class="setting-tail"><text class="row-value">{{ localeLabel }}</text><view class="chevron" /></view>
+        </button>
+        <button class="setting-row" @tap="openLegalDocument('service')">
+          <text class="setting-label">{{ t('common.serviceAgreement') }}</text><view class="chevron" />
+        </button>
+        <button class="setting-row" @tap="openLegalDocument('privacy')">
+          <text class="setting-label">{{ t('common.privacyPolicy') }}</text><view class="chevron" />
+        </button>
+        <button class="setting-row danger" @tap="confirmCancellation"><text class="setting-label">{{ t('common.cancelAccount') }}</text><view class="chevron" /></button>
+      </view>
+
+      <button class="logout-button" hover-class="logout-button--pressed" :hover-start-time="0" :hover-stay-time="80" @tap="logout"><text>{{ t('common.logout') }}</text></button>
     </view>
 
-    <view class="menu-card">
-      <view class="menu-row language-row" @tap="openLanguageSheet">
-        <text>{{ t('common.language') }}</text><text class="row-value">{{ localeLabel }}</text><uni-icons type="right" size="18" color="#999" />
-      </view>
-      <view class="divider" />
-      <view class="menu-row" @tap="openLegalDocument('service')">
-        <text>{{ t('common.serviceAgreement') }}</text><uni-icons type="right" size="18" color="#999" />
-      </view>
-      <view class="divider" />
-      <view class="menu-row" @tap="openLegalDocument('privacy')">
-        <text>{{ t('common.privacyPolicy') }}</text><uni-icons type="right" size="18" color="#999" />
-      </view>
-    </view>
-
-    <view class="menu-card danger-card">
-      <view class="menu-row danger" @tap="confirmCancellation"><text>{{ t('common.cancelAccount') }}</text><uni-icons type="right" size="18" color="#e85d5d" /></view>
-    </view>
-
-    <view class="logout-button" @tap="logout"><text>{{ t('common.logout') }}</text></view>
-
-    <view v-if="showLanguageSheet" class="language-sheet-mask app-h5-sheet-mask" @tap="closeLanguageSheet">
-      <view class="language-sheet app-h5-sheet" @tap.stop>
-        <view class="language-sheet-title">{{ t('common.language') }}</view>
+    <ChatSheet :open="showLanguageSheet" :label="t('common.language')" @dismiss="closeLanguageSheet">
+      <view class="language-sheet">
+        <view class="language-sheet-head"><text class="language-sheet-title">{{ t('common.language') }}</text><button class="language-sheet-close" :aria-label="t('common.cancel')" @tap="closeLanguageSheet">×</button></view>
         <scroll-view scroll-y class="language-sheet-list app-h5-scroll">
-          <view
+          <button
             v-for="option in localeOptionItems"
             :key="option.code"
-            class="language-sheet-item"
+            class="language-option"
             @tap="selectLanguage(option.code)"
           >
             <text>{{ option.label }}</text>
-            <uni-icons v-if="isCurrentLocale(option.code)" type="checkmarkempty" size="20" color="#ffce00" />
-          </view>
+            <view v-if="isCurrentLocale(option.code)" class="language-check"><view /></view>
+          </button>
         </scroll-view>
-        <view class="language-sheet-item cancel" @tap="closeLanguageSheet">
-          <text>{{ t('common.cancel') }}</text>
-        </view>
       </view>
-    </view>
+    </ChatSheet>
   </view>
 </template>
 
@@ -55,6 +48,8 @@
 import { computed, reactive, ref, watch } from 'vue'
 import { onShow } from '@dcloudio/uni-app'
 import { getMyProfileApi } from '@/api/index.js'
+import ChatPageHeader from '@/components/chat/ChatPageHeader.vue'
+import ChatSheet from '@/components/chat/ChatSheet.vue'
 import { getUserInfo, clearAuth } from '@/utils/auth.js'
 import { logoutPresence } from '@/utils/presence.js'
 import { unregisterCurrentDevice } from '@/utils/pushNotifications.js'
@@ -131,41 +126,17 @@ function logout() { void finishSession(t('common.loggedOut')) }
 
 onShow(() => { void loadAccount() })
 
-function updatePageTitle() { uni.setNavigationBarTitle({ title: t('account') }) }
+function updatePageTitle() { uni.setNavigationBarTitle({ title: t('navigation.account') }) }
 onShow(updatePageTitle)
 watch(currentLocale, updatePageTitle)
 </script>
 
 <style scoped lang="scss">
-.page { padding: 32rpx; background: #fff6df; box-sizing: border-box; }
-/* #ifndef H5 */
-.page { min-height: 100vh; }
-/* #endif */
-/* #ifdef H5 */
-.page { padding-bottom: calc(32rpx + env(safe-area-inset-bottom)); }
-/* #endif */
-.profile-card, .menu-card { background: #fff; border-radius: 24rpx; box-shadow: 0 2rpx 16rpx rgba(0, 0, 0, .05); }
-.profile-card { display: flex; align-items: center; padding: 36rpx 32rpx; margin-bottom: 28rpx; }
-.avatar, .avatar-placeholder { width: 112rpx; height: 112rpx; border-radius: 50%; flex: none; overflow: hidden; }
-.avatar-placeholder { display: flex; align-items: center; justify-content: center; background: #ffce00; }
-.profile-info { display: flex; flex-direction: column; min-width: 0; margin-left: 26rpx; }
-.name { color: #222; font-size: 34rpx; font-weight: 600; }
-.email { margin-top: 12rpx; color: #888; font-size: 26rpx; word-break: break-all; }
-.menu-card { margin-bottom: 28rpx; padding: 0 28rpx; }
-.menu-row { min-height: 108rpx; display: flex; align-items: center; justify-content: space-between; color: #333; font-size: 30rpx; }
-.row-value { margin-left: auto; margin-right: 14rpx; color: #999; font-size: 26rpx; }
-.divider { height: 1rpx; background: #f0f0f0; }
-.language-row { position: relative; }
-.language-sheet-mask { position: fixed; inset: 0; background: rgba(0,0,0,.35); display: flex; align-items: flex-end; z-index: 999; }
-.language-sheet { display: flex; width: 100%; min-height: 0; flex-direction: column; background: #fff; border-radius: 24rpx 24rpx 0 0; padding: 24rpx 16rpx 32rpx; box-sizing: border-box; }
-.language-sheet-title { flex: 0 0 auto; text-align: center; font-size: 30rpx; color: #222; margin-bottom: 20rpx; }
-.language-sheet-item { min-height: 94rpx; display: flex; align-items: center; justify-content: space-between; padding: 0 24rpx; font-size: 30rpx; color: #333; border-top: 1rpx solid #f2f2f2; }
-.language-sheet-item:first-of-type { border-top: none; }
-.language-sheet-item.cancel { flex: 0 0 auto; justify-content: center; color: #888; margin-top: 18rpx; font-weight: 500; }
-.danger-card { margin-top: 44rpx; }.danger { color: #e85d5d; }
-.logout-button { display: flex; align-items: center; justify-content: center; height: 96rpx; margin-top: 54rpx; border-radius: 48rpx; color: #fff; background: #ffce00; font-size: 32rpx; font-weight: 600; }
-/* #ifdef H5 */
-.language-sheet-mask { bottom: var(--app-viewport-bottom-offset, 0px); }
-.language-sheet { padding-bottom: calc(32rpx + env(safe-area-inset-bottom)); }
-/* #endif */
+.page{min-height:100vh;background:#eeedeb;color:#292825;box-sizing:border-box}.page-content{padding:2px 20px calc(32px + env(safe-area-inset-bottom));box-sizing:border-box}
+button{margin:0;padding:0;border:0;border-radius:0;background:transparent;color:inherit;font-size:14px;line-height:1.45;text-align:left;box-sizing:border-box}button::after{border:0}
+.account-hero{display:flex;align-items:center;flex-direction:column;padding:12px 0 32px;min-width:0}.account-avatar{width:76px;height:76px;border:2px solid rgba(255,255,255,.9);border-radius:50%;box-sizing:border-box;box-shadow:0 5px 18px rgba(65,59,48,.08);overflow:hidden;flex:none}.account-avatar--placeholder{display:flex;align-items:center;justify-content:center;background:#c9b46d}.account-name{max-width:100%;margin-top:15px;color:#292825;font-size:22px;font-weight:650;line-height:1.35;overflow-wrap:anywhere;text-align:center}.account-email{max-width:100%;margin-top:5px;color:#918d85;font-size:14px;line-height:1.45;overflow-wrap:anywhere;text-align:center}
+.settings-card{overflow:hidden;background:#fff;border-radius:23px}.setting-row{display:flex;width:100%;min-height:64px;align-items:center;justify-content:space-between;gap:14px;padding:16px 18px}.setting-row+.setting-row{border-top:1px solid #f2f0ec}.setting-label{min-width:0;flex:1;font-size:15px;line-height:1.6;overflow-wrap:anywhere}.setting-tail{display:flex;min-width:0;max-width:55%;align-items:center;justify-content:flex-end;gap:10px}.row-value{min-width:0;color:#918d85;font-size:13px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.chevron{width:7px;height:7px;margin-right:3px;border-top:1.5px solid #aaa69f;border-right:1.5px solid #aaa69f;transform:rotate(45deg);flex:none}.setting-row:active{background:#faf9f6}.danger{color:#d9615f}.danger .chevron{border-color:#d9615f}
+.logout-button{display:flex;width:100%;min-height:52px;align-items:center;justify-content:center;margin-top:22px;border-radius:20px;color:#fff;background:#efc635;font-size:16px;font-weight:650;text-align:center;box-shadow:0 6px 18px rgba(195,157,48,.12);transform:scale(1);transition:transform 140ms cubic-bezier(.23,1,.32,1),background-color 140ms ease,box-shadow 140ms ease}.logout-button--pressed,.logout-button:active{background:#e6bb2d;box-shadow:0 3px 10px rgba(195,157,48,.1);transform:scale(.985)}
+.language-sheet{padding:20px 20px calc(20px + env(safe-area-inset-bottom));color:#292825}.language-sheet-head{display:flex;align-items:center;justify-content:space-between;gap:16px;margin-bottom:8px}.language-sheet-title{min-width:0;font-size:20px;font-weight:650;line-height:1.4;overflow-wrap:anywhere}.language-sheet-close{display:flex;width:44px;height:44px;align-items:center;justify-content:center;border-radius:50%;background:#fff;color:#55514b;font-size:27px;line-height:1;flex:none}.language-sheet-list{max-height:min(62vh,470px)}.language-option{display:flex;width:100%;min-height:56px;align-items:center;justify-content:space-between;gap:16px;padding:10px 4px;font-size:15px}.language-option+.language-option{border-top:1px solid #ebe8e2}.language-option:active{opacity:.68}.language-check{display:flex;width:26px;height:26px;align-items:center;justify-content:center;border-radius:50%;background:#efc635;flex:none}.language-check>view{width:9px;height:5px;margin-top:-2px;border-left:2px solid #fff;border-bottom:2px solid #fff;transform:rotate(-45deg)}
+@media(prefers-reduced-motion:reduce){.logout-button{transition:none}.logout-button--pressed,.logout-button:active{transform:none}}
 </style>

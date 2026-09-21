@@ -1,652 +1,84 @@
 <template>
-	<view class="market-feed-page app-h5-screen">
-		<swiper
-			class="feed app-h5-scroll"
-			vertical
-			:current="current"
-			@change="current = $event.detail.current"
-		>
-			<swiper-item v-for="post in posts" :key="post.id">
-				<view class="item">
-					<swiper class="photos" circular>
-						<swiper-item v-for="src in post.images" :key="src">
-							<image
-								class="photo"
-								:src="src"
-								mode="aspectFit"
-								@tap="onPhotoTap(post, $event)"
-							/>
-						</swiper-item>
-						<swiper-item v-if="!post.images?.length"
-							><view class="empty-photo"
-								>{{ t('market.noImage') }}</view
-							></swiper-item
-						>
-					</swiper>
-					<image
-						v-if="doubleLikePostId === post.id"
-						class="double-like-heart"
-						:style="{
-							left: `${doubleLikePosition.x}px`,
-							top: `${doubleLikePosition.y}px`,
-						}"
-						src="/static/img/like_act.png"
-						mode="aspectFit"
-					/>
-					<view class="meta">
-						<text class="name">{{ post.title }}</text
-						><text>¥ {{ post.price }}</text>
-						<view
-							><view class="meta-like" @click="like(post)"
-								><image
-									class="meta-like-icon"
-									:src="
-										post.isLiked
-											? '/static/img/like_act.png'
-											: '/static/img/like.png'
-									"
-									mode="aspectFit"
-								/>
-								<text>{{ post.likeCount }}</text></view
-							><text class="comment" @click="openComments(post)"
-								>{{ t('moment.comments', { count: post.commentCount }) }}</text
-							></view
-						>
-					</view>
-					<view class="actions">
-						<view class="action" @click="like(post)"
-							><image
-								class="action-icon like-icon"
-								:src="
-									post.isLiked
-										? '/static/img/like_act.png'
-										: '/static/img/like.png'
-								"
-								mode="aspectFit"
-							/><text>{{ post.likeCount }}</text></view
-						>
-						<view class="action" @click="openComments(post)"
-							><image
-								class="action-icon comment-icon"
-								src="/static/img/comment.png"
-								mode="aspectFit"
-							/><text>{{ post.commentCount }}</text></view
-						>
-					</view>
-				</view>
-			</swiper-item>
-		</swiper>
-
-		<view v-if="commentPost" class="mask app-h5-sheet-mask" @tap="closeComments">
-			<view class="panel app-h5-sheet" @tap.stop>
-				<view class="panel-head"
-					><text>{{ t('moment.comments', { count: commentPost.commentCount }) }}</text
-					><text class="close-button" @tap.stop="closeComments"
-						>×</text
-					></view
-				>
-				<scroll-view
-					scroll-y
-					class="comment-list app-h5-scroll"
-					:scroll-into-view="commentAnchor"
-					@tap.stop
-				>
-					<view
-						v-for="floor in comments"
-						:id="`comment-${floor.id}`"
-						:key="floor.id"
-						class="comment-floor"
-					>
-						<view class="comment-row">
-							<image
-								class="comment-avatar"
-								:src="floor.author_avatar_url || defaultAvatar"
-								mode="aspectFill"
-							/>
-							<view class="comment-content">
-								<text class="author">{{
-									floor.author_name || t('moment.user')
-								}}</text
-								><text class="comment-text">{{
-									floor.content
-								}}</text>
-								<view class="comment-meta"
-									><text>{{
-										formatCommentTime(floor.created_at)
-									}}</text
-									><text
-										class="reply-link"
-										@tap.stop="replyTo(floor)"
-										>{{ t('moment.reply') }}</text
-									></view
-								>
-							</view>
-						</view>
-						<view v-if="floor.replies?.length" class="reply-list">
-							<view
-								v-for="reply in floor.replies"
-								:id="`comment-${reply.id}`"
-								:key="reply.id"
-								class="comment-row reply-row"
-							>
-								<image
-									class="comment-avatar reply-avatar"
-									:src="
-										reply.author_avatar_url || defaultAvatar
-									"
-									mode="aspectFill"
-								/>
-								<view class="comment-content">
-									<text class="author">{{
-										reply.author_name || t('moment.user')
-									}}</text>
-									<view class="comment-text"
-										><text
-											v-if="reply.reply_to_name"
-											class="reply-prefix"
-											>{{ t('moment.replyTo', { name: reply.reply_to_name }) }}</text
-										><text>{{ reply.content }}</text></view
-									>
-									<view class="comment-meta"
-										><text>{{
-											formatCommentTime(reply.created_at)
-										}}</text
-										><text
-											class="reply-link"
-											@tap.stop="replyTo(reply)"
-											>{{ t('moment.reply') }}</text
-										></view
-									>
-								</view>
-							</view>
-						</view>
-						<text
-							v-if="floor.reply_count > floor.replies.length"
-							class="expand-replies"
-							@tap.stop="expandReplies(floor)"
-							>{{ t('moment.expandReplies', { count: floor.reply_count - floor.replies.length }) }}</text
-						>
-						<text
-							v-else-if="
-								floor.repliesExpanded && floor.reply_count
-							"
-							class="expanded-replies"
-							>{{ t('market.allRepliesExpanded', { count: floor.reply_count }) }}</text
-						>
-					</view>
-					<view v-if="!comments.length" class="empty"
-						>{{ t('moment.noComments') }}</view
-					>
-				</scroll-view>
-				<view v-if="replyTarget" class="replying" @tap.stop
-					>{{ t('moment.replyTo', { name: replyTarget.authorName }) }}
-					<text @click="replyTarget = null">{{ t('moment.cancel') }}</text></view
-				>
-				<view class="input" @tap.stop
-					><input
-						v-model="commentText"
-						:placeholder="
-							replyTarget
-								? t('moment.replyTo', { name: replyTarget.authorName })
-								: t('moment.saySomething')
-						"
-						confirm-type="send"
-						@confirm="sendComment"
-					/><text @click="sendComment">{{ t('moment.send') }}</text></view
-				>
-			</view>
-		</view>
-	</view>
+  <view class="detail-page app-h5-screen">
+    <view class="navigation" :style="{height: navHeight + 'px'}"><view class="glass" :style="{opacity: glass}"/><view class="nav-row" :style="{top: layout.contentTop + 'px', left: layout.backLeft + 'px', right: layout.contentRight + 'px'}"><view class="back" @click="back"><uni-icons type="left" size="23"/></view><text class="nav-title" :style="{position: 'absolute', left: (layout.titleLeft - layout.backLeft) + 'px', width: layout.titleWidth + 'px'}">{{ t(isAntique ? 'marketDetail.antiqueTitle' : 'marketDetail.title') }}</text></view><view class="nav-fade" :style="{opacity: glass}"/></view>
+    <scroll-view scroll-y class="content" :scroll-into-view="anchor" @scroll="scrollTop = $event.detail.scrollTop">
+      <view :style="{height: (navHeight + 10) + 'px'}"/>
+      <view v-if="loading" class="state">{{ t('home.loading') }}</view><view v-else-if="!post" class="state" @click="load">{{ t('marketSearch.failed') }}</view>
+      <template v-else>
+        <view class="gallery"><swiper v-if="post.images.length" class="photos" @change="photoIndex = $event.detail.current"><swiper-item v-for="(src,index) in post.images" :key="src"><image class="photo" :src="src" mode="aspectFill" @click="preview(index)"/></swiper-item></swiper><view v-else class="empty-photo">{{ t('market.noImage') }}</view><text v-if="post.images.length" class="counter">{{ photoIndex + 1 }}/{{ post.images.length }}</text></view>
+        <view class="card summary"><text v-if="auction" class="badge">{{ t('marketDetail.' + auctionState) }}</text><text v-else-if="details.condition" class="badge">{{ details.condition }}</text><text class="title">{{ post.title }}</text><view class="price-row"><text v-if="auction" class="muted">{{ t('marketDetail.current') }}</text><text class="price">¥ {{ auction ? auction.currentPrice : post.price }}</text></view><view v-if="auction" class="auction-info"><view>{{ t(auctionState === 'scheduled' ? 'marketDetail.starts' : 'marketDetail.ends') }} <text class="gold">{{ countdown }}</text></view><view class="auction-numbers"><text>{{ t('marketDetail.startPrice') }} ¥{{ post.price }}</text><text>{{ t('marketDetail.increment') }} ¥{{ details.increment }}</text></view></view></view>
+        <view class="card seller" @click="openSeller"><image :src="post.author_avatar_url || '/static/logo.png'" mode="aspectFill"/><view><text>{{ post.author_name || t('moment.user') }}</text><text class="muted">{{ details.location || '' }}</text></view><uni-icons v-if="post.profile_id" type="right" size="17" color="#aaa"/></view>
+        <view v-if="infoRows.length" class="card"><text class="heading">{{ t('marketDetail.info') }}</text><view v-for="row in infoRows" :key="row.key" class="info-row"><text class="muted">{{ t('marketDetail.' + row.key) }}</text><text>{{ row.value }}</text></view><text v-if="isAntique" class="note">{{ t('marketDetail.sellerProvided') }}</text></view>
+        <view v-if="post.description" class="card"><text class="heading">{{ t('marketDetail.description') }}</text><text class="description">{{ post.description }}</text></view>
+        <view v-if="auction" class="card bid-entry" @click="openBids"><text class="heading">{{ t('marketDetail.records') }}</text><view class="bid-preview"><view class="bid-avatar-stack"><image v-for="bidder in (auction.recentBidders || []).slice(0, 5)" :key="bidder.latest_bid_id" class="bid-preview-avatar" :src="bidder.avatar_url || '/static/logo.png'" mode="aspectFill" @error="bidder.avatar_url = ''"/></view><text class="muted bid-count">{{ t('marketDetail.bidCount', {count: auction.count}) }}</text><uni-icons type="right" size="16" color="#aaa"/></view></view>
+        <view id="comments" class="card comments"><view class="comment-heading"><text class="heading">{{ t('moment.comments', {count:post.commentCount}) }}</text><text class="gold" @click="writeComment()">{{ t('moment.saySomething') }}</text></view><view v-if="commentsLoading" class="state">{{ t('home.loading') }}</view><view v-else-if="commentsError" class="state" @click="loadComments">{{ t('marketSearch.failed') }}</view><view v-else-if="!comments.length" class="state">{{ t('moment.noComments') }}</view>
+          <view v-for="floor in comments" :key="floor.id" :id="'comment-' + floor.id" class="floor"><view class="comment-row"><image :src="floor.author_avatar_url || '/static/logo.png'" mode="aspectFill"/><view class="comment-body"><text class="muted">{{ floor.author_name || t('moment.user') }}</text><text class="comment-text">{{ floor.content }}</text><view class="comment-meta"><text>{{ formatCommentTime(floor.created_at) }}</text><text @click="writeComment(floor)">{{ t('moment.reply') }}</text></view></view></view><view v-for="reply in floor.replies" :key="reply.id" :id="'comment-' + reply.id" class="comment-row reply"><image :src="reply.author_avatar_url || '/static/logo.png'" mode="aspectFill"/><view class="comment-body"><text class="muted">{{ reply.author_name || t('moment.user') }}</text><text class="comment-text"><text v-if="reply.reply_to_name">{{ t('moment.replyTo',{name:reply.reply_to_name}) }} </text>{{ reply.content }}</text><view class="comment-meta"><text>{{ formatCommentTime(reply.created_at) }}</text><text @click="writeComment(reply)">{{ t('moment.reply') }}</text></view></view></view><text v-if="floor.reply_count > (floor.replies || []).length" class="expand" @click="expandReplies(floor)">{{ t('moment.expandReplies',{count:floor.reply_count - (floor.replies || []).length}) }}</text></view>
+        </view><view class="bottom-space"/>
+      </template>
+    </scroll-view>
+    <view v-if="post" class="bottom-bar"><view class="icon-action" @click="like"><uni-icons :type="post.isLiked ? 'heart-filled' : 'heart'" :color="post.isLiked ? '#c49b22' : '#666'" size="24"/><text>{{ post.likeCount }}</text></view><view class="icon-action" @click="writeComment()"><uni-icons type="chatbubble" size="24" color="#666"/><text>{{ post.commentCount }}</text></view><button v-if="!auction" class="contact-trade" :disabled="busy" @click="contact">{{ t('trade.contact') }}</button><button class="primary" :disabled="busy || (auction && auctionState !== 'live' && !post.tradeOrder)" @click="primaryAction">{{ t(post.tradeOrder ? 'trade.viewOrder' : auction ? 'marketDetail.' + (auctionState === 'live' ? 'bid' : auctionState) : 'trade.buy') }}</button></view>
+    <SlideUpPanel fixed :open="!!sheet" :z-index="400" @dismiss="closeSheet"><view class="sheet"><view class="sheet-head"><text>{{ t(sheet === 'bid' ? 'marketDetail.bid' : sheet === 'bids' ? 'marketDetail.records' : 'moment.reply') }}</text><view @click="closeSheet"><uni-icons type="closeempty" size="24"/></view></view>
+      <template v-if="sheet === 'bid'"><text class="muted">{{ t('marketDetail.minimum') }} ¥{{ auction?.nextPrice }}</text><input class="field" v-model="bidAmount" type="digit" maxlength="13"/><text class="note">{{ t('marketDetail.bidNote') }}</text><button class="primary" :disabled="busy" @click="submitBid">{{ t('marketDetail.confirmBid') }}</button></template>
+      <template v-else-if="sheet === 'bids'"><scroll-view scroll-y class="bid-list"><view v-for="bid in bids" :key="bid.id" class="bid-row"><image class="bid-avatar" :src="bid.bidder_avatar_url || '/static/logo.png'" mode="aspectFill" @error="bid.bidder_avatar_url = ''"/><view class="bid-person"><text>{{ t(bid.is_mine ? 'marketDetail.you' : 'marketDetail.bidder') }}</text><text class="muted">{{ formatCommentTime(bid.created_at) }}</text></view><text class="gold bid-amount">¥{{ bid.amount }}</text></view><view v-if="bidsLoading" class="state">{{ t('home.loading') }}</view><view v-else-if="bidsError" class="state" @click="loadBids">{{ t('marketSearch.failed') }}</view><view v-else-if="!bids.length" class="state">{{ t('marketDetail.noBids') }}</view><view v-else-if="moreBids" class="state" @click="loadBids">{{ t('marketSearch.more') }}</view></scroll-view></template>
+      <template v-else-if="sheet === 'comment'"><text v-if="replyTarget" class="muted">{{ t('moment.replyTo',{name:replyTarget.author_name || t('moment.user')}) }}</text><textarea v-model="commentText" maxlength="1000" class="comment-input" :placeholder="t('moment.saySomething')"/><button class="primary" :disabled="sending || !commentText.trim()" @click="sendComment">{{ t('moment.send') }}</button></template>
+    </view></SlideUpPanel>
+  </view>
 </template>
-
 <script setup>
-import { nextTick, ref, watch } from "vue";
-import { onLoad } from "@dcloudio/uni-app";
-import {
-	addMarketCommentApi,
-	getMarketCommentRepliesApi,
-	getMarketCommentsApi,
-	getMarketPostsApi,
-	toggleMarketLikeApi,
-} from "@/api/market.js";
-import { appendReplies, formatCommentTime } from "@/utils/marketComments.js";
-import { currentLocale, t } from '@/utils/localeRuntime.js';
+import { ref, computed, nextTick } from 'vue'
+import { onLoad, onShow, onHide, onUnload, onResize, onBackPress } from '@dcloudio/uni-app'
+import SlideUpPanel from '@/components/common/SlideUpPanel.vue'
+import { getMarketPostApi, getMarketPostsApi, toggleMarketLikeApi, getMarketCommentsApi, getMarketCommentRepliesApi, addMarketCommentApi, getMarketBidsApi, placeMarketBidApi } from '@/api/market.js'
+import { startTradeApi, tradeRoute } from '@/api/marketTrades.js'
 
-const posts = ref([]);
-const current = ref(0);
-const commentPost = ref(null);
-const commentText = ref("");
-const comments = ref([]);
-const commentAnchor = ref("");
-const replyTarget = ref(null);
-const defaultAvatar = "/static/logo.png";
-const doubleLikePostId = ref(null);
-const doubleLikePosition = ref({ x: 0, y: 0 });
-let lastTap = 0;
-let doubleLikeTimer = null;
-let requestedCommentId = "";
-
-onLoad(async (options) => {
-	uni.setNavigationBarTitle({ title: t('market.detailTitle') });
-	const data = await getMarketPostsApi({ category: options.category });
-	posts.value = data?.posts || [];
-	current.value = Math.max(
-		0,
-		posts.value.findIndex(
-			(post) => String(post.id) === String(options.postId),
-		),
-	);
-	requestedCommentId = options.commentId || "";
-	if (options.openComments === "1" && posts.value[current.value])
-		openComments(posts.value[current.value]);
-});
-watch(currentLocale, () => uni.setNavigationBarTitle({ title: t('market.detailTitle') }));
-
-async function like(post) {
-	const previous = { isLiked: post.isLiked, likeCount: post.likeCount };
-	post.isLiked = !previous.isLiked;
-	post.likeCount += post.isLiked ? 1 : -1;
-	try {
-		Object.assign(post, await toggleMarketLikeApi(post.id));
-	} catch (_) {
-		Object.assign(post, previous);
-	}
-}
-
-function onPhotoTap(post, event) {
-	const now = Date.now();
-	if (now - lastTap < 280) {
-		if (!post.isLiked) like(post);
-		showDoubleLike(post, event);
-	}
-	lastTap = now;
-}
-
-function showDoubleLike(post, event) {
-	const point =
-		event?.detail ||
-		event?.touches?.[0] ||
-		event?.changedTouches?.[0] ||
-		{};
-	doubleLikePosition.value = {
-		x: Number(point.x ?? point.clientX ?? point.pageX ?? 188),
-		y: Number(point.y ?? point.clientY ?? point.pageY ?? 360),
-	};
-	doubleLikePostId.value = null;
-	clearTimeout(doubleLikeTimer);
-	nextTick(() => {
-		doubleLikePostId.value = post.id;
-		doubleLikeTimer = setTimeout(() => {
-			doubleLikePostId.value = null;
-		}, 1500);
-	});
-}
-
-async function openComments(post) {
-	commentPost.value = post;
-	replyTarget.value = null;
-	commentText.value = "";
-	try {
-		const data = await getMarketCommentsApi(
-			post.id,
-			requestedCommentId
-				? { targetCommentId: requestedCommentId }
-				: undefined,
-		);
-		comments.value = data?.comments || [];
-		if (requestedCommentId)
-			await locateRequestedComment(data?.targetRootCommentId);
-	} catch (error) {
-		uni.showToast({ title: error?.error || t('market.loadCommentsFailed'), icon: "none" });
-	}
-}
-
-async function locateRequestedComment(rootCommentId) {
-	const floor = comments.value.find(
-		(item) => String(item.id) === String(rootCommentId),
-	);
-	if (floor && String(floor.id) !== String(requestedCommentId))
-		await expandReplies(floor);
-	commentAnchor.value = "";
-	setTimeout(() => {
-		commentAnchor.value = `comment-${requestedCommentId}`;
-	}, 80);
-}
-
-function closeComments() {
-	commentPost.value = null;
-	commentAnchor.value = "";
-	replyTarget.value = null;
-}
-
-function replyTo(comment) {
-	replyTarget.value = {
-		id: comment.id,
-		authorName: comment.author_name || t('moment.user'),
-	};
-}
-
-async function expandReplies(floor) {
-	try {
-		const data = await getMarketCommentRepliesApi(
-			commentPost.value.id,
-			floor.id,
-			{ page: 1, pageSize: 50 },
-		);
-		const index = comments.value.findIndex(
-			(item) => String(item.id) === String(floor.id),
-		);
-		if (index >= 0)
-			comments.value.splice(
-				index,
-				1,
-				appendReplies(comments.value[index], data?.replies || []),
-			);
-	} catch (error) {
-		uni.showToast({ title: error?.error || t('market.loadRepliesFailed'), icon: "none" });
-	}
-}
-
-async function sendComment() {
-	const content = commentText.value.trim();
-	if (!content) return;
-	try {
-		const data = await addMarketCommentApi(commentPost.value.id, {
-			content,
-			replyToCommentId: replyTarget.value?.id || null,
-		});
-		commentPost.value.commentCount++;
-		commentText.value = "";
-		replyTarget.value = null;
-		const rootCommentId = data?.comment?.rootCommentId;
-		await openComments(commentPost.value);
-		if (
-			rootCommentId &&
-			String(rootCommentId) !== String(data?.comment?.id)
-		) {
-			const floor = comments.value.find(
-				(item) => String(item.id) === String(rootCommentId),
-			);
-			if (floor) await expandReplies(floor);
-		}
-	} catch (error) {
-		uni.showToast({ title: error?.error || t('market.commentSendFailed'), icon: "none" });
-	}
-}
+import { readChatHeaderGeometry } from '@/utils/chatHeaderLayout.js'
+import { formatCommentTime } from '@/utils/marketComments.js'
+import { t } from '@/utils/localeRuntime.js'
+import { auctionCountdown } from '@/utils/marketAuctionTime.js'
+const post=ref(null), loading=ref(true), photoIndex=ref(0), scrollTop=ref(0), anchor=ref(''), sheet=ref(''), busy=ref(false), liking=ref(false), sending=ref(false)
+const comments=ref([]), commentsLoading=ref(false), commentsError=ref(false), commentText=ref(''), replyTarget=ref(null), bids=ref([]), bidsLoading=ref(false), bidsError=ref(false), moreBids=ref(false), bidAmount=ref(''), now=ref(Date.now())
+let settlementRefreshAt=0,settlementRefreshing=false;
+let postId='', category='antique', targetComment='', shouldOpenComments=false, timer=null, offset=0, bidPage=0, disposed=false
+const replyPending=new Set()
+let platform=''
+// #ifdef MP-WEIXIN
+platform='mp-weixin'
+// #endif
+const layout=ref(readChatHeaderGeometry(uni,{clearCapsule:false},platform))
+const navHeight=computed(()=>layout.value.contentTop+layout.value.rowHeight+10), glass=computed(()=>Math.min(1,Math.max(0,scrollTop.value/48)))
+const details=computed(()=>post.value?.details || {}), auction=computed(()=>post.value?.auction), isAntique=computed(()=> (post.value?.category || category)==='antique')
+const auctionState=computed(()=>!auction.value ? '' : now.value < Date.parse(auction.value.startsAt) ? 'scheduled' : now.value >= Date.parse(auction.value.endsAt) ? 'ended' : 'live')
+const countdown=computed(()=>auctionCountdown(auction.value, now.value, t))
+const infoRows=computed(()=>[...(isAntique.value?['era','material','dimensions','condition','restoration','provenance']:['condition','usageDuration','functionality','accessories']), 'location','delivery'].filter(key=>details.value[key]).map(key=>({key,value:details.value[key]})))
+function toast(key){uni.showToast({title:t(key),icon:'none'})}
+function back(){if(getCurrentPages().length>1)uni.navigateBack();else uni.switchTab({url:'/pages/index/index360'})}
+function refreshLayout(){layout.value=readChatHeaderGeometry(uni,{clearCapsule:false},platform)}
+async function refreshPost(){const data=await getMarketPostApi(postId);if(disposed)return;post.value=data.post;if(data.post.auction){offset=data.post.auction.serverTime-Date.now();now.value=Date.now()+offset}}
+async function load(){loading.value=true;try{if(!postId){const data=await getMarketPostsApi({category,pageSize:1});postId=data.posts?.[0]?.id;if(!postId)throw new Error('empty')}await refreshPost();await loadComments();if(shouldOpenComments){await goComments();shouldOpenComments=false}}catch(_){post.value=null}finally{loading.value=false}}
+async function loadComments(){if(!post.value)return;commentsLoading.value=true;commentsError.value=false;try{const data=await getMarketCommentsApi(postId,targetComment?{targetCommentId:targetComment}:{});comments.value=data.comments||[];if(targetComment){const floor=comments.value.find(v=>String(v.id)===String(data.targetRootCommentId));if(floor&&String(floor.id)!==String(targetComment)){while(floor.replies.length<floor.reply_count&&!floor.replies.some(r=>String(r.id)===String(targetComment))){const before=floor.replies.length;await expandReplies(floor);if(before===floor.replies.length)break}}}}catch(_){commentsError.value=true}finally{commentsLoading.value=false}}
+async function goComments(){anchor.value='';await nextTick();anchor.value=targetComment?'comment-'+targetComment:'comments';targetComment=''}
+function preview(index){uni.previewImage({urls:post.value.images,current:index})}
+function openSeller(){if(post.value.profile_id)uni.navigateTo({url:'/pages/searchPerson/personShow/personShow?id='+post.value.profile_id})}
+async function like(){if(liking.value)return;liking.value=true;try{Object.assign(post.value,await toggleMarketLikeApi(postId))}catch(_){toast('home.actionFailed')}finally{liking.value=false}}
+function writeComment(reply=null){replyTarget.value=reply;commentText.value='';sheet.value='comment'}
+function closeSheet(){if(!busy.value&&!sending.value)sheet.value=''}
+async function expandReplies(floor){if(replyPending.has(floor.id))return;replyPending.add(floor.id);try{const page=floor.replyPage||1;const data=await getMarketCommentRepliesApi(postId,floor.id,{page,pageSize:20});const existing=new Set((floor.replies||[]).map(v=>String(v.id)));floor.replies=[...(floor.replies||[]),...(data.replies||[]).filter(v=>!existing.has(String(v.id)))];floor.replyPage=page+1}catch(_){toast('market.loadRepliesFailed')}finally{replyPending.delete(floor.id)}}
+async function sendComment(){if(sending.value||!commentText.value.trim())return;sending.value=true;try{await addMarketCommentApi(postId,{content:commentText.value.trim(),replyToCommentId:replyTarget.value?.id||null});post.value.commentCount++;sheet.value='';commentText.value='';await loadComments();await goComments()}catch(_){toast('market.commentSendFailed')}finally{sending.value=false}}
+async function openBids(){sheet.value='bids';bids.value=[];bidPage=0;moreBids.value=true;await loadBids()}
+async function loadBids(){if(bidsLoading.value)return;bidsLoading.value=true;bidsError.value=false;try{const data=await getMarketBidsApi(postId,{page:bidPage+1});bids.value.push(...data.bids);bidPage++;moreBids.value=data.hasMore}catch(_){bidsError.value=true}finally{bidsLoading.value=false}}
+async function primaryAction(){if(busy.value)return;if(post.value.tradeOrder){uni.navigateTo({url:tradeRoute('order',post.value.tradeOrder.id)});return}if(auction.value){busy.value=true;try{await refreshPost();if(auctionState.value!=='live')return;bidAmount.value=String(auction.value.nextPrice);sheet.value='bid'}catch(_){toast('home.loadFailed')}finally{busy.value=false}return}uni.navigateTo({url:tradeRoute('intent',postId)})}
+async function submitBid(){if(busy.value)return;const amount=Number(bidAmount.value);if(!/^\d+(\.\d{1,2})?$/.test(bidAmount.value)||!Number.isFinite(amount)||amount<=0){toast('marketDetail.invalidBid');return}busy.value=true;try{await placeMarketBidApi(postId,amount);sheet.value='';toast('marketDetail.bidSuccess');await refreshPost().catch(()=>{})}catch(error){toast(error?.code==='BID_OWN'?'marketDetail.ownBid':error?.code==='BID_CLOSED'?'marketDetail.ended':'marketDetail.bidChanged');await refreshPost().catch(()=>{})}finally{busy.value=false}}
+async function contact(){if(busy.value)return;busy.value=true;try{const result=await startTradeApi(postId);uni.navigateTo({url:tradeRoute('chat',result.id)})}catch(_){toast('trade.unavailable')}finally{busy.value=false}}
+onLoad(options=>{postId=options.postId||'';category=options.category||'antique';targetComment=options.commentId||'';shouldOpenComments=options.openComments==='1'||!!targetComment;load()})
+onShow(()=>{refreshLayout();clearInterval(timer);timer=setInterval(()=>{now.value=Date.now()+offset;if(auctionState.value==='ended'&&!post.value?.tradeOrder&&!settlementRefreshing&&Date.now()-settlementRefreshAt>5000){settlementRefreshAt=Date.now();settlementRefreshing=true;refreshPost().catch(()=>{}).finally(()=>{settlementRefreshing=false})}},1000);if(post.value)refreshPost().catch(()=>{})})
+onHide(()=>clearInterval(timer));onUnload(()=>{disposed=true;clearInterval(timer)});onResize(refreshLayout)
+onBackPress(()=>{if(sheet.value){closeSheet();return true}})
 </script>
-
 <style scoped>
-.market-feed-page,
-.feed {
-	background: #111;
-}
-.item {
-	position: relative;
-	display: flex;
-	flex-direction: column;
-}
-.photos {
-	height: 76vh;
-}
-/* #ifndef H5 */
-.market-feed-page,
-.feed,
-.item {
-	height: 100vh;
-}
-/* #endif */
-/* #ifdef H5 */
-.market-feed-page {
-	display: flex;
-	flex-direction: column;
-}
-.feed {
-	flex: 1;
-	min-height: 0;
-	height: 100%;
-}
-.item {
-	height: 100%;
-}
-.photos {
-	flex: 1;
-	min-height: 0;
-	height: auto;
-}
-/* #endif */
-.photo,
-.empty-photo {
-	width: 100%;
-	height: 100%;
-}
-.empty-photo {
-	display: flex;
-	align-items: center;
-	justify-content: center;
-	color: #999;
-}
-.meta {
-	display: flex;
-	flex-direction: column;
-	gap: 18rpx;
-	padding: 28rpx;
-	color: #fff;
-}
-.name {
-	font-size: 38rpx;
-	font-weight: 700;
-}
-.comment {
-	margin-left: 36rpx;
-}
-.meta-like {
-	display: inline-flex;
-	align-items: center;
-	gap: 8rpx;
-}
-.meta-like-icon {
-	width: 28rpx;
-	height: 28rpx;
-}
-.actions {
-	position: absolute;
-	right: 24rpx;
-	bottom: 550rpx;
-	display: flex;
-	flex-direction: column;
-	gap: 32rpx;
-	color: #fff;
-	text-align: center;
-}
-.action {
-	display: flex;
-	flex-direction: column;
-	align-items: center;
-	font-size: 22rpx;
-	text-shadow: 0 1rpx 4rpx #000;
-}
-.action-icon {
-	width: 62rpx;
-	height: 62rpx;
-	margin-bottom: 6rpx;
-}
-.comment-icon {
-	width: 62rpx;
-	height: 62rpx;
-}
-.double-like-heart {
-	position: absolute;
-	z-index: 6;
-	width: 180rpx;
-	height: 180rpx;
-	margin: -90rpx 0 0 -90rpx;
-	pointer-events: none;
-	animation: double-like-pop 1.5s ease-out both;
-}
-@keyframes double-like-pop {
-	0% {
-		opacity: 0;
-		transform: scale(0.35) rotate(-12deg);
-	}
-	18% {
-		opacity: 1;
-		transform: scale(1.25) rotate(8deg);
-	}
-	45% {
-		opacity: 1;
-		transform: scale(1);
-	}
-	100% {
-		opacity: 0;
-		transform: scale(1.45) translateY(-42rpx);
-	}
-}
-.mask {
-	position: fixed;
-	z-index: 10;
-	inset: 0;
-	display: flex;
-	align-items: flex-end;
-	background: rgba(0, 0, 0, 0.35);
-}
-.panel {
-	display: flex;
-	width: 100%;
-	min-height: 0;
-	box-sizing: border-box;
-	flex-direction: column;
-	padding: 24rpx;
-	border-radius: 28rpx 28rpx 0 0;
-	background: #fff;
-}
-.panel-head,
-.input {
-	display: flex;
-	align-items: center;
-	justify-content: space-between;
-}
-.panel-head {
-	flex: 0 0 auto;
-}
-.close-button {
-	padding: 0 12rpx;
-	font-size: 38rpx;
-	color: #555;
-}
-.comment-list {
-	min-height: 0;
-	flex: 1;
-	margin: 22rpx 0 10rpx;
-}
-.comment-floor {
-	padding: 24rpx 0;
-	border-bottom: 1rpx solid #f0f0f0;
-}
-.comment-row {
-	display: flex;
-	gap: 18rpx;
-	padding: 12rpx 0;
-}
-.comment-avatar {
-	width: 70rpx;
-	height: 70rpx;
-	flex: 0 0 70rpx;
-	border-radius: 50%;
-	background: #eee;
-}
-.comment-content {
-	display: flex;
-	min-width: 0;
-	flex: 1;
-	flex-direction: column;
-	gap: 8rpx;
-}
-.author {
-	font-size: 25rpx;
-	color: #8e8e93;
-}
-.comment-text {
-	font-size: 29rpx;
-	line-height: 1.5;
-	color: #202124;
-	word-break: break-all;
-}
-.comment-meta {
-	display: flex;
-	align-items: center;
-	gap: 34rpx;
-	font-size: 23rpx;
-	color: #9a9a9f;
-}
-.reply-link {
-	color: #73737a;
-}
-.reply-list {
-	margin: 12rpx 0 0 88rpx;
-}
-.reply-row {
-	padding: 14rpx 0;
-}
-.reply-avatar {
-	width: 54rpx;
-	height: 54rpx;
-	flex-basis: 54rpx;
-}
-.reply-prefix {
-	color: #6f6f76;
-}
-.expand-replies,
-.expanded-replies {
-	display: block;
-	margin: 18rpx 0 0 88rpx;
-	font-size: 24rpx;
-	color: #777780;
-}
-.replying {
-	flex: 0 0 auto;
-	padding: 12rpx 0;
-	font-size: 24rpx;
-	color: #63636b;
-}
-.replying text {
-	margin-left: 18rpx;
-	color: #999;
-}
-.empty {
-	padding: 46rpx 0;
-	text-align: center;
-	color: #999;
-}
-.input {
-	flex: 0 0 auto;
-	gap: 20rpx;
-	margin-top: auto;
-	padding: 18rpx 0 16rpx;
-	padding-bottom: env(safe-area-inset-bottom);
-	border-top: 1rpx solid #ededed;
-}
-.input input {
-	min-height: 48rpx;
-	flex: 1;
-	padding: 16rpx 20rpx;
-	border-radius: 28rpx;
-	background: #f5f5f6;
-}
-/* #ifdef H5 */
-.mask {
-	bottom: var(--app-viewport-bottom-offset, 0px);
-}
-.panel {
-	padding-bottom: calc(24rpx + env(safe-area-inset-bottom));
-}
-.input {
-	padding-bottom: 16rpx;
-}
-/* #endif */
-/* #ifndef H5 */
-.panel {
-	height: 60vh;
-	min-height: 60vh;
-}
-/* #endif */
+.detail-page{position:fixed;top:0;right:0;bottom:0;left:0;display:flex;flex-direction:column;background:#f2f1ef;color:#292825;overflow:hidden}.content{flex:1;height:0;min-height:0}.navigation{position:absolute;left:0;right:0;top:0;z-index:10;background:rgba(242,241,239,.65)}.glass{position:absolute;inset:0;background:rgba(242,241,239,.64);backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);pointer-events:none}.nav-row{position:absolute;display:flex;align-items:center;height:44px}.back{width:44px;height:44px;display:flex;align-items:center;justify-content:center;border-radius:50%;background:rgba(255,255,255,.8);box-shadow:0 4px 14px rgba(30,30,30,.04);flex-shrink:0}.nav-title{flex:1;text-align:center;font-size:18px;font-weight:600;padding:0;min-width:0}.nav-fade{position:absolute;left:0;right:0;top:100%;height:12px;background:linear-gradient(rgba(242,241,239,.85),rgba(242,241,239,0));backdrop-filter:blur(3px);-webkit-backdrop-filter:blur(3px);mask-image:linear-gradient(#000,transparent);pointer-events:none}.gallery{position:relative;margin:0 14px 10px;border-radius:22px;overflow:hidden;background:#e9e7e2}.photos,.empty-photo{height:320px;height:80vw;max-height:480px}.photo{width:100%;height:100%;border-radius:22px}.empty-photo{display:flex;justify-content:center;align-items:center;color:#aaa}.counter{position:absolute;right:12px;bottom:12px;background:rgba(0,0,0,.4);color:white;border-radius:20px;font-size:12px;padding:4px 9px}.card{margin:0 14px 12px;padding:18px;border-radius:20px;background:#fff}.title{display:block;font-size:21px;font-weight:600;margin:8px 0 12px;line-height:1.4;overflow-wrap:anywhere}.badge{display:inline-block;padding:4px 10px;border-radius:20px;background:#fff3d4;color:#ab8420;font-size:12px}.price-row{display:flex;gap:10px;align-items:center}.price{font-size:27px;font-weight:600;color:#bd921d}.muted{color:#999;font-size:13px}.auction-info{margin-top:14px;padding:14px;border-radius:14px;background:#f5f5f7;font-size:13px}.auction-info>view:first-child{display:flex;justify-content:space-between;gap:10px}.auction-numbers{display:flex;flex-wrap:wrap;gap:10px;justify-content:space-between;margin-top:14px;color:#888}.seller{display:flex;align-items:center;gap:10px}.seller image{width:42px;height:42px;border-radius:50%}.seller>view{flex:1;min-width:0}.seller text{display:block;overflow-wrap:anywhere}.heading{display:block;font-size:16px;font-weight:600;margin-bottom:12px}.info-row{display:flex;align-items:flex-start;gap:16px;margin:12px 0;font-size:14px;line-height:1.5}.info-row>.muted{width:85px;flex-shrink:0}.info-row>text:last-child{flex:1;min-width:0;overflow-wrap:anywhere}.note{display:block;font-size:12px;color:#999;line-height:1.6;margin:14px 0}.description{font-size:14px;line-height:1.8;white-space:pre-wrap;overflow-wrap:anywhere}.bid-entry,.comment-heading{display:flex;justify-content:space-between;align-items:center;gap:10px}.bid-entry .heading{margin:0}.comment-heading .gold{font-size:12px}.gold,.expand{color:#c49b22}.comment-row{display:flex;align-items:flex-start;gap:10px;margin:20px 0}.comment-row image{width:32px;height:32px;border-radius:50%;flex-shrink:0}.comment-body{flex:1;min-width:0}.comment-text{display:block;font-size:14px;line-height:1.6;white-space:pre-wrap;overflow-wrap:anywhere;margin:4px 0 8px}.comment-meta{display:flex;gap:14px;flex-wrap:wrap;font-size:11px;color:#aaa}.reply{margin-left:34px}.reply image{width:28px;height:28px}.expand{display:block;margin-left:42px;font-size:12px;padding:6px}.state{text-align:center;color:#999;font-size:14px;padding:24px}.bottom-space{height:20px}.bottom-bar{position:relative;z-index:11;box-shadow:0 -3px 12px rgba(41,40,37,.055);flex-shrink:0;display:flex;gap:18px;align-items:center;padding:12px 20px;background:#f2f1ef;padding-bottom:calc(12px + env(safe-area-inset-bottom))}.icon-action{display:flex;flex-direction:column;align-items:center;gap:4px;min-width:32px;font-size:11px}.primary{background:#ffce00;color:#292825;border-radius:30px;font-size:15px;line-height:1.4;padding:14px 18px;font-weight:600;flex:1;margin:0;border:0}.primary::after{border:0}.primary[disabled]{opacity:.5;background:#ffce00;color:#666}.sheet{padding:24px 20px;background:#fff;padding-bottom:calc(24px + env(safe-area-inset-bottom))}.sheet-head{display:flex;justify-content:space-between;font-size:20px;font-weight:600;margin-bottom:24px}.sheet-head>view{padding:0 6px}.field{height:52px;background:#f5f5f7;border-radius:14px;margin:14px 0;padding:0 16px;font-size:24px}.comment-input{width:100%;box-sizing:border-box;background:#f5f5f7;border-radius:14px;padding:14px;height:130px;margin:14px 0}.bid-list{height:48vh}.bid-row{display:flex;flex-wrap:wrap;gap:10px;align-items:center;justify-content:space-between;padding:14px 0;font-size:14px}.bid-avatar{width:36px;height:36px;border-radius:50%;flex-shrink:0;background:#f5f5f7}.bid-person{flex:1;min-width:0;display:flex;flex-direction:column;gap:5px}.bid-person>.muted{font-size:11px}.bid-amount{font-weight:600;flex-shrink:0}.back:active,.icon-action:active{opacity:.65}
 </style>
+<style scoped>
+.bid-entry{flex-wrap:wrap}.bid-preview{display:flex;align-items:center;justify-content:flex-end;gap:7px;margin-left:auto;max-width:100%;flex-wrap:wrap}.bid-avatar-stack{display:flex;align-items:center;padding-left:7px;flex-shrink:0}.bid-preview-avatar{display:block;width:26px;height:26px;border:2px solid #fff;border-radius:50%;margin-left:-7px;background:#f5f5f7;box-sizing:content-box}.bid-count{font-size:12px;overflow-wrap:anywhere}
+</style>
+
+<style scoped>.bottom-bar{gap:10px}.contact-trade{font-size:12px;padding:10px 8px;border-radius:24px;line-height:1.4;background:white;color:#777;margin:0;max-width:90px}.contact-trade::after{border:0}.bottom-bar>.primary{font-size:13px;padding:13px 10px}</style>

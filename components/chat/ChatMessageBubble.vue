@@ -46,9 +46,9 @@
 			<view v-if="mine" class="receipt">
 				<view v-if="message.readCount" class="read-summary" @tap="emit('show-read-members', message)">
 					<view class="read-avatars">
-						<view v-for="reader in message.readBy.slice(0, 3)" :key="reader.userId" class="read-avatar-wrap">
+						<view v-for="reader in (message.readBy || []).slice(0, 3)" :key="reader.userId" class="read-avatar-wrap">
 							<image v-if="reader.avatarUrl" class="read-avatar" :src="reader.avatarUrl" mode="aspectFill" />
-							<text v-else class="read-avatar read-avatar-fallback">{{ String(reader.name || '成').slice(0, 1) }}</text>
+							<text v-else class="read-avatar read-avatar-fallback">{{ String(reader.name || t('inbox.user')).slice(0, 1) }}</text>
 						</view>
 					</view>
 					<text class="receipt-text">{{ t('chat.readCount', { count: message.readCount }) }}</text>
@@ -101,8 +101,9 @@ function onLongPress(event) {
 	display: flex;
 	align-items: flex-start;
 	gap: 14rpx;
-	margin: 20rpx 0;
+	margin: 24rpx 0;
 }
+.mine .bubble{background:#f9e7ad;border-radius:18px 18px 5px 18px;}
 .message-row.mine {
 	flex-direction: row-reverse;
 }
@@ -127,6 +128,7 @@ function onLongPress(event) {
 }
 .message-main {
 	max-width: calc(100% - 104rpx);
+	min-width:0;
 	display: flex;
 	flex-direction: column;
 	align-items: flex-start;
@@ -136,24 +138,26 @@ function onLongPress(event) {
 }
 .sender-name {
 	margin: 0 8rpx 8rpx;
-	color: #777b83;
+	color: #918d85;
 	font-size: 24rpx;
 }
 .bubble {
+	display: flex;
+	flex-direction: column;
 	max-width: 100%;
 	padding: 18rpx 22rpx;
-	border-radius: 22rpx;
+	border-radius: 18px 18px 18px 5px;
 	background: #fff;
 	box-sizing: border-box;
 }
 .message-text {
-	color: #171b29;
+	color: #292825;
 	font-size: 32rpx;
 	line-height: 1.5;
 	word-break: break-word;
 }
 .mention {
-	color: #075aa5;
+	color: #856719;
 	font-weight: 600;
 }
 .message-image {
@@ -165,7 +169,7 @@ function onLongPress(event) {
 .receipt {
 	min-height: 30rpx;
 	padding: 4rpx 8rpx 0;
-	color: #8c939d;
+	color: #918d85;
 	font-size: 21rpx;
 }
 .read-summary {
@@ -206,11 +210,12 @@ function onLongPress(event) {
 	display: flex;
 	align-items: center;
 	gap: 14rpx;
-	margin-top: 14rpx;
+	order: -1;
+	margin-bottom: 14rpx;
 	padding: 12rpx 14rpx;
 	border-radius: 12rpx;
-	background: #e4e4e4;
-	min-width: 260rpx;
+	background: rgba(164,146,89,.1);border-left:3px solid #d1b55c;
+	min-width:0;max-width:100%;box-sizing:border-box;
 }
 .reply-copy {
 	min-width: 0;

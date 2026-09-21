@@ -1,5 +1,5 @@
 <template>
-	<view class="container app-h5-min-screen liquid-tab-page" :class="{ 'is-card-home': model === 'recommend' && currentEntryIndex === 1 && blessingViewMode === 'cards' }" :style="{ '--blessing-header-height': recommendationHeaderHeight + 'px' }">
+	<view class="container app-h5-min-screen liquid-tab-page" :class="{ 'is-recommend-home': model === 'recommend', 'is-card-home': model === 'recommend' && currentEntryIndex === 1 && blessingViewMode === 'cards' }" :style="{ '--blessing-header-height': recommendationHeaderHeight + 'px' }">
 		<!-- 状态栏占位 -->
 		<!-- <view
 			class="status-bar"
@@ -72,7 +72,7 @@
 			</view>
 			<view v-if="model === 'recommend'">
 			<!-- 搜索栏 -->
-			<view v-if="membership?.canSearch" class="search-container" @click="openSearch">
+			<view v-if="membership?.canSearch && (currentEntryIndex === 0 || currentEntryIndex === 1)" class="search-container" @click="openSearch">
 				<view class="search-box">
 					<text class="search-placeholder">{{ t('home.search') }}</text>
 				</view>
@@ -98,14 +98,6 @@
 						</view>
 					</view>
 				</scroll-view>
-				<!-- 右侧筛选图标 -->
-				<view class="filter-icon-box">
-					<uni-icons
-						type="settings"
-						size="22"
-						color="#666"
-					></uni-icons>
-				</view>
 			</view>
 		</view>
 		</view>
@@ -129,12 +121,64 @@
 					>
 						<view
 							class="post-card featured-card"
-							:class="{ navigable: featuredCardRoute(item) }"
+							:class="{ navigable: featuredCardRoute(item), 'featured-market-card': isFeaturedMarket(item) }"
 							v-for="item in columnItems"
 							:key="item.feedKey"
 							@click="openFeaturedItem(item)"
 						>
-							<view class="post-header">
+							<view
+								class="post-media"
+								:class="{
+									'is-image-loading': !isFeaturedImageLoaded(
+										item.feedKey,
+									),
+								}"
+								v-if="featuredItemImage(item)"
+							>
+								<view
+									v-if="!isFeaturedImageLoaded(item.feedKey)"
+									class="media-skeleton"
+								>
+									<view class="skeleton-line skeleton-line-wide"></view>
+									<view class="skeleton-line skeleton-line-short"></view>
+								</view>
+								<image
+									class="media-img"
+									:src="getFullImageUrl(featuredItemImage(item))"
+									mode="widthFix"
+									@load="markFeaturedImageLoaded(item.feedKey)"
+									@error="markFeaturedImageLoaded(item.feedKey)"
+								></image>
+								<text v-if="item.type === 'antique' || item.type === 'second_hand'" class="featured-kind">{{ t(item.type === 'antique' ? 'home.antique' : 'home.secondHand') }}</text>
+							</view>
+
+							<view
+								v-if="
+									item.type === 'antique' ||
+									item.type === 'second_hand'
+								"
+								class="featured-title"
+							>
+								<text>{{ item.title }}</text>
+							</view>
+							<view
+								v-if="
+									item.type === 'antique' ||
+									item.type === 'second_hand'
+								"
+								class="featured-price"
+							>
+								<text>¥ {{ item.meta }}</text>
+							</view>
+							<view
+								v-if="item.type === 'moment' || item.summary"
+								class="featured-summary"
+							>
+								<text>{{ item.summary }}</text>
+							</view>
+
+							<view class="featured-footer">
+<view class="post-header">
 								<view class="post-avatar">
 									<image
 										v-if="item.author && item.author.avatarUrl"
@@ -165,56 +209,6 @@
 								</view>
 							</view>
 
-							<view
-								class="post-media"
-								:class="{
-									'is-image-loading': !isFeaturedImageLoaded(
-										item.feedKey,
-									),
-								}"
-								v-if="featuredItemImage(item)"
-							>
-								<view
-									v-if="!isFeaturedImageLoaded(item.feedKey)"
-									class="media-skeleton"
-								>
-									<view class="skeleton-line skeleton-line-wide"></view>
-									<view class="skeleton-line skeleton-line-short"></view>
-								</view>
-								<image
-									class="media-img"
-									:src="getFullImageUrl(featuredItemImage(item))"
-									mode="widthFix"
-									@load="markFeaturedImageLoaded(item.feedKey)"
-									@error="markFeaturedImageLoaded(item.feedKey)"
-								></image>
-							</view>
-
-							<view
-								v-if="
-									item.type === 'antique' ||
-									item.type === 'second_hand'
-								"
-								class="featured-title"
-							>
-								<text>{{ item.title }}</text>
-							</view>
-							<view
-								v-if="
-									item.type === 'antique' ||
-									item.type === 'second_hand'
-								"
-								class="featured-price"
-							>
-								<text>¥ {{ item.meta }}</text>
-							</view>
-							<view
-								v-if="item.type === 'moment' || item.summary"
-								class="featured-summary"
-							>
-								<text>{{ item.summary }}</text>
-							</view>
-
 							<view class="post-actions">
 								<view class="actions-left">
 									<view
@@ -222,9 +216,7 @@
 										v-if="isFeaturedLikeAvailable(item)"
 										@click.stop="toggleFeaturedLike(item)"
 									>
-										<text class="action-icon">{{
-											item.isLiked ? '❤️' : '🤍'
-										}}</text>
+										<uni-icons :type="item.isLiked ? 'heart-filled' : 'heart'" size="18" :color="item.isLiked ? '#c49b22' : '#77787d'" />
 										<text class="action-num">{{
 											item.likeCount || 0
 										}}</text>
@@ -239,9 +231,9 @@
 										"
 									>
 										<uni-icons
-											type="chat"
-											size="24"
-											color="#666"
+											type="chatbubble"
+											size="18"
+											color="#77787d"
 										></uni-icons>
 										<text class="action-num">{{
 											item.commentCount || 0
@@ -250,7 +242,8 @@
 								</view>
 							</view>
 
-							<view
+							</view>
+<view
 								v-if="
 									isFeaturedCommentAvailable(item) &&
 									item.showComments
@@ -357,13 +350,17 @@
 						<button :class="{ selected: blessingViewMode === 'list' }" :aria-label="t('deck.listMode')" :aria-pressed="blessingViewMode === 'list'" :disabled="blessingActionBusy" @click="setBlessingViewMode('list')"><uni-icons type="list" size="17" :color="blessingViewMode === 'list' ? '#1c1c1e' : '#77787d'" /><text>{{ t('deck.list') }}</text></button>
 					</view>
 				</view>
-				<button class="blessing-quota" :class="{ 'has-error': membershipLoadError }" :disabled="membershipLoading" @click="onMembershipQuotaTap">
+				<button v-if="blessingViewMode === 'list' || !deckProfiles.length" class="blessing-quota" :class="{ 'has-error': membershipLoadError }" :disabled="membershipLoading" @click="onMembershipQuotaTap">
 					<uni-icons v-if="membershipLoadError" type="refreshempty" size="16" color="#87713b" />
 					<text>{{ remainingQuota }}</text>
 				</button>
 				<BlessingCardDeck
 					v-show="blessingViewMode === 'cards'"
 					:items="deckProfiles"
+					:quota-text="remainingQuota"
+					:quota-loading="membershipLoading"
+					:quota-error="membershipLoadError"
+					@quota-tap="onMembershipQuotaTap"
 					:active="blessingViewMode === 'cards'"
 					:loading="loading"
 					:loading-more="loadingMore"
@@ -561,11 +558,13 @@
 		<AuctionActivity v-if="model === 'activity'" />
 		<!-- 底部安全区留白 -->
 		<view class="safe-area-bottom"></view>
-		<LiquidGlassTabBar active-route="pages/index/index360" />
+		<LiquidGlassTabBar active-route="pages/index/index360" :hidden="sheetProfileId != null" />
+		<ProfileDetailSheet :profile-id="sheetProfileId" :page-visible="sheetPageVisible" native-header @closed="closeProfileSheet" />
 	</view>
 </template>
 
 <script setup>
+import { toggleMarketLikeApi, getMarketCommentsApi, addMarketCommentApi } from '@/api/market.js';
 import { ref, onMounted, onBeforeUnmount, computed, nextTick, watch } from "vue";
 import { onPullDownRefresh, onReachBottom, onPageScroll, onShow, onResize } from "@dcloudio/uni-app";
 import {
@@ -585,6 +584,8 @@ import AntiqueCollection from "./components/Antiquecollection.vue";
 import AuctionActivity from "./components/Auctionactivity.vue";
 import MarketPreviewSection from "@/components/market/MarketPreviewSection.vue";
 import BlessingCardDeck from '@/components/profile/BlessingCardDeck.vue';
+import ProfileDetailSheet from '@/components/profile/ProfileDetailSheet.vue';
+import { useProfileDetailSheet } from '@/utils/useProfileDetailSheet.js';
 import FeedContentState from '@/components/feedback/FeedContentState.vue';
 import LiquidGlassTabBar from '@/components/navigation/LiquidGlassTabBar.vue';
 import { getProfilePhotos, mergeProfileBatch } from '@/utils/blessingDeck.js';
@@ -601,10 +602,11 @@ import {
 import { currentLocale, t, updateTabBarLocale } from '@/utils/localeRuntime.js';
 
 let homeShown = false;
+const { profileId: sheetProfileId, pageVisible: sheetPageVisible, open: openProfileSheet, close: closeProfileSheet } = useProfileDetailSheet();
 onShow(() => {
 	updateTabBarLocale();
 	refreshMembership().catch(() => {});
-	if (homeShown && !blessingActionBusy.value && !rewindBusy.value) {
+	if (homeShown && sheetProfileId.value == null && !blessingActionBusy.value && !rewindBusy.value) {
 		loadFeed({ isRefresh: true });
 		if (featuredItems.value.length) loadFeaturedFeed({ isRefresh: true });
 	}
@@ -735,10 +737,7 @@ function setBlessingViewMode(mode) {
 }
 
 function openBlessingProfile(profile) {
-	uni.navigateTo({
-		url: `/pages/searchPerson/personShow/personShow?id=${encodeURIComponent(profile.profileId)}`,
-		fail: () => uni.showToast({ title: t('home.actionFailed'), icon: 'none' })
-	});
+	openProfileSheet(profile.profileId);
 }
 
 function syncProfileLikeState(profile) {
@@ -786,7 +785,11 @@ function onBlessingChanged(change = {}) {
 	refreshMembership().catch(() => {});
 }
 uni.$on('blessing:changed', onBlessingChanged);
-onBeforeUnmount(() => uni.$off('blessing:changed', onBlessingChanged));
+uni.$on('auth-session-changed', closeProfileSheet);
+onBeforeUnmount(() => {
+	uni.$off('blessing:changed', onBlessingChanged);
+	uni.$off('auth-session-changed', closeProfileSheet);
+});
 
 async function rewindBlessingCard() {
 	if (blessingActionBusy.value || rewindBusy.value || loading.value || loadingMore.value || !membership.value?.rewind?.available) return;
@@ -1055,6 +1058,7 @@ function featuredCardRoute(item) {
 function openFeaturedItem(item) {
 	const route = featuredItemRoute(item);
 	if (!route) return;
+	if (item.type === 'blessing') { openBlessingProfile({ profileId: item.id }); return; }
 	uni.navigateTo({ url: route });
 }
 
@@ -1103,33 +1107,38 @@ async function toggleLike(item, source = 'list') {
 	}
 }
 
+function isFeaturedMarket(item) { return item.type === 'antique' || item.type === 'second_hand'; }
 function isFeaturedLikeAvailable(item) {
-	return item.type === "blessing" || item.type === "moment";
+	return item.type === "blessing" || item.type === "moment" || isFeaturedMarket(item);
 }
 
 function isFeaturedCommentAvailable(item) {
-	return item.type === "blessing" || item.type === "moment";
+	return item.type === "moment" || isFeaturedMarket(item);
 }
 
 function getFeaturedLikeApi(item) {
+	if (isFeaturedMarket(item)) return toggleMarketLikeApi;
 	if (item.type === "moment") return toggleLikeMomentApi;
 	if (item.type === "blessing") return toggleProfileLikeApi;
 	return null;
 }
 
 function getFeaturedCommentsApi(item) {
+	if (isFeaturedMarket(item)) return getMarketCommentsApi;
 	if (item.type === "moment") return getCommentsApi;
 	if (item.type === "blessing") return getProfileCommentsApi;
 	return null;
 }
 
 function getFeaturedAddCommentApi(item) {
+	if (isFeaturedMarket(item)) return addMarketCommentApi;
 	if (item.type === "moment") return addCommentApi;
 	if (item.type === "blessing") return addProfileCommentApi;
 	return null;
 }
 
 async function toggleFeaturedLike(item) {
+	if (item.featuredLikePending) return;
 	if (item.type === 'blessing') {
 		const profile = { profileId: item.id, isLiked: item.isLiked, likeCount: item.likeCount };
 		await toggleLike(profile, 'featured');
@@ -1139,6 +1148,7 @@ async function toggleFeaturedLike(item) {
 	if (!likeApi) return;
 
 	const prevLiked = item.isLiked;
+	item.featuredLikePending = true;
 	const prevCount = item.likeCount || 0;
 	item.isLiked = !prevLiked;
 	item.likeCount = prevCount + (item.isLiked ? 1 : -1);
@@ -1152,18 +1162,13 @@ async function toggleFeaturedLike(item) {
 		item.isLiked = prevLiked;
 		item.likeCount = prevCount;
 		uni.showToast({ title: t('home.actionFailed'), icon: "none" });
-	}
+	} finally { item.featuredLikePending = false; }
 }
 
 function toggleFeaturedCommentPanel(item) {
-	item.showComments = !item.showComments;
-	if (
-		item.showComments &&
-		item.comments.length === 0 &&
-		!item.commentsLoading
-	) {
-		loadFeaturedComments(item);
-	}
+	const route = featuredItemRoute(item);
+	if (!route || !isFeaturedCommentAvailable(item)) return;
+	uni.navigateTo({ url: `${route}${route.includes('?') ? '&' : '?'}openComments=1` });
 }
 
 async function loadFeaturedComments(item) {
@@ -1184,6 +1189,7 @@ async function loadFeaturedComments(item) {
 
 function startFeaturedReply(item, comment) {
 	item.replyTarget = {
+		commentId: comment.id,
 		userId: comment.user_id,
 		email: commentDisplayName(comment, t('common.user')),
 	};
@@ -1201,7 +1207,9 @@ async function submitFeaturedComment(item) {
 	if (!text) return;
 	item.commentSubmitting = true;
 	try {
-		const res = item.type === 'blessing'
+		const res = isFeaturedMarket(item)
+			? await submitApi(item.id, { content: text, replyToCommentId: item.replyTarget?.commentId })
+			: item.type === 'blessing'
 			? await submitApi(item.id, text, item.replyTarget?.userId, commentRequestId(item, text))
 			: await submitApi(item.id, text, item.replyTarget?.userId);
 		item.comments.push(res.comment);
@@ -1430,7 +1438,7 @@ $gray-bg: #f5f6f8;
 	.search-box {
 		width: 100%;
 		height: 72rpx;
-		background-color: $gray-bg;
+		background-color: #ffffff;
 		border-radius: 36rpx;
 		display: flex;
 		justify-content: center;
@@ -1470,7 +1478,7 @@ $gray-bg: #f5f6f8;
 		.tab-pill {
 			height: 64rpx;
 			padding: 0 32rpx;
-			background-color: $gray-bg;
+			background-color: #ffffff;
 			border-radius: 32rpx;
 			display: flex;
 			justify-content: center;
@@ -1493,19 +1501,6 @@ $gray-bg: #f5f6f8;
 		}
 	}
 
-	.filter-icon-box {
-		width: 80rpx;
-		display: flex;
-		justify-content: center;
-		align-items: center;
-		background: linear-gradient(
-			270deg,
-			#ffffff 60%,
-			rgba(255, 255, 255, 0) 100%
-		);
-		position: relative;
-		z-index: 2;
-	}
 }
 
 /* #ifdef H5 */
@@ -1846,9 +1841,9 @@ $gray-bg: #f5f6f8;
 }
 .blessing-section {
 	padding: 0 12px;
-	--blessing-card-height: max(280px, min(680px, calc(100vh - var(--window-top, 0px) - var(--blessing-header-height, 180px) - 180px - env(safe-area-inset-bottom))));
+	--blessing-card-height: max(280px, min(680px, calc(100vh - var(--window-top, 0px) - var(--blessing-header-height, 180px) - 150px - env(safe-area-inset-bottom))));
 	/* #ifdef H5 */
-	--blessing-card-height: max(280px, min(680px, calc(var(--app-layout-viewport-height, 100dvh) - var(--window-top, 0px) - var(--blessing-header-height, 180px) - 180px - env(safe-area-inset-bottom))));
+	--blessing-card-height: max(280px, min(680px, calc(var(--app-layout-viewport-height, 100dvh) - var(--window-top, 0px) - var(--blessing-header-height, 180px) - 150px - env(safe-area-inset-bottom))));
 	/* #endif */
 }
 .blessing-toolbar { max-width: 460px; margin: 0 auto 4px; min-height: 48px; display: flex; align-items: center; justify-content: space-between; gap: 12px; }
@@ -1868,14 +1863,37 @@ $gray-bg: #f5f6f8;
 .blessing-retry:active { transform: scale(.97); }
 .is-like-busy { opacity: .5; pointer-events: none; }
 .container.is-card-home { background: #f5f5f7; overflow-x: hidden; }
+.container.is-recommend-home,
+.is-recommend-home .recommendation-sticky-header,
+.is-recommend-home .header-nav,
+.is-recommend-home .search-container,
+.is-recommend-home .scroll-tabs-wrapper { background: #f5f5f7; }
 .is-card-home .recommendation-sticky-header, .is-card-home .header-nav { background: #f5f5f7; }
 .is-card-home .header-nav { padding-top: 12px; padding-bottom: 7px; }
-.is-card-home .search-container, .is-card-home .filter-icon-box, .is-card-home .safe-area-bottom { display: none; }
+.is-card-home .safe-area-bottom { display: none; }
 .is-card-home .scroll-tabs-wrapper { padding-top: 4px; padding-bottom: 4px; background: transparent; }
 .fab-button { --app-fixed-bottom-base: calc(108px + env(safe-area-inset-bottom)); bottom: calc(108px + env(safe-area-inset-bottom)); }
 @media (prefers-reduced-motion: reduce) { .blessing-view-switch button { transition: none; } }
 </style>
 <style scoped>
+.post-card.featured-card{padding:0;border-radius:18px;background:#fff;box-shadow:0 2px 8px rgba(45,42,34,.025);}
+.post-card.featured-card .post-media{border-radius:18px 18px 12px 12px;margin:0;}
+.post-card.featured-card .media-img{display:block;width:100%;}
+.featured-kind{position:absolute;top:9px;right:9px;max-width:calc(100% - 34px);padding:3px 7px;border:1px solid rgba(255,255,255,.7);border-radius:8px;background:rgba(45,42,34,.28);color:#fff;font-size:10px;line-height:1.4;overflow-wrap:anywhere;}
+.post-card.featured-card .featured-title,.post-card.featured-card .featured-summary{margin:9px 10px 0;font-size:14px;font-weight:500;line-height:1.5;color:#292825;display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:2;overflow:hidden;overflow-wrap:anywhere;}
+.post-card.featured-card .featured-price{margin:4px 10px 0;font-size:14px;font-weight:600;color:#b58c22;}
+.post-card.featured-card.featured-market-card .featured-summary{display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;-webkit-line-clamp:unset;}
+.featured-footer{display:flex;align-items:center;flex-wrap:wrap;gap:2px 6px;padding:6px 10px 8px;min-width:0;}
+.post-card.featured-card .post-header{flex:1 1 52px;min-width:0;margin:0;gap:5px;}
+.post-card.featured-card .post-header .post-avatar{flex:0 0 23px;width:23px;height:23px;margin:0;}
+.post-card.featured-card .post-header .username{font-size:11px;font-weight:400;line-height:1.4;color:#8b8984;}
+.post-card.featured-card .post-header .location-box{display:none;}
+.post-card.featured-card .post-actions{flex:none;margin:0;padding:0;}
+.post-card.featured-card .post-actions .actions-left{gap:8px;}
+.post-card.featured-card .post-actions .action-btn{min-height:36px;gap:3px;}
+.post-card.featured-card .post-actions .action-num{margin:0;font-size:10px;color:#8b8984;}
+.post-card.featured-card .meta-box{margin:0 8px 8px;padding:10px;border-radius:12px;background:#f7f7f5;}
+@media(max-width:350px){.featured-footer{padding-left:8px;padding-right:8px;}.post-card.featured-card .post-actions .actions-left{gap:5px;}}
 /* #ifndef H5 */
 .container { min-height: 100vh; }
 /* #endif */
