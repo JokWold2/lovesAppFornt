@@ -1,10 +1,11 @@
 <template>
-  <view class="cake-page">
+  <view class="cake-page app-h5-screen">
     <CakeNavBar
-      :title="t('cake.tabOrder')"
+      :title="t('cake.orderTitle')"
       :progress="navProgress"
       :spacer="true"
       :bottom-height="84"
+      show-back
       show-home
       :z-index="70"
       @height="onNavHeight"
@@ -169,8 +170,6 @@
         </scroll-view>
       </view>
     </SlideUpPanel>
-
-    <CakeTabBar active-key="order" />
   </view>
 </template>
 
@@ -178,7 +177,6 @@
 import { computed, onMounted, ref } from 'vue'
 import { onPageScroll, onPullDownRefresh } from '@dcloudio/uni-app'
 import CakeNavBar from '@/components/cake/CakeNavBar.vue'
-import CakeTabBar from '@/components/cake/CakeTabBar.vue'
 import CakeStoreCard from '@/components/cake/CakeStoreCard.vue'
 import CakeStateView from '@/components/cake/CakeStateView.vue'
 import SlideUpPanel from '@/components/common/SlideUpPanel.vue'
@@ -461,6 +459,16 @@ onPullDownRefresh(() => { loadStores(true) })
   background: #F7F5F1;
 }
 
+/* H5 下 vh 会把地址栏高度算进来，页面顶部被顶掉一截；
+   与站内其它全屏页统一，按真实可视区高度布局。 */
+/* #ifdef H5 */
+.cake-page.app-h5-screen {
+  min-height: 0;
+  padding-bottom: constant(safe-area-inset-bottom);
+  padding-bottom: env(safe-area-inset-bottom);
+}
+/* #endif */
+
 .cake-order-locate {
   width: 72rpx;
   height: 72rpx;
@@ -698,7 +706,7 @@ onPullDownRefresh(() => { loadStores(true) })
 
 .cake-city-count { font-size: 22rpx; color: #A9A39A; }
 
-.cake-bottom-space { height: 200rpx; }
+.cake-bottom-space { height: 48rpx; }
 
 button::after { border: 0; }
 

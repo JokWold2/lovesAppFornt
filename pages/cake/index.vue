@@ -1,10 +1,11 @@
 <template>
-  <view class="cake-page">
+  <view class="cake-page app-h5-screen">
     <CakeNavBar
       title=""
       tone="light"
       :progress="navProgress"
       :spacer="false"
+      show-back
       :z-index="70"
     >
       <template #right>
@@ -234,8 +235,6 @@
       @dismiss="closeSku"
       @confirm="confirmSku"
     />
-
-    <CakeTabBar active-key="home" />
   </view>
 </template>
 
@@ -243,7 +242,6 @@
 import { computed, onMounted, ref } from 'vue'
 import { onShow } from '@dcloudio/uni-app'
 import CakeNavBar from '@/components/cake/CakeNavBar.vue'
-import CakeTabBar from '@/components/cake/CakeTabBar.vue'
 import CakeCartFab from '@/components/cake/CakeCartFab.vue'
 import CakeProductCard from '@/components/cake/CakeProductCard.vue'
 import CakeSkuPanel from '@/components/cake/CakeSkuPanel.vue'
@@ -255,8 +253,8 @@ import {
   cakeCartState,
   createCakeScrollProgress,
   goCakePage,
-  pickCakeText,
-  switchCakeTab
+  goCakeTab,
+  pickCakeText
 } from '@/utils/cake.js'
 
 const locale = currentLocale
@@ -318,11 +316,11 @@ function onHeroChange(event) {
   heroIndex.value = Number(event?.detail?.current || 0)
 }
 
-function goShop() { switchCakeTab(CAKE_ROUTES.shop) }
-function goOrder() { switchCakeTab(CAKE_ROUTES.order) }
-function goTransport() { switchCakeTab(CAKE_ROUTES.transport) }
+function goShop() { goCakeTab(CAKE_ROUTES.shop) }
+function goOrder() { goCakeTab(CAKE_ROUTES.order) }
+function goTransport() { goCakeTab(CAKE_ROUTES.transport) }
 // 从活动位进入的订单带上活动码，后端据此记录「下单月饼抽免单」的参与来源。
-function goPromoTransport() { switchCakeTab(`${CAKE_ROUTES.transport}?marketing=mooncake-free-order`) }
+function goPromoTransport() { goCakeTab(`${CAKE_ROUTES.transport}?marketing=mooncake-free-order`) }
 function openCart() { goCakePage(CAKE_ROUTES.cart) }
 function openAccount() { goCakePage(CAKE_ROUTES.account) }
 function openProfile() { goCakePage('/pages/my/myLifeShowEdit/myLifeShowEdit') }
@@ -419,6 +417,24 @@ onShow(() => { loadCart() })
   background: #F7F5F1;
   overflow: hidden;
 }
+
+/* H5 下 vh 会把地址栏高度算进来，页面顶部被顶掉一截；
+   与站内其它全屏页统一，按真实可视区高度布局。
+   app-h5-screen 只在 H5 模板上生效，选择器权重也高于上面的基础规则，
+   所以这段不会影响小程序 / App。 */
+/* #ifdef H5 */
+.cake-page.app-h5-screen {
+  width: auto;
+  height: auto;
+  min-height: 0;
+  box-sizing: border-box;
+  padding-bottom: constant(safe-area-inset-bottom);
+  padding-bottom: env(safe-area-inset-bottom);
+}
+
+/* 导航栏是透明的，正文压在下面；顶部按导航栏高度留白，避免标题贴边。 */
+.cake-hero { padding-top: 150rpx; }
+/* #endif */
 
 .cake-scroll { flex: 1; height: 0; min-height: 0; }
 
@@ -934,7 +950,7 @@ onShow(() => { loadCart() })
 
 .cake-more-action-text { font-size: 24rpx; color: #8A857C; }
 
-.cake-bottom-space { height: 200rpx; }
+.cake-bottom-space { height: 48rpx; }
 
 button::after { border: 0; }
 

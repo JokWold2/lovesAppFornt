@@ -1,10 +1,11 @@
 <template>
-  <view class="cake-page">
+  <view class="cake-page app-h5-screen">
     <CakeNavBar
       :title="t(navTitleKey)"
       :progress="navProgress"
       :spacer="true"
       :bottom-height="navBottomHeight"
+      show-back
       show-home
       show-search
       :z-index="70"
@@ -164,8 +165,6 @@
       @dismiss="closeSku"
       @confirm="confirmSku"
     />
-
-    <CakeTabBar :active-key="tabKey" />
   </view>
 </template>
 
@@ -173,7 +172,6 @@
 import { computed, onMounted, ref } from 'vue'
 import { onShow } from '@dcloudio/uni-app'
 import CakeNavBar from '@/components/cake/CakeNavBar.vue'
-import CakeTabBar from '@/components/cake/CakeTabBar.vue'
 import CakeCartFab from '@/components/cake/CakeCartFab.vue'
 import CakeProductCard from '@/components/cake/CakeProductCard.vue'
 import CakeProductRow from '@/components/cake/CakeProductRow.vue'
@@ -185,7 +183,6 @@ import { CAKE_ROUTES, cakeCartState, createCakeScrollProgress, goCakePage, pickC
 
 const props = defineProps({
   navTitleKey: { type: String, required: true },
-  tabKey: { type: String, required: true },
   // 只展示这些分类（按 code 过滤）；为空表示展示后端返回的全部分类
   categoryCodes: { type: Array, default: () => [] },
   defaultCategoryCode: { type: String, default: '' },
@@ -427,6 +424,19 @@ onShow(() => { loadCart() })
   overflow: hidden;
 }
 
+/* H5 下 vh 会把地址栏高度算进来，页面顶部被顶掉一截；
+   与站内其它全屏页统一，按真实可视区高度布局。 */
+/* #ifdef H5 */
+.cake-page.app-h5-screen {
+  width: auto;
+  height: auto;
+  min-height: 0;
+  box-sizing: border-box;
+  padding-bottom: constant(safe-area-inset-bottom);
+  padding-bottom: env(safe-area-inset-bottom);
+}
+/* #endif */
+
 .cake-toolbar { background: #F7F5F1; border-bottom: 1rpx solid #EDE9E2; }
 
 .cake-categories { width: 100%; white-space: nowrap; }
@@ -599,7 +609,7 @@ onShow(() => { loadCart() })
 
 .cake-list-end { font-size: 24rpx; color: #A9A39A; }
 
-.cake-bottom-space { height: 200rpx; }
+.cake-bottom-space { height: 48rpx; }
 
 button::after { border: 0; }
 

@@ -3,15 +3,6 @@
 import { ref } from 'vue'
 import { config } from './config.js'
 
-// 底部导航（与设计稿一致：首页 / 点单 / 蛋糕 / 月饼到家 / 我的）
-export const CAKE_TABS = Object.freeze([
-  { key: 'home', route: '/pages/cake/index', labelKey: 'cake.tabHome', icon: 'home', activeIcon: 'home-filled' },
-  { key: 'order', route: '/pages/cake/order', labelKey: 'cake.tabOrder', icon: 'cart', activeIcon: 'cart-filled' },
-  { key: 'cake', route: '/pages/cake/shop', labelKey: 'cake.tabCake', icon: 'shop', activeIcon: 'shop-filled' },
-  { key: 'transport', route: '/pages/cake/transport', labelKey: 'cake.tabTransport', icon: 'navigate', activeIcon: 'navigate-filled' },
-  { key: 'mine', route: '/pages/cake/mine', labelKey: 'cake.tabMine', icon: 'person', activeIcon: 'person-filled' }
-])
-
 export const CAKE_ROUTES = Object.freeze({
   home: '/pages/cake/index',
   order: '/pages/cake/order',
@@ -209,19 +200,50 @@ export function createCakeScrollProgress(threshold = 48) {
   return { progress, update }
 }
 
-// 切换到底部导航对应的页面：当前页直接忽略，其余用 redirectTo 保证页面栈不无限增长。
-export function switchCakeTab(route, currentRoute) {
-  const target = route.startsWith('/') ? route : `/${route}`
-  if (currentRoute && target === `/${currentRoute.replace(/^\/+/, '')}`) return
-  uni.redirectTo({
-    url: target,
-    fail: () => uni.reLaunch({ url: target })
-  })
-}
-
 export function goCakePage(route) {
   const target = route.startsWith('/') ? route : `/${route}`
   uni.navigateTo({ url: target, fail: () => uni.redirectTo({ url: target }) })
+}
+
+// 模块内主页面之间跳转：走页面栈，返回键可逐级退回；
+// 页面栈写满（微信 10 层）时降级为 redirectTo，仍然不会卡住用户。
+export function goCakeTab(route) {
+  const target = route.startsWith('/') ? route : `/${route}`
+  uni.navigateTo({
+    url: target,
+    fail: () => uni.redirectTo({ url: target, fail: () => uni.reLaunch({ url: target }) })
+  })
+}
+
+// 「回首页」按钮：栈里已经有月饼首页就退回去，避免同一页反复入栈。
+export function goCakeHome() {
+  try {
+    if (typeof getCurrentPages === 'function') {
+      const pages = getCurrentPages() || []
+      const route = String(CAKE_ROUTES.home).replace(/^\/+/, '')
+      for (let index = pages.length - 2; index >= 0; index -= 1) {
+        if (String(pages[index]?.route || '').replace(/^\/+/, '') !== route) continue
+        uni.navigateBack({ delta: pages.length - 1 - index })
+        return
+      }
+    }
+  } catch (_) { /* 读取页面栈失败时按下面的 reLaunch 兜底 */ }
+  uni.reLaunch({ url: CAKE_ROUTES.home })
+}
+
+// 月饼模块已经从首页入口 navigateTo 进来，返回时退回上一页；
+// 没有页面栈（外部链接直接打开、小程序冷启动）时回 App 首页，而不是退出小程序。
+export function backFromCakePage() {
+  const fallback = () => uni.reLaunch({ url: '/pages/index/index360' })
+  try {
+    // navigateBack 在部分端「栈底」不会走 fail，先显式判断有没有上一页。
+    const pages = typeof getCurrentPages === 'function' ? getCurrentPages() || [] : []
+    if (pages.length > 1) {
+      uni.navigateBack({ fail: fallback })
+      return
+    }
+  } catch (_) { /* 读取页面栈失败时直接走兜底 */ }
+  fallback()
 }
 
 // ===== 促销与运费规则 =====

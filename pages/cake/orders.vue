@@ -1,5 +1,5 @@
 <template>
-  <view class="cake-page">
+  <view class="cake-page app-h5-screen">
     <CakeNavBar
       :title="t('cake.ordersTitle')"
       :progress="navProgress"
@@ -251,6 +251,16 @@ onPullDownRefresh(() => { loadOrders(true) })
   box-sizing: border-box;
   background: #F7F5F1;
 }
+
+/* H5 下 vh 会把地址栏高度算进来，页面顶部被顶掉一截；
+   与站内其它全屏页统一，按真实可视区高度布局。 */
+/* #ifdef H5 */
+.cake-page.app-h5-screen {
+  min-height: 0;
+  padding-bottom: constant(safe-area-inset-bottom);
+  padding-bottom: env(safe-area-inset-bottom);
+}
+/* #endif */
 
 .cake-tabs { width: 100%; white-space: nowrap; background: #F7F5F1; border-bottom: 1rpx solid #EDE9E2; }
 

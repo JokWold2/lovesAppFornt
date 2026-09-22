@@ -1,5 +1,5 @@
 <template>
-  <view class="cake-page">
+  <view class="cake-page app-h5-screen">
     <CakeNavBar
       :title="t('cake.cartTitle')"
       :progress="navProgress"
@@ -265,6 +265,7 @@ import {
   formatCakeAmount,
   formatCakePrice,
   goCakePage,
+  goCakeTab,
   isStoreOpen,
   isValidCakePhone,
   normalizeTimeText,
@@ -378,7 +379,8 @@ function handlePageScroll(event) {
 }
 
 function goShopping() {
-  uni.redirectTo({ url: CAKE_ROUTES.transport, fail: () => uni.reLaunch({ url: CAKE_ROUTES.transport }) })
+  // 走页面栈而不是替换当前页，用户还能用返回键回到购物车。
+  goCakeTab(CAKE_ROUTES.transport)
 }
 
 function chooseDelivery(key) {
@@ -631,6 +633,14 @@ onShow(() => {
   background: #F7F5F1;
   padding-bottom: 200rpx;
 }
+
+/* H5 下 vh 会把地址栏高度算进来，页面顶部被顶掉一截；
+   与站内其它全屏页统一，按真实可视区高度布局。 */
+/* #ifdef H5 */
+.cake-page.app-h5-screen {
+  min-height: 0;
+}
+/* #endif */
 
 .cake-cart-card {
   background: #FFFFFF;

@@ -1,9 +1,10 @@
 <template>
-  <view class="cake-page">
+  <view class="cake-page app-h5-screen">
     <CakeNavBar
       :title="t('cake.mineTitle')"
       :progress="navProgress"
       :spacer="true"
+      show-back
       show-home
       :z-index="70"
     />
@@ -88,8 +89,6 @@
 
       <view class="cake-bottom-space" aria-hidden="true"></view>
     </scroll-view>
-
-    <CakeTabBar active-key="mine" />
   </view>
 </template>
 
@@ -97,10 +96,9 @@
 import { computed, onMounted, ref } from 'vue'
 import { onShow } from '@dcloudio/uni-app'
 import CakeNavBar from '@/components/cake/CakeNavBar.vue'
-import CakeTabBar from '@/components/cake/CakeTabBar.vue'
 import { currentLocale, t } from '@/utils/localeRuntime.js'
 import { getCakeCartApi, getCakeFavoritesApi, getCakeOrdersApi } from '@/api/cake.js'
-import { CAKE_ROUTES, cakeCartState, createCakeScrollProgress, goCakePage, switchCakeTab } from '@/utils/cake.js'
+import { CAKE_ROUTES, cakeCartState, createCakeScrollProgress, goCakePage, goCakeTab } from '@/utils/cake.js'
 
 const locale = currentLocale
 const { progress: navProgress, update: updateScroll } = createCakeScrollProgress(40)
@@ -126,7 +124,7 @@ function openOrders(status) {
 }
 
 function openOrderPage() {
-  switchCakeTab(CAKE_ROUTES.order)
+  goCakeTab(CAKE_ROUTES.order)
 }
 
 function openCart() {
@@ -138,7 +136,7 @@ function openAccount() {
 }
 
 function goTransport() {
-  switchCakeTab(CAKE_ROUTES.transport)
+  goCakeTab(CAKE_ROUTES.transport)
 }
 
 async function loadSummary() {
@@ -167,6 +165,19 @@ onShow(() => { loadSummary() })
   background: #F7F5F1;
   overflow: hidden;
 }
+
+/* H5 下 vh 会把地址栏高度算进来，页面顶部被顶掉一截；
+   与站内其它全屏页统一，按真实可视区高度布局。 */
+/* #ifdef H5 */
+.cake-page.app-h5-screen {
+  width: auto;
+  height: auto;
+  min-height: 0;
+  box-sizing: border-box;
+  padding-bottom: constant(safe-area-inset-bottom);
+  padding-bottom: env(safe-area-inset-bottom);
+}
+/* #endif */
 
 .cake-scroll { flex: 1; height: 0; min-height: 0; }
 
@@ -295,7 +306,7 @@ onShow(() => { loadSummary() })
 
 .cake-mine-row-text { font-size: 24rpx; color: #8A857C; }
 
-.cake-bottom-space { height: 200rpx; }
+.cake-bottom-space { height: 48rpx; }
 
 button::after { border: 0; }
 

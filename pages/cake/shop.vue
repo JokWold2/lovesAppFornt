@@ -1,7 +1,6 @@
 <template>
   <CakeProductList
     nav-title-key="cake.shopTitle"
-    tab-key="cake"
     :category-codes="categoryCodes"
     :mode="mode"
     :store-id="storeId"

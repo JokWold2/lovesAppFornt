@@ -8,7 +8,7 @@
           <button v-if="showBack" class="cake-nav-btn" :aria-label="t('cake.back')" @click="onBack">
             <uni-icons type="left" :size="20" :color="iconColor" />
           </button>
-          <button v-if="showHome" class="cake-nav-btn" :aria-label="t('cake.tabHome')" @click="onHome">
+          <button v-if="showHome" class="cake-nav-btn" :aria-label="t('cake.homeTitle')" @click="onHome">
             <uni-icons type="home" :size="20" :color="iconColor" />
           </button>
           <slot name="left" />
@@ -36,7 +36,7 @@
 import { computed, getCurrentInstance, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { t } from '@/utils/localeRuntime.js'
 import { readPageHeaderInset } from '@/utils/pageHeaderLayout.js'
-import { CAKE_ROUTES, switchCakeTab } from '@/utils/cake.js'
+import { backFromCakePage, goCakeHome } from '@/utils/cake.js'
 
 const props = defineProps({
   title: { type: String, default: '' },
@@ -106,14 +106,12 @@ const spacerHeight = computed(() => `${measuredHeight.value || spacerFallback.va
 
 function onBack() {
   emit('back')
-  uni.navigateBack({
-    fail: () => switchCakeTab(CAKE_ROUTES.home)
-  })
+  backFromCakePage()
 }
 
 function onHome() {
   emit('home')
-  switchCakeTab(CAKE_ROUTES.home)
+  goCakeHome()
 }
 </script>
 
