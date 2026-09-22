@@ -90,6 +90,9 @@ watch(() => props.product?.id, () => { imageFailed.value = false })
 
 <style scoped lang="scss">
 .cake-card {
+  width: 100%;
+  /* 两列网格里让同一行卡片等高（网格轨道已拉伸，卡片本身要撑满轨道）。 */
+  height: 100%;
   background: #FFFFFF;
   border-radius: 24rpx;
   overflow: hidden;

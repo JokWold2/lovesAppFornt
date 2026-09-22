@@ -808,14 +808,13 @@ onShow(() => { loadCart() })
   gap: 4rpx;
 }
 
+/* 两列卡片：用 grid 固定列宽，避免 `> *` 通用选择器（微信 WXSS 编译器不支持，会报 error at token `*`）。
+   20rpx 列间距下每列约等于原来的 48.5% 宽度。 */
 .cake-grid {
-  display: flex;
-  flex-wrap: wrap;
-  justify-content: space-between;
-  gap: 20rpx 0;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 20rpx;
 }
-
-.cake-grid > * { width: 48.5%; }
 
 .cake-section-label {
   display: flex;

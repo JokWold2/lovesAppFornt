@@ -571,15 +571,14 @@ onShow(() => { loadCart() })
 
 .cake-list-scroll { flex: 1; height: 0; min-height: 0; }
 
+/* 两列卡片：用 grid 固定列宽，避免 `> *` 通用选择器（微信 WXSS 编译器不支持，会报 error at token `*`）。
+   20rpx 列间距下每列约等于原来的 48.6% 宽度，一行一张卡片时仍靠左。 */
 .cake-grid {
-  display: flex;
-  flex-wrap: wrap;
-  justify-content: space-between;
-  gap: 20rpx 0;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 20rpx;
   padding: 24rpx 24rpx 0;
 }
-
-.cake-grid > * { width: 48.6%; }
 
 .cake-rows { display: flex; flex-direction: column; gap: 20rpx; padding: 24rpx 24rpx 0; }
 
