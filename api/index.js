@@ -189,8 +189,8 @@ export function uploadMomentImagesApi(tempFilePaths) {
  * 后端: POST /api/moments (需要登录)
  * @param {Object} payload
  */
-export function createMomentApi(payload) {
-  return post('/api/moments', payload)
+export function createMomentApi(payload, options = {}) {
+  return post('/api/moments', payload, options)
 }
 
 /**

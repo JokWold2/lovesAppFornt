@@ -1,5 +1,5 @@
 <template>
-	<view class="container app-h5-min-screen liquid-tab-page" :class="{ 'is-recommend-home': model === 'recommend', 'is-card-home': model === 'recommend' && currentEntryIndex === 1 && blessingViewMode === 'cards' }" :style="{ '--blessing-header-height': recommendationHeaderHeight + 'px' }">
+	<view class="container app-h5-min-screen liquid-tab-page" :class="{ 'is-tutorial-home': model === 'tutorial' || model === 'activity', 'is-recommend-home': model === 'recommend', 'is-card-home': model === 'recommend' && currentEntryIndex === 1 && blessingViewMode === 'cards' }" :style="{ '--blessing-header-height': recommendationHeaderHeight + 'px' }">
 		<!-- 状态栏占位 -->
 		<!-- <view
 			class="status-bar"
@@ -343,7 +343,7 @@
 			<!-- 祝福：同一份资料数据可切换卡片和原列表。 -->
 			<view class="blessing-section" v-show="currentEntryIndex === 1">
 				<view class="blessing-toolbar" :class="{ 'list-toolbar': blessingViewMode === 'list' }">
-					<text class="blessing-heading">{{ t('home.blessing') }}</text><button class="blessing-quota-inline" :aria-label="remainingQuota" :disabled="membershipLoading" @click="onMembershipQuotaTap"><uni-icons :type="membershipLoadError ? 'refreshempty' : 'heart-filled'" size="14" color="var(--bless-text, #775E25)" /><text>{{ compactQuota }}</text></button>
+					<button class="blessing-quota-inline" :aria-label="remainingQuota" :disabled="membershipLoading" @click="onMembershipQuotaTap"><uni-icons :type="membershipLoadError ? 'refreshempty' : 'heart-filled'" size="14" color="var(--bless-text, #775E25)" /><text>{{ compactLikes }}</text><text class="quota-separator">·</text><uni-icons type="undo" size="16" color="var(--bless-text, #775E25)" /><text>{{ compactRewinds }}</text></button>
 					<view class="blessing-view-switch">
 						<button :class="{ selected: blessingViewMode === 'cards' }" :aria-label="t('deck.cardMode')" :aria-pressed="blessingViewMode === 'cards'" :disabled="blessingActionBusy" @click="setBlessingViewMode('cards')"><uni-icons type="images" size="17" :color="blessingViewMode === 'cards' ? '#1c1c1e' : '#77787d'" /><text>{{ t('deck.cards') }}</text></button>
 						<button :class="{ selected: blessingViewMode === 'list' }" :aria-label="t('deck.listMode')" :aria-pressed="blessingViewMode === 'list'" :disabled="blessingActionBusy" @click="setBlessingViewMode('list')"><uni-icons type="list" size="17" :color="blessingViewMode === 'list' ? '#1c1c1e' : '#77787d'" /><text>{{ t('deck.list') }}</text></button>
@@ -420,11 +420,18 @@
 				<uni-icons type="arrow-up" size="28" color="#000"></uni-icons>
 			</view>
 		</view>
-		<AntiqueCollection v-if="model === 'tutorial'" />
-		<AuctionActivity v-if="model === 'activity'" />
+		<TutorialLibrary v-if="tutorialVisited" v-show="model === 'tutorial'" ref="tutorialLibrary" />
+		<ActivityLibrary v-if="activityVisited" v-show="model === 'activity'" ref="activityLibrary" />
 		<!-- 底部安全区留白 -->
 		<view class="safe-area-bottom"></view>
 		<LiquidGlassTabBar active-route="pages/index/index360" :hidden="sheetProfileId != null" />
+        <SlideUpPanel fixed :open="quotaInfoOpen" :z-index="350" :label="t('home.blessing')" @dismiss="quotaInfoOpen = false">
+          <view class="home-search-sheet">
+            <view class="sheet-handle" />
+            <view class="home-sheet-title"><text>{{ t('home.blessing') }}</text><button :aria-label="hs('close')" @click="quotaInfoOpen = false"><uni-icons type="closeempty" size="24" /></button></view>
+            <text class="quota-description">{{ remainingQuota }}</text>
+          </view>
+        </SlideUpPanel>
         <SlideUpPanel fixed :open="featuredFilterOpen" :z-index="350" :label="hs('featured')" @dismiss="featuredFilterOpen = false">
           <view class="home-search-sheet">
             <view class="sheet-handle"/><view class="home-sheet-title"><text>{{ hs('featured') }}</text><button :aria-label="hs('close')" @click="featuredFilterOpen = false"><uni-icons type="closeempty" size="24"/></button></view>
@@ -434,7 +441,7 @@
             <view class="home-search-actions"><button @click="resetFeaturedDraft">{{ hs('reset') }}</button><button class="apply" @click="applyFeaturedSearch">{{ hs('apply') }}</button></view>
           </view>
         </SlideUpPanel>
-		<ProfileDetailSheet :profile-id="sheetProfileId" :page-visible="sheetPageVisible" native-header @closed="closeProfileSheet" />
+		<ProfileDetailSheet :profile-id="sheetProfileId" :page-visible="sheetPageVisible" @closed="closeProfileSheet" />
 	</view>
 </template>
 
@@ -455,8 +462,9 @@ import {
 } from "@/api/index.js";
 import { config } from "@/utils/config.js";
 import { ensureTokenValid } from "@/utils/guard.js";
-import AntiqueCollection from "./components/Antiquecollection.vue";
-import AuctionActivity from "./components/Auctionactivity.vue";
+import TutorialLibrary from "./components/TutorialLibrary.vue";
+import { consumeTutorialHomeTarget } from '@/utils/tutorials.js';
+import ActivityLibrary from "./components/ActivityLibrary.vue";
 import MarketPreviewSection from "@/components/market/MarketPreviewSection.vue";
 import BlessingCardDeck from '@/components/profile/BlessingCardDeck.vue';
 import ProfileDetailSheet from '@/components/profile/ProfileDetailSheet.vue';
@@ -484,12 +492,20 @@ const { profileId: sheetProfileId, pageVisible: sheetPageVisible, open: openProf
 onShow(() => {
 	updateTabBarLocale();
 	refreshMembership().catch(() => {});
-
+	const tutorialTarget = consumeTutorialHomeTarget();
+	if (tutorialTarget === 'tutorial') setHomeModel('tutorial');
+	else if (['blessing', 'antique', 'second_hand'].includes(tutorialTarget)) {
+		setHomeModel('recommend');
+		handleEntryClick({ blessing: 1, antique: 2, second_hand: 3 }[tutorialTarget]);
+		uni.pageScrollTo({ scrollTop: 0, duration: 0 });
+	}
 });
 
 // 状态栏高度适配
 const statusBarHeight = ref(44);
 const model = ref("recommend");
+const tutorialVisited = ref(false), tutorialLibrary = ref(null);
+const activityVisited = ref(false), activityLibrary = ref(null);
 const userInfo = ref({});
 const blessingViewMode = ref('cards');
 const blessingActionBusy = ref(false);
@@ -527,7 +543,15 @@ async function refreshMembership() {
 
 const listPhotoIndexes = ref({});
 
-const compactQuota = computed(() => remainingQuota.value);
+const quotaInfoOpen = ref(false);
+const compactQuotaAmount = kind => {
+	if (membershipLoading.value) return '…';
+	if (membershipLoadError.value) return '—';
+	const value = membership.value?.usage?.[kind]?.remaining;
+	return value === null ? '∞' : String(value ?? '—');
+};
+const compactLikes = computed(() => compactQuotaAmount('like'));
+const compactRewinds = computed(() => compactQuotaAmount('rewind'));
 const remainingQuota = computed(() => {
 	if (!membership.value?.usage) return t(membershipLoadError.value ? 'deck.quotaRetry' : 'deck.quotaLoading');
 	const amount = value => value === null ? t('deck.unlimited') : String(value ?? '—');
@@ -537,7 +561,7 @@ const remainingQuota = computed(() => {
 function onMembershipQuotaTap() {
 	if (membershipLoading.value) return;
 	if (!membership.value || membershipLoadError.value) refreshMembership().catch(() => {});
-	else openMembershipUpgrade();
+	else quotaInfoOpen.value = true;
 }
 const hs = key => (homeSearchMessages[currentLocale.value] || homeSearchMessages.en)[key] || homeSearchMessages.en[key];
 let homePlatform = '';
@@ -562,8 +586,8 @@ function applyFeaturedSearch() {
  featuredKeyword.value = draftFeaturedKeyword.value.trim(); featuredTypes.value = [...draftFeaturedTypes.value]; featuredFilterOpen.value = false;
  featuredItems.value = []; loadFeaturedFeed({ isRefresh: true }); uni.pageScrollTo({ scrollTop: 0, duration: 0 });
 }
-onBackPress(() => { if (featuredFilterOpen.value) { featuredFilterOpen.value = false; return true; } });
-onHide(() => { featuredFilterOpen.value = false; });
+onBackPress(() => { if (quotaInfoOpen.value) { quotaInfoOpen.value = false; return true; } if (featuredFilterOpen.value) { featuredFilterOpen.value = false; return true; } });
+onHide(() => { featuredFilterOpen.value = false; quotaInfoOpen.value = false; });
 const recommendationHeaderFixed = ref(false);
 const recommendationHeaderHeight = ref(homeGeometry.value.contentTop + 161);
 
@@ -649,6 +673,8 @@ function syncProfileLikeState(profile) {
 
 function setHomeModel(mode) {
  if (blessingActionBusy.value || rewindBusy.value) return;
+ if (mode === 'tutorial') tutorialVisited.value = true;
+ if (mode === 'activity') activityVisited.value = true;
  model.value = mode;
  recommendationHeaderFixed.value = false;
  measureRecommendationHeader();
@@ -969,6 +995,13 @@ function openFeaturedItem(item) {
 }
 
 onPullDownRefresh(async () => {
+ if (model.value === 'activity') { try { await activityLibrary.value?.refresh(); } finally { uni.stopPullDownRefresh(); } return; }
+	if (model.value === 'tutorial') {
+		try { await tutorialLibrary.value?.refresh(); }
+		finally { uni.stopPullDownRefresh(); }
+		return;
+	}
+	if (model.value !== 'recommend') { uni.stopPullDownRefresh(); return; }
 	refreshMembership().catch(() => {});
 	if (currentEntryIndex.value === 0) {
 		loadFeaturedFeed({ isRefresh: true });
@@ -1759,7 +1792,6 @@ $gray-bg: #f5f6f8;
 	/* #endif */
 }
 .blessing-toolbar { max-width: 460px; margin: 0 auto 4px; min-height: 48px; display: flex; align-items: center; justify-content: space-between; gap: 12px; }
-.blessing-heading { font-size: 16px; font-weight: 600; letter-spacing: .5px; color: #28292d; padding-left: 5px; }
 .blessing-quota { max-width: 460px; width: 100%; min-height: 44px; padding: 8px 12px; margin: 0 auto 8px; display: flex; align-items: center; justify-content: center; gap: 6px; border: 0; border-radius: 14px; font-size: 12px; line-height: 1.6; color: var(--bless-text, #775E25); background: transparent; }
 .blessing-quota::after { border: 0; }
 .blessing-quota.has-error { background: #faf6e9; }
@@ -1774,6 +1806,7 @@ $gray-bg: #f5f6f8;
 .blessing-retry::after { border: 0; }
 .blessing-retry:active { transform: scale(.97); }
 .is-like-busy { opacity: .5; pointer-events: none; }
+.container.is-tutorial-home { background: #f5f5f7; }
 .container.is-card-home { background: #f5f5f7; overflow-x: hidden; }
 .container.is-recommend-home,
 .is-recommend-home .recommendation-sticky-header,
@@ -1788,12 +1821,14 @@ $gray-bg: #f5f6f8;
 @media (prefers-reduced-motion: reduce) { .blessing-view-switch button { transition: none; } }
 
 .blessing-toolbar{gap:6px;margin-bottom:12px}
-.blessing-heading{flex-shrink:0;font-size:19px;letter-spacing:0}
-.blessing-quota-inline{display:flex;align-items:center;justify-content:center;gap:4px;min-width:0;flex:1 1 0;margin:0;padding:6px 7px;border-radius:20px;background:var(--bless-soft, #F1E4BD);color:var(--bless-text, #775E25);font-size:11px;line-height:1.35;text-align:center;white-space:normal}
+/* Both modes use compact language-independent counts; full labels live in the sheet. */
+.blessing-quota-inline{display:flex;align-items:center;justify-content:center;gap:6px;flex:0 0 auto;margin:0;padding:0 12px;min-height:40px;border-radius:20px;background:var(--bless-soft, #F1E4BD);color:var(--bless-text, #775E25);font-size:13px;line-height:1.2;white-space:nowrap}
 .blessing-quota-inline::after{border:0}
-.blessing-quota-inline text{min-width:0;overflow-wrap:anywhere}
-.blessing-view-switch button{min-width:58px;padding:0 8px}
-@media(max-width:360px){.blessing-view-switch button{min-width:50px;padding:0 5px}.blessing-heading{font-size:16px}.blessing-quota-inline{font-size:10px}}
+.blessing-quota-inline text{flex-shrink:0;white-space:nowrap}
+.quota-separator{opacity:.5}
+.quota-description{display:block;font-size:15px;line-height:1.7;overflow-wrap:break-word;padding:8px 0 20px}
+.blessing-view-switch button{min-width:44px;padding:0 8px;white-space:nowrap}
+@media(max-width:380px){.blessing-view-switch button text{display:none}.blessing-view-switch button{width:44px;padding:0}}
 .blessing-view-switch{flex-shrink:0}
 
 
@@ -1844,7 +1879,7 @@ $gray-bg: #f5f6f8;
 .recommendation-sticky-header .header-nav{height:56px;box-sizing:border-box;padding:4px 16px!important;gap:16px;background:transparent!important;overflow:hidden;}
 .recommendation-sticky-header.is-collapsed .header-nav{height:0;padding-top:0!important;padding-bottom:0!important;opacity:0;pointer-events:none;}
 .header-nav .nav-left .avatar-circle{width:36px;height:36px}.header-nav .nav-center{flex:1;min-width:0;width:0;white-space:nowrap;}.header-nav .nav-center .nav-tab,.header-nav .nav-center .nav-tab.active{font-size:16px;flex-shrink:0;padding:10px 0}.header-nav .nav-center .nav-tab .tab-line{background:var(--bless-primary, #C2A052);width:22px;height:3px;bottom:3px}.header-nav .nav-right{display:none;}
-.recommendation-sticky-header .scroll-tabs-wrapper{padding:7px 12px 10px;gap:8px;background:transparent!important;}.scroll-tabs-wrapper .scroll-tabs{min-width:0;width:0}.scroll-tabs-wrapper .scroll-tabs .tabs-content{padding-right:0}.scroll-tabs-wrapper .scroll-tabs .tab-pill{height:44px;padding:0 18px;margin-right:10px;background:#fff;flex-shrink:0}.scroll-tabs-wrapper .scroll-tabs .tab-pill text{font-size:16px}.scroll-tabs-wrapper .scroll-tabs .tab-pill.active{background:var(--bless-soft, #F1E4BD);}
+.recommendation-sticky-header .scroll-tabs-wrapper{padding:7px 12px 10px;gap:8px;background:transparent!important;}.scroll-tabs-wrapper .scroll-tabs{min-width:0;width:0}.scroll-tabs-wrapper .scroll-tabs .tabs-content{padding-right:0}.scroll-tabs-wrapper .scroll-tabs .tab-pill{height:36px;padding:0 14px;margin-right:8px;white-space:nowrap;background:#fff;flex-shrink:0}.scroll-tabs-wrapper .scroll-tabs .tab-pill text{font-size:14px;white-space:nowrap}.scroll-tabs-wrapper .scroll-tabs .tab-pill.active{background:var(--bless-soft, #F1E4BD);}
 .home-search-trigger{position:relative;margin:0;padding:0;width:44px;height:44px;flex-shrink:0;border-radius:50%;background:white;display:flex;align-items:center;justify-content:center}.home-search-trigger::after{border:0}.search-active-dot{position:absolute;right:7px;top:7px;width:6px;height:6px;border-radius:50%;background:var(--bless-primary, #C2A052);}
 .home-search-sheet{padding:10px 20px calc(24px + env(safe-area-inset-bottom));background:#fff;max-height:80vh;overflow-y:auto;box-sizing:border-box;}.sheet-handle{width:36px;height:4px;border-radius:3px;background:#ddd;margin:0 auto 14px}.home-sheet-title{display:flex;align-items:center;justify-content:space-between;font-size:20px;font-weight:600;gap:12px}.home-sheet-title button{margin:0;padding:0;width:44px;height:44px;background:transparent;display:flex;align-items:center;justify-content:center;flex-shrink:0}.home-search-sheet button::after{border:0;}.home-keyword{display:flex;align-items:center;gap:10px;border-radius:24px;background:#f4f3f1;padding:12px 16px;margin-top:18px}.home-keyword input{flex:1;min-width:0;font-size:15px;height:28px}.home-type-heading{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:8px;margin:26px 0 14px;font-size:15px;font-weight:600}.home-type-heading text+text{font-size:12px;font-weight:400;color:#99948b}.home-type-options{display:flex;flex-wrap:wrap;gap:10px}.home-type-options button{margin:0;min-width:70px;padding:10px 16px;line-height:1.5;font-size:14px;border-radius:24px;background:#f5f4f2;color:#777168}.home-type-options button.selected{background:var(--bless-soft, #F1E4BD);color:var(--bless-text, #775E25)}.home-search-actions{display:flex;gap:12px;margin-top:32px}.home-search-actions button{flex:1;margin:0;padding:13px 12px;line-height:1.5;font-size:15px;border-radius:22px;background:#f3f2ef;color:#655d51}.home-search-actions .apply{flex:1.6;background:var(--bless-primary, #C2A052);color:white}.featured-search-summary{display:flex;flex-wrap:wrap;align-items:center;gap:8px;padding:0 4px 12px;color:var(--bless-text, #775E25);font-size:12px}.featured-search-summary text{background:var(--bless-soft, #F1E4BD);padding:5px 9px;border-radius:12px;max-width:100%;overflow-wrap:anywhere;}
 </style>

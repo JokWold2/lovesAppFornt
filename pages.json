@@ -16,6 +16,9 @@
 			}
 		},
         { "path": "pages/login/onboarding", "style": { "navigationStyle": "custom", "backgroundColor": "#f5f4f1", "app-plus": { "softinputMode": "adjustResize" } } },
+        { "path": "pages/activity/detail", "style": { "navigationStyle": "custom", "backgroundColor": "#f7f6f2", "enablePullDownRefresh": true } },
+        { "path": "pages/tutorial/detail", "style": { "navigationStyle": "custom", "backgroundColor": "#f7f6f2", "disableScroll": true } },
+        { "path": "pages/tutorial/profileEditor", "style": { "navigationStyle": "custom", "backgroundColor": "#f5f4f1", "disableScroll": true } },
 		{
 			"path": "pages/index/index360",
 			"style": {
