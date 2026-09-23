@@ -1,5 +1,5 @@
 <template>
-  <view class="auth-page" :class="{ 'auth-register': !isLoginView }">
+  <view class="auth-page" :class="{ 'auth-register': !isLoginView, 'auth-login': isLoginView }">
     <view v-if="restoringSession" class="session-restoring-mask"><text>{{ t('auth.restoring') }}</text></view>
     <view class="auth-nav" :style="navStyle">
       <view class="nav-row" :style="{ paddingTop: geometry.contentTop + 'px', paddingRight: geometry.contentRight + 'px' }">
@@ -349,7 +349,7 @@ watch(currentLocale, () => uni.setNavigationBarTitle({ title: t('navigation.logi
 .sheet-heading{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:22px}
 .page-title{font-size:25px;line-height:1.25;font-weight:700;min-width:0;overflow-wrap:break-word}
 .text-button{background:transparent;color:#615c54;font-size:14px;padding:8px 0;font-weight:500;white-space:normal}
-.register-link{flex-shrink:0;max-width:35%}
+.register-link{flex-shrink:0;max-width:35%;overflow-wrap:break-word}
 .input-row{display:flex;align-items:center;gap:12px;min-height:52px;padding:0 16px;background:#f4f3f1;border-radius:17px;margin-bottom:12px;box-sizing:border-box}
 .field{flex:1;width:0;min-width:0;height:52px;font-size:15px;color:#37342f}
 .field-placeholder{color:#8b8882;font-size:14px}
@@ -372,12 +372,20 @@ watch(currentLocale, () => uni.setNavigationBarTitle({ title: t('navigation.logi
 .agreement-button{width:36px;min-height:36px;flex-shrink:0;display:flex;justify-content:center;align-items:center;background:transparent;padding:0}
 .radio-circle{width:18px;height:18px;border:1px solid #99938a;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:12px;color:#39352f}
 .radio-circle.active{background:#f2e5cf;border-color:#b9aa93}
-.privacy-text{font-size:12px;line-height:1.8;padding-top:0;flex:0 1 auto;min-width:0;text-align:center;overflow-wrap:break-word}
+.privacy-text{font-size:12px;line-height:1.5;padding-top:0;flex:0 1 auto;min-width:0;text-align:center;overflow-wrap:break-word}
 .legal-link{color:#615c54;text-decoration:underline;text-underline-offset:3px}
 .code-row{gap:6px}
 .send-code{max-width:45%;font-size:12px;flex-shrink:0;padding-left:8px!important}
 .password-hint{display:block;font-size:12px;color:#858078;line-height:1.6;margin:4px 0 20px}
 .auth-footer{display:flex;align-items:center;justify-content:center;flex-wrap:wrap;gap:6px;font-size:13px;color:#858078;margin-top:20px}
+/* Reserve room for translated agreements by reducing gaps, keeping the hero and fields intact.
+   Keep natural page scrolling available for small screens, large text and the keyboard. */
+.auth-login .auth-sheet{padding-top:20px;padding-bottom:calc(16px + env(safe-area-inset-bottom));min-height:0}
+.auth-login .sheet-heading{margin-bottom:16px}
+.auth-login .forgot-row{margin-bottom:6px}
+.auth-login .code-login{margin:10px auto 2px!important;min-height:44px;display:flex;align-items:center;justify-content:center}
+.auth-login .divider{margin:4px 0 10px}
+.auth-login .privacy-agree{margin-top:14px}
 .auth-register .brand-hero{height:220px}
 .auth-register .brand-name{font-size:38px}
 .auth-register .brand-copy{width:50%;left:25%}

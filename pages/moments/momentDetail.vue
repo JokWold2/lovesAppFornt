@@ -16,7 +16,7 @@
         <view class="moment-card">
         <swiper v-if="images.length" class="image-swiper" :style="{ height: `${imageHeight}px` }" :current="currentImageIndex" @change="currentImageIndex = $event.detail.current" :indicator-dots="images.length > 1"><swiper-item v-for="image in images" :key="image" class="image-slide"><image class="detail-image" :src="image" mode="widthFix" @load="onImageLoad(image, $event)" @tap="previewImage(image)" /></swiper-item></swiper>
         <view v-if="images.length > 1" class="image-count">{{ currentImageIndex + 1 }}/{{ images.length }}</view>
-        <view class="body"><text class="text">{{ moment.content }}</text><text v-if="moment.location_name" class="location">📍 {{ moment.location_name }}</text></view>
+        <view class="body"><text v-if="moment.activity" class="activity-topic" @tap="openActivity">{{ moment.activity.topic }}</text><text class="text">{{ momentBody }}</text><text v-if="moment.location_name" class="location">📍 {{ moment.location_name }}</text></view>
         </view>
         <view id="moment-comments" class="comments-card">
         <view class="section-title">{{ t('moment.comments', { count: moment.comment_count || 0 }) }}</view>
@@ -56,6 +56,11 @@ import { addCommentApi, getCommentsApi, getMomentCommentRepliesApi, getMomentDet
 import { currentLocale, t } from '@/utils/localeRuntime.js'
 
 const moment = ref(null); const comments = ref([]); const loading = ref(true); const commentDraft = ref(''); const currentImageIndex = ref(0); const replyTarget = ref(null); const commentsPage = ref(1); const hasMoreComments = ref(false); const loadingMoreComments = ref(false)
+const momentBody = computed(() => {
+ const text = String(moment.value?.content || ''), topic = moment.value?.activity?.topic
+ return topic && text.startsWith(topic + '\n') ? text.slice(topic.length + 1) : text
+})
+function openActivity() { const slug = moment.value?.activity?.slug; if (slug) uni.navigateTo({url:'/pages/activity/detail?id='+encodeURIComponent(slug)}) }
 const sending = ref(false), liking = ref(false), scrollTop = ref(0)
 const commentAnchor = ref('')
 let platformOverride = ''
@@ -120,4 +125,5 @@ watch(currentLocale, () => uni.setNavigationBarTitle({ title: t('moment.detailTi
 /* #ifndef H5 */
 .page{position:fixed;top:0;right:0;bottom:0;left:0;height:100%;min-height:0;}
 /* #endif */
+.activity-topic{display:block;color:#a58544;font-weight:600;font-size:16px;line-height:1.7;margin-bottom:10px;overflow-wrap:anywhere}
 </style>
