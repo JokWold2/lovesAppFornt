@@ -11,7 +11,7 @@
         </button>
       </view>
     </view>
-    <scroll-view class="profile-scroll" scroll-y :bounces="false" @touchmove.stop>
+    <scroll-view class="profile-scroll" scroll-y :bounces="false" @scroll="headerScrollTop = Math.max(0, $event.detail.scrollTop)" @touchmove.stop>
     <view class="profile-header-spacer" :style="spacerStyle" aria-hidden="true"></view>
     <ProfileDetailSections v-if="profile"
       presentation="cards"
@@ -88,7 +88,14 @@ const profileAge = computed(() => {
   return year > 0 && age > 0 && age < 130 ? age : ''
 })
 const { headerStyle: fixedHeaderStyle, spacerStyle } = useFixedPageHeader('.profile-chrome', 76, profileName)
-const headerStyle = computed(() => props.embedded ? { ...fixedHeaderStyle.value, paddingTop: '0px' } : fixedHeaderStyle.value)
+const headerScrollTop = ref(0)
+const headerStyle = computed(() => ({
+  ...fixedHeaderStyle.value,
+  ...(props.embedded ? { paddingTop: '0px' } : {}),
+  backgroundColor: `rgba(245,244,241,${headerScrollTop.value > 0 ? .95 : 1})`,
+  backdropFilter: `blur(${Math.min(headerScrollTop.value / 4, 12)}px)`,
+  WebkitBackdropFilter: `blur(${Math.min(headerScrollTop.value / 4, 12)}px)`
+}))
 const loading = ref(true)
 const isLiked = ref(false)
 const likeCount = ref(0)
@@ -359,8 +366,8 @@ function goBack() {
 .profile-chrome { position: absolute; top: 0; left: 0; right: 0; z-index: 40; background: #f5f4f1; }
 .profile-header { max-width: 680px; min-height: 76px; box-sizing: border-box; margin: 0 auto; padding: 16px 22px; display: flex; align-items: center; gap: 18px; }
 .profile-heading { flex: 1; min-width: 0; display: flex; align-items: baseline; flex-wrap: wrap; column-gap: 10px; row-gap: 2px; }
-.profile-name { min-width: 0; font-size: 28px; font-weight: 600; line-height: 1.2; letter-spacing: -.7px; overflow-wrap: anywhere; word-break: break-word; }
-.profile-age { font-size: 27px; font-weight: 400; line-height: 1.2; color: #5f5b56; }
+.profile-name { min-width: 0; font-size: 24px; font-weight: 600; line-height: 1.35; letter-spacing: -.3px; overflow-wrap: anywhere; word-break: break-word; }
+.profile-age { font-size: 22px; font-weight: 400; line-height: 1.35; color: #5f5b56; }
 .profile-back { flex: 0 0 44px; width: 44px; height: 44px; padding: 0; margin: 0; border-radius: 50%; background: #242321; display: flex; align-items: center; justify-content: center; }
 .profile-back::after, .profile-like::after, .chat-request::after, .btn-back::after { border: 0; }
 .state-box { display: flex; gap: 16px; padding: 40px 24px; box-sizing: border-box; flex-direction: column; align-items: center; justify-content: center; min-height: 55vh; color: #77716a; font-size: 15px; line-height: 1.6; text-align: center; }

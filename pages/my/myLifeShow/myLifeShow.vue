@@ -56,12 +56,12 @@
         </view>
         <button v-if="item.like_count || item.comment_count" class="interactions-toggle" :aria-expanded="!!item.showInteractions" @click.stop="toggleInteractions(item)"><text class="interaction-summary">{{ interactionSummary(item) }}</text><text class="interaction-label">{{ item.showInteractions ? t('momentsHub.collapseInteractions') : t('momentsHub.interactions') }}</text><uni-icons type="right" size="13" color="#969d8b" /></button>
         <view v-if="item.showInteractions" class="post-interactions">
-          <view v-if="item.likedBy.length" class="liked-by-row"><uni-icons type="heart-filled" size="15" color="var(--bless-text, #775E25)" /><text>{{ item.likedBy.map(user => user.name || user.email).join('，') }}</text></view>
-          <view v-for="comment in item.comments" :key="comment.id" class="comment-item" @click.stop="startReply(item, comment)"><text class="comment-author">{{ comment.email }}</text><text v-if="comment.reply_to_email"> {{ t('life.reply') }} {{ comment.reply_to_email }}</text><text>：{{ comment.content }}</text></view>
+          <view v-if="item.likedBy.length" class="liked-by-row"><uni-icons type="heart-filled" size="15" color="var(--bless-text, #775E25)" /><text>{{ item.likedBy.map(user => interactionName(user)).join('，') }}</text></view>
+          <view v-for="comment in item.comments" :key="comment.id" class="comment-item" @click.stop="startReply(item, comment)"><text class="comment-author">{{ interactionName(comment) }}</text><text v-if="comment.reply_to_name"> {{ t('life.reply') }} {{ comment.reply_to_name }}</text><text>：{{ comment.content }}</text></view>
         </view>
         <view v-if="item.showCommentInput" class="comment-input-row">
-          <view v-if="item.replyTarget" class="reply-target-tag"><text>{{ t('life.reply') }} {{ item.replyTarget.email }}</text><button class="reply-cancel" :aria-label="t('common.cancel')" @click.stop="cancelReply(item)"><uni-icons type="closeempty" size="17" color="#888d81" /></button></view>
-          <view class="comment-input-inner"><input v-model="item.commentDraft" class="comment-input" :focus="item.showCommentInput" confirm-type="send" :placeholder="item.replyTarget ? `${t('life.reply')} ${item.replyTarget.email}` : t('life.saySomething')" @confirm="submitComment(item)" @focus="navigationInputActive = true" @blur="navigationInputActive = false" /><button class="comment-send-button" :disabled="item.commentPending" @click.stop="submitComment(item)">{{ t('life.send') }}</button></view>
+          <view v-if="item.replyTarget" class="reply-target-tag"><text>{{ t('life.reply') }} {{ item.replyTarget.name }}</text><button class="reply-cancel" :aria-label="t('common.cancel')" @click.stop="cancelReply(item)"><uni-icons type="closeempty" size="17" color="#888d81" /></button></view>
+          <view class="comment-input-inner"><input v-model="item.commentDraft" class="comment-input" :focus="item.showCommentInput" confirm-type="send" :placeholder="item.replyTarget ? `${t('life.reply')} ${item.replyTarget.name}` : t('life.saySomething')" @confirm="submitComment(item)" @focus="navigationInputActive = true" @blur="navigationInputActive = false" /><button class="comment-send-button" :disabled="item.commentPending" @click.stop="submitComment(item)">{{ t('life.send') }}</button></view>
         </view>
       </view>
     </view>
@@ -217,10 +217,13 @@ onBackPress(() => {
   return true
 })
 // #endif
+function interactionName(person) {
+  return person.author_name || person.name || t('life.user')
+}
 function interactionSummary(item) {
   const comment = item.comments[0]
-  if (comment) return (comment.email || t('life.friend')) + '：' + comment.content
-  return item.likedBy.map(user => user.name || user.email).join('，')
+  if (comment) return interactionName(comment) + '：' + comment.content
+  return item.likedBy.map(user => interactionName(user)).join('，')
 }
 function toggleInteractions(item) {
   item.showInteractions = !item.showInteractions
@@ -481,7 +484,7 @@ function focusComment(item) {
 
 // 点某一条评论：回复这条评论的作者
 function startReply(item, comment) {
-  item.replyTarget = { userId: comment.user_id, email: comment.email }
+  item.replyTarget = { userId: comment.user_id, name: interactionName(comment) }
   item.showCommentInput = true
 }
 
