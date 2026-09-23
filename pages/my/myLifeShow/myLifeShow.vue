@@ -85,7 +85,9 @@
     </view>
 
     <LiquidGlassTabBar active-route="pages/my/myLifeShow/myLifeShow" :input-active="navigationInputActive" :hidden="photoManagerOpen || showFacebookPhotoPicker || profileEditorOpen" />
+    <!-- #ifndef MP-WEIXIN -->
     <ProfileEditor v-if="profileEditorOpen" ref="profileEditor" :profile="profileData || {}" :initial-group="profileEditorGroup" @closed="profileEditorOpen = false" @saved="profileSaved" />
+    <!-- #endif -->
     <ProfilePhotoManager v-if="photoManagerOpen" ref="photoManager" :photos="profilePhotos" :busy="photoBusy || facebookImporting" :blocking-overlay="showFacebookPhotoPicker" :initial-index="photoInitialIndex" @closed="photoManagerOpen = false" @overlay-back="closeFacebookPhotoPicker" @upload="chooseProfilePhotos" @remove="deletePhoto" @facebook="openFacebookPhotoImporter" />
     <view v-if="showFacebookPhotoPicker" class="facebook-photo-mask" @click="closeFacebookPhotoPicker">
       <view class="facebook-photo-sheet" @click.stop>
@@ -115,7 +117,9 @@ import { useFixedPageHeader } from '@/utils/useFixedPageHeader.js'
 import { openIncomingLikes } from '@/utils/likesTabIntent.js'
 import ProfileDetailSections from '@/components/profile/ProfileDetailSections.vue'
 import ProfilePhotoManager from '@/components/profile/ProfilePhotoManager.vue'
-import ProfileEditor from '@/components/profile/ProfileEditor.vue'
+// #ifndef MP-WEIXIN
+import ProfileEditor from '@/pages/tutorial/components/ProfileEditor.vue'
+// #endif
 import { getProfileCompletion, hydrateProfileEditor } from '@/utils/profileEditorModel.js'
 import LiquidGlassTabBar from '@/components/navigation/LiquidGlassTabBar.vue'
 import { t, updateTabBarLocale } from '@/utils/localeRuntime.js'
@@ -141,6 +145,7 @@ const navigationInputActive = ref(false)
 const moments = ref([])
 const profileData = ref(null)
 const profileEditor = ref(null), profileEditorOpen = ref(false), profileEditorGroup = ref('')
+const profileEditorNavigating = ref(false)
 let profileRevision = 0
 const profileCompletion = computed(() => getProfileCompletion(profileData.value || {}))
 const profilePhotos = ref([])
@@ -169,10 +174,23 @@ const headerCopy = computed(() => [t('navigation.moments'), t('momentsHub.moment
 const { headerStyle, spacerStyle } = useFixedPageHeader('.moments-page-header', 279, headerCopy)
 
 function openProfileEditor(group = '') {
-  if (profileEditorOpen.value || profileLoading.value || profileError.value || bioSaving.value) return
+  if (profileEditorOpen.value || profileEditorNavigating.value || profileLoading.value || profileError.value || bioSaving.value) return
   editingBio.value = false; navigationInputActive.value = false
-  profileEditorGroup.value = typeof group === 'string' ? group : ''
+  const initialGroup = typeof group === 'string' ? group : ''
+  // #ifdef MP-WEIXIN
+  profileEditorNavigating.value = true
+  uni.navigateTo({
+    url: `/pages/tutorial/profileEditor${initialGroup ? `?group=${encodeURIComponent(initialGroup)}` : ''}`,
+    fail: () => {
+      profileEditorNavigating.value = false
+      uni.showToast({ title: t('momentsHub.profileError'), icon: 'none' })
+    }
+  })
+  // #endif
+  // #ifndef MP-WEIXIN
+  profileEditorGroup.value = initialGroup
   profileEditorOpen.value = true
+  // #endif
 }
 function profileSaved({ patch, draft }) {
   profileRevision++
@@ -733,6 +751,7 @@ function getUserInfo() {
 }
 
 onShow(() => {
+  profileEditorNavigating.value = false
   navigationInputActive.value = false
   updateTabBarLocale()
   // Returning from the system camera/album must not overwrite an upload in flight.

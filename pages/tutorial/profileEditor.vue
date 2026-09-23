@@ -1,15 +1,15 @@
 <template>
   <view class="editor-entry" :style="{ paddingTop: top + 'px' }">
-    <view class="entry-header"><GlassCircleButton :label="c.back" @tap="back"><uni-icons type="left" size="23" color="#302e29" /></GlassCircleButton><text>{{ t('profileEditor.common.title') }}</text></view>
+    <view class="entry-header"><GlassCircleButton :label="c.back" @tap="requestBack"><uni-icons type="left" size="23" color="#302e29" /></GlassCircleButton><text>{{ t('profileEditor.common.title') }}</text></view>
     <view v-if="loading" class="entry-state">{{ t('home.loading') }}</view>
     <view v-else-if="failed" class="entry-state"><text>{{ c.unavailable }}</text><button @click="load">{{ c.retry }}</button></view>
-    <ProfileEditor v-if="profile && !loading && !failed" ref="editor" :profile="profile" @closed="back" />
+    <ProfileEditor v-if="profile && !loading && !failed" ref="editor" :profile="profile" :initial-group="initialGroup" @closed="back" @saved="saved" />
   </view>
 </template>
 <script setup>
 import { ref, computed, onBeforeUnmount } from 'vue'
 import { onLoad, onBackPress } from '@dcloudio/uni-app'
-import ProfileEditor from '@/components/profile/ProfileEditor.vue'
+import ProfileEditor from './components/ProfileEditor.vue'
 import GlassCircleButton from '@/components/chat/GlassCircleButton.vue'
 import { getProfileApi } from '@/api/index.js'
 import { currentLocale, t } from '@/utils/localeRuntime.js'
@@ -17,7 +17,7 @@ import { tutorialMessages } from '@/utils/tutorials.js'
 import { readPageHeaderInset } from '@/utils/pageHeaderLayout.js'
 const top = readPageHeaderInset(uni)
 const c = computed(() => tutorialMessages[currentLocale.value] || tutorialMessages.en)
-const editor = ref(null), profile = ref(null), loading = ref(true), failed = ref(false)
+const editor = ref(null), profile = ref(null), loading = ref(true), failed = ref(false), initialGroup = ref('')
 let revision = 0, leaving = false
 async function load() {
   const request = ++revision
@@ -34,7 +34,16 @@ function back() {
   leaving = true
   uni.navigateBack({ fail: () => uni.switchTab({ url: '/pages/my/myLifeShow/myLifeShow' }) })
 }
-onLoad(load)
+function requestBack() {
+  if (leaving) return
+  if (editor.value) editor.value.back()
+  else back()
+}
+function saved() { uni.showToast({ title: t('profileEditor.common.saved'), icon: 'none' }) }
+onLoad(options => {
+  initialGroup.value = typeof options?.group === 'string' ? options.group : ''
+  load()
+})
 onBackPress(() => {
   if (leaving || !editor.value) return false
   editor.value.back()

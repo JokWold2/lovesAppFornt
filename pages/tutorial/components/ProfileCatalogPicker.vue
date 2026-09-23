@@ -26,7 +26,7 @@ import { computed, nextTick, ref, watch } from 'vue'
 import SlideUpPanel from '@/components/common/SlideUpPanel.vue'
 import ProfileCountryFlag from './ProfileCountryFlag.vue'
 import { currentLocale, t } from '@/utils/localeRuntime.js'
-import { findProfileCountry, searchProfileCatalog } from '@/utils/profileCatalog.js'
+import { findProfileCountry, searchProfileCatalog } from '../utils/profileCatalog.js'
 const props = defineProps({ open: Boolean, field: Object, value: { type: String, default: '' } })
 const emit = defineEmits(['cancel', 'confirm'])
 const query = ref(''), selected = ref(''), limit = ref(60), scrollTop = ref(0)

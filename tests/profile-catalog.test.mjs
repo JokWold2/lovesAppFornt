@@ -1,6 +1,6 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
-import { getProfileCatalog, searchProfileCatalog, findProfileCountry, profileFlagStyle } from '../utils/profileCatalog.js'
+import { getProfileCatalog, searchProfileCatalog, findProfileCountry, profileFlagStyle } from '../pages/tutorial/utils/profileCatalog.js'
 import { getProfileEditorGroups, hydrateProfileEditor, buildProfileEditorPatch, validateProfileEditor } from '../utils/profileEditorModel.js'
 import { profileEditorMessages } from '../utils/profileEditorMessages.js'
 

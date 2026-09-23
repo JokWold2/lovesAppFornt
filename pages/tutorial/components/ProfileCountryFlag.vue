@@ -2,7 +2,7 @@
 <script setup>
 import { computed } from 'vue'
 import flagSprite from '@/static/profile-flags.png'
-import { profileFlagStyle } from '@/utils/profileCatalog.js'
+import { profileFlagStyle } from '../utils/profileCatalog.js'
 const props = defineProps({ index: { type: Number, default: -1 } })
 const flagStyle = computed(() => {
   const style = profileFlagStyle(props.index)

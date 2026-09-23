@@ -16,9 +16,6 @@
 			}
 		},
         { "path": "pages/login/onboarding", "style": { "navigationStyle": "custom", "backgroundColor": "#f5f4f1", "app-plus": { "softinputMode": "adjustResize" } } },
-        { "path": "pages/activity/detail", "style": { "navigationStyle": "custom", "backgroundColor": "#f7f6f2", "enablePullDownRefresh": true } },
-        { "path": "pages/tutorial/detail", "style": { "navigationStyle": "custom", "backgroundColor": "#f7f6f2", "disableScroll": true } },
-        { "path": "pages/tutorial/profileEditor", "style": { "navigationStyle": "custom", "backgroundColor": "#f5f4f1", "disableScroll": true } },
 		{
 			"path": "pages/index/index360",
 			"style": {
@@ -78,25 +75,11 @@
 			}
 		},
 		{
-			"path": "pages/my/myFile/myFile",
-			"style": {
-				"navigationBarTitleText": ""
-			}
-		},
-		{
 			"path": "pages/my/myLifeShow/myLifeShow",
 			"style": {
 				"navigationBarTitleText": "个人资料",
 				"navigationStyle": "custom",
 				"enablePullDownRefresh": true
-			}
-		},
-		{
-			"path": "pages/my/myLifeShowEdit/myLifeShowEdit",
-			"style": {
-				"navigationBarTitleText": "",
-                "navigationStyle": "custom",
-                "app-plus": { "softinputMode": "adjustResize" }
 			}
 		},
 		{
@@ -112,33 +95,43 @@
 			"style": {
 				"navigationBarTitleText": "私聊申请审核"
 			}
-		},
-		{
-			"path": "pages/index/components/financialList",
-			"style": {
-				"navigationBarTitleText": "财务列表"
-			}
-		},
-		{
-			"path": "pages/index/components/financialExcel",
-			"style": {
-				"navigationBarTitleText": "财务录入"
-			}
-		},
-		{
-			"path": "pages/index/components/financialTable",
-			"style": {
-				"navigationBarTitleText": "财务录入表"
-			}
-		},
-		{
-			"path": "pages/index/components/financialCharts",
-			"style": {
-				"navigationBarTitleText": "数据分析与图表展示"
-			}
 		}
 	],
 	"subPackages": [
+		{
+			"root": "pages/activity",
+			"pages": [
+				{ "path": "detail", "style": { "navigationStyle": "custom", "backgroundColor": "#f7f6f2", "enablePullDownRefresh": true } }
+			]
+		},
+		{
+			"root": "pages/tutorial",
+			"pages": [
+				{ "path": "detail", "style": { "navigationStyle": "custom", "backgroundColor": "#f7f6f2", "disableScroll": true } },
+				{ "path": "profileEditor", "style": { "navigationStyle": "custom", "backgroundColor": "#f5f4f1", "disableScroll": true } }
+			]
+		},
+		{
+			"root": "pages/my/myFile",
+			"pages": [
+				{ "path": "myFile", "style": { "navigationBarTitleText": "" } }
+			]
+		},
+		{
+			"root": "pages/my/myLifeShowEdit",
+			"pages": [
+				{ "path": "myLifeShowEdit", "style": { "navigationBarTitleText": "", "navigationStyle": "custom", "app-plus": { "softinputMode": "adjustResize" } } }
+			]
+		},
+		{
+			"root": "pages/finance",
+			"pages": [
+				{ "path": "financialList", "style": { "navigationBarTitleText": "财务列表" } },
+				{ "path": "financialExcel", "style": { "navigationBarTitleText": "财务录入" } },
+				{ "path": "financialTable", "style": { "navigationBarTitleText": "财务录入表" } },
+				{ "path": "financialCharts", "style": { "navigationBarTitleText": "数据分析与图表展示" } }
+			]
+		},
 		{
 			"root": "pages/community",
 			"pages": [

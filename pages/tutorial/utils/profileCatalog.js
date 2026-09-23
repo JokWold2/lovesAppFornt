@@ -1,5 +1,5 @@
 import { catalogCountries, catalogLanguages, catalogLanguageNames, catalogLocales, catalogFlagSprite } from './profileCatalogData.js'
-import { profileEditorMessages } from './profileEditorMessages.js'
+import { profileEditorMessages } from '../../../utils/profileEditorMessages.js'
 
 // Codes, search aliases and flags are UI metadata. Only `label` is written to a profile.
 const languageAliases = { eng: 'english', jpn: 'japanese', kor: 'korean', zho: 'chinese', spa: 'spanish' }

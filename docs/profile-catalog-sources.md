@@ -31,7 +31,7 @@
 
 ## 前端数据契约
 
-文件：`utils/profileCatalogData.js`。它是构建前生成的数据，不会在运行时下载或调用 `Intl.DisplayNames`。
+文件：`pages/tutorial/utils/profileCatalogData.js`。它是构建前生成的数据，随教学分包加载，不会在运行时下载或调用 `Intl.DisplayNames`。
 
 - `catalogLocales`：六种界面语言的固定顺序。
 - `catalogCountries`：`[code, names]` 数组，`names` 与 locale 顺序一致。国家数组的索引同时是国旗位置索引。

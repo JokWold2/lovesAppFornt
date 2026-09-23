@@ -1,6 +1,23 @@
 import { get } from './request.js'
-export const getActivities = locale => get('/api/activities', { locale }, { noAuth: true, silent: true })
-export const getActivity = (id, locale) => get(`/api/activities/${encodeURIComponent(id)}`, { locale }, { noAuth: true, silent: true })
+import { config } from './config.js'
+
+function activityCoverUrl(cover) {
+ if (typeof cover !== 'string') return ''
+ const path = cover.trim()
+ if (!/^\/?static\/activities\//.test(path)) return path
+ return `${config.baseURL.replace(/\/+$/, '')}/${path.replace(/^\/+/, '')}`
+}
+function withActivityCover(item) {
+ return item ? { ...item, cover: activityCoverUrl(item.cover) } : item
+}
+function withActivityCovers(data) {
+ return data && Array.isArray(data.items)
+  ? { ...data, items: data.items.map(withActivityCover) }
+  : data
+}
+
+export const getActivities = locale => get('/api/activities', { locale }, { noAuth: true, silent: true }).then(withActivityCovers)
+export const getActivity = (id, locale) => get(`/api/activities/${encodeURIComponent(id)}`, { locale }, { noAuth: true, silent: true }).then(withActivityCover)
 export const getActivityMoments = (id, page, mine) => get(`/api/activities/${encodeURIComponent(id)}/moments`, { page, mine: mine ? 1 : 0 }, { silent: true })
 export const editorialMessages = {
  'zh-Hans': { title:'活动', intro:'分享生活，一起创造美好', all:'全部', upcoming:'即将开始', active:'进行中', ended:'已结束', loading:'正在加载…', error:'暂时无法加载', retry:'重试', empty:'暂时没有活动', back:'返回', about:'活动介绍', rules:'参与规则', works:'大家的作品', mine:'我的作品', noWorks:'暂时没有作品', more:'加载更多', join:'发布动态参与', publicHint:'参与作品将公开展示', linked:'正在参与活动', unavailable:'活动暂时不可参与，请返回详情查看', fallback:'当前语言尚未提供，显示：' },
@@ -26,7 +43,7 @@ const selectionCopy = {
 }
 Object.entries(selectionCopy).forEach(([locale,copy])=>Object.assign(editorialMessages[locale],{selectActivity:copy[0],noActivity:copy[1],noActive:copy[2],tooLong:copy[3]}))
 
-export const getMyActivities = (locale, page=1) => get('/api/activities/mine', {locale,page}, {silent:true})
+export const getMyActivities = (locale, page=1) => get('/api/activities/mine', {locale,page}, {silent:true}).then(withActivityCovers)
 const discoveryCopy = {
  'zh-Hans':['主推活动','我的参与','发现活动','热度','人参与','件作品','还没有参与活动','去发现一个喜欢的主题，发布动态加入吧','查看活动','活动已下架','查看我的作品','参与热度由公开参与人数、作品数与点赞数相加得出','登录后查看','探索活动'],
  'zh-Hant':['主推活動','我的參與','探索活動','熱度','人參與','件作品','還沒有參與活動','探索喜歡的主題，發佈動態加入吧','查看活動','活動已下架','查看我的作品','參與熱度為公開參與人數、作品數與按讚數之和','登入後查看','探索活動'],

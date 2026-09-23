@@ -609,7 +609,7 @@ function openAccountCenter() {
 }
 
 function goFinancial() {
-	uni.navigateTo({ url: "/pages/index/components/financialList" });
+	uni.navigateTo({ url: "/pages/finance/financialList" });
 }
 
 function updatePageTitle() {

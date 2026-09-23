@@ -4,7 +4,7 @@ import { readFileSync, statSync } from 'node:fs'
 import {
   catalogCountries, catalogLanguages, catalogLanguageNames, catalogLocales,
   catalogFlagSprite, catalogMetadata
-} from '../utils/profileCatalogData.js'
+} from '../pages/tutorial/utils/profileCatalogData.js'
 
 test('country catalog covers all 249 ISO 3166-1 entries once and has six locale names', () => {
   assert.equal(catalogCountries.length, 249)
@@ -62,6 +62,6 @@ test('bundled flag atlas covers every country at retina resolution within mini-p
   assert.equal(png.readUInt32BE(20), catalogFlagSprite.height * catalogFlagSprite.density)
   assert.ok(catalogFlagSprite.columns * catalogFlagSprite.height / catalogFlagSprite.tileHeight >= catalogCountries.length)
   assert.equal(catalogFlagSprite.path, '/static/profile-flags.png')
-  const dataSize = statSync(new URL('../utils/profileCatalogData.js', import.meta.url)).size
+  const dataSize = statSync(new URL('../pages/tutorial/utils/profileCatalogData.js', import.meta.url)).size
   assert.ok(dataSize + png.length < 500 * 1024, `${dataSize + png.length} bytes`)
 })

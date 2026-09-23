@@ -57,7 +57,7 @@
 - 14：[详情初始化](F:/workspace/lovesAppFornt/pages/market/marketFeed.vue:313)、[单条接口](F:/workspace/lovesAppFornt/api/market.js:4)。
 - 15：[市场评论与回复](F:/workspace/lovesAppFornt/pages/market/marketFeed.vue:374)、[首页评论提交](F:/workspace/lovesAppFornt/pages/index/index360.vue:983)。
 - 16：[教程对应组件](F:/workspace/lovesAppFornt/pages/index/index360.vue:539)、[演示数据](F:/workspace/lovesAppFornt/pages/index/components/Antiquecollection.vue:114)、[本地拍卖](F:/workspace/lovesAppFornt/utils/auctionStore.js:1)。
-- 17：[分店列表](F:/workspace/lovesAppFornt/pages/index/components/financialList.vue:7)、[提交与导出](F:/workspace/lovesAppFornt/pages/index/components/financialTable.vue:233)。
+- 17：[分店列表](F:/workspace/lovesAppFornt/pages/finance/financialList.vue:7)、[提交与导出](F:/workspace/lovesAppFornt/pages/finance/financialTable.vue:233)。
 - 18：[旧个人页](F:/workspace/lovesAppFornt/pages/my/my.vue)、[语言运行逻辑](F:/workspace/lovesAppFornt/utils/localeRuntime.js)。
 
 ## 四、样式建议：温暖、清楚、留白充分

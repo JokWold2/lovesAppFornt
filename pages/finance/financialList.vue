@@ -107,7 +107,7 @@ onShow(() => {
 
 const goCharts = () => {
   uni.navigateTo({
-    url: `/pages/index/components/financialCharts?branchId=${currentBranchId.value}`
+    url: `/pages/finance/financialCharts?branchId=${currentBranchId.value}`
   })
 }
 
@@ -115,11 +115,11 @@ const goCharts = () => {
 const goForm = (type) => {
   if (type === 'detail') {
     uni.navigateTo({ 
-      url: `/pages/index/components/financialExcel?branchId=${currentBranchId.value}&type=detail` 
+      url: `/pages/finance/financialExcel?branchId=${currentBranchId.value}&type=detail`
     })
   } else {
     uni.navigateTo({ 
-      url: `/pages/index/components/financialTable?branchId=${currentBranchId.value}&type=financial` 
+      url: `/pages/finance/financialTable?branchId=${currentBranchId.value}&type=financial`
     })
   }
 }

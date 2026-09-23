@@ -438,8 +438,8 @@
 import { ref, computed } from 'vue'
 import { onLoad, onShow } from '@dcloudio/uni-app'
 import { get } from '@/utils/request.js'
-import VBarChart from '@/components/financial/VBarChart.vue'
-import HRankChart from '@/components/financial/HRankChart.vue'
+import VBarChart from './components/VBarChart.vue'
+import HRankChart from './components/HRankChart.vue'
 
 const SHIFT_META = {
   morning: { name: '早班', color: '#f59e0b' },

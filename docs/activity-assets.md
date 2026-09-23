@@ -1,6 +1,6 @@
 # BLESS event covers, photo v2
 
-Generated with the built-in image_gen tool for this project (not real event documentary photos). The six selected images were resized to 960×640 and saved as JPEG quality 82. Matching files live in backend public/activities for admin previews and hosting. The user requested replacing the prior graphic covers; original generated PNG assets remain for compatibility.
+Generated with the built-in image_gen tool for this project (not real event documentary photos). The six selected images were resized to 960×640 and saved as JPEG quality 82. The images live in backend public/activities for admin previews and hosting. The mini-program fetches event covers from that backend instead of bundling duplicate files into its main package. The original generated PNG assets remain on the backend for compatibility.
 
 Prompt common direction: photorealistic-natural; one landscape 3:2 editorial lifestyle photograph for a mobile BLESS event cover. Warm soft natural light, restrained ivory/olive/honey palette, realistic lived-in materials, believable imperfections, candid comforting magazine photography. Central subjects survive a 16:9 crop, unobtrusive lower edge for UI text. No lettering, logos, watermarks, borders, collage, illustration, or interface.
 
