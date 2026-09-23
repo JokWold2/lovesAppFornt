@@ -472,7 +472,7 @@ onShow(() => { loadCart() })
 /* 1. Hero */
 .cake-hero {
   background: linear-gradient(180deg, #D8BFA1 0%, #E7D6BE 46%, #F7F5F1 100%);
-  padding: 0 32rpx 44rpx;
+  padding: 250rpx 32rpx 44rpx;
   display: flex;
   flex-direction: column;
   align-items: center;

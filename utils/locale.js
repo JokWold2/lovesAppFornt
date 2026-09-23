@@ -11,6 +11,7 @@ import { profileActivityMessages } from './profileActivityMessages.js'
 import { marketSearchMessages } from './marketSearchMessages.js'
 import { marketDetailMessages } from './marketDetailMessages.js'
 import { cakeMessages } from './cakeMessages.js'
+import { demandHallMessages } from './demandHallMessages.js'
 
 export const SUPPORTED_LOCALES = ['zh-Hans', 'zh-Hant', 'en', 'ru', 'ja', 'ko']
 const countryLocales = { CN: 'zh-Hans', HK: 'zh-Hant', MO: 'zh-Hant', TW: 'zh-Hant', US: 'en', RU: 'ru', JP: 'ja', KR: 'ko' }
@@ -1137,7 +1138,7 @@ const demandWorkspaceMessages = {
       emptyDiscover: '去发现', emptyReset: '换个条件',
       closeConfirmTitle: '下架信息', closeConfirmContent: '下架后其他人看不到这条信息，你可以在工作台重新上架。',
       closeDone: '已下架', reopenConfirmTitle: '重新上架', reopenConfirmContent: '重新上架后这条信息会回到需求市场列表。',
-      reopenDone: '已重新上架', editHint: '修改功能需要重新提交审核，当前版本请先下架后重新发布',
+      reopenDone: '已重新上架',
       loadFailed: '加载失败，下拉可重试', loadMoreFailed: '加载更多失败，点击重试', retry: '点击重试',
       noMore: '— 已经到底啦 —', loadingMore: '正在加载更多…', offlineTitle: '网络异常',
       offlineHint: '请检查网络后下拉刷新', applyStatusPending: '已报名 · 待处理', applyStatusAccepted: '已选定',
@@ -1150,7 +1151,7 @@ const demandWorkspaceMessages = {
       publishedAt: '{time}发布',
       contactNow: '立即沟通', contactTitle: '申请私聊', contactPlaceholder: '说明来意，通过后即可聊天',
       contactSend: '发送申请', contactSent: '申请已提交', contactPending: '私聊申请审核中，请稍候',
-      uncollect: '取消收藏', postClosed: '已结单', publishEntry: '发布'
+      uncollect: '取消收藏', postClosed: '已结单', publishEntry: '发布', applicantsFailed: '报名列表加载失败', contactCardLink: '信息卡：{link}'
     },
     escrow: {
       title: '担保交易', orderNo: '订单号 #{id}', loading: '加载中…', missing: '订单不存在或无权查看',
@@ -1191,7 +1192,10 @@ const demandWorkspaceMessages = {
       eventConfirm: '买家确认，资金结算给卖家', eventCancel: '交易取消', eventRefund: '托管资金退回买家',
       actionFailed: '操作失败，请稍后重试', actionDone: '操作成功', cancel: '取消', confirm: '确认',
       fundBlocked: '该信息要求认证服务者，对方尚未完成 V 认证，暂不能支付托管金',
-      uploadImageOnly: '请选择图片或文档', evidencePreviewFailed: '无法预览该文件'
+      uploadImageOnly: '请选择图片或文档', evidencePreviewFailed: '无法预览该文件',
+      fundAction: '立即支付托管金', waitingFundAction: '等待买家支付', waitingDeliverAction: '等待卖家交付',
+      back: '返回', loadFailed: '加载失败，请检查网络后重试', retry: '点击重试',
+      evidenceFallbackName: '交付凭证 {index}'
     }
   },
   'zh-Hant': {
@@ -1219,7 +1223,7 @@ const demandWorkspaceMessages = {
       emptyDiscover: '去發現', emptyReset: '換個條件',
       closeConfirmTitle: '下架資訊', closeConfirmContent: '下架後其他人看不到這條資訊，你可以在工作台重新上架。',
       closeDone: '已下架', reopenConfirmTitle: '重新上架', reopenConfirmContent: '重新上架後這條資訊會回到需求市場列表。',
-      reopenDone: '已重新上架', editHint: '修改功能需要重新提交審核，目前版本請先下架後重新發布',
+      reopenDone: '已重新上架',
       loadFailed: '載入失敗，下拉可重試', loadMoreFailed: '載入更多失敗，點擊重試', retry: '點擊重試',
       noMore: '— 已經到底啦 —', loadingMore: '正在載入更多…', offlineTitle: '網路異常',
       offlineHint: '請檢查網路後下拉重新整理', applyStatusPending: '已報名 · 待處理', applyStatusAccepted: '已選定',
@@ -1231,7 +1235,7 @@ const demandWorkspaceMessages = {
       publishedAt: '{time}發布',
       contactNow: '立即溝通', contactTitle: '申請私聊', contactPlaceholder: '說明來意，通過後即可聊天',
       contactSend: '傳送申請', contactSent: '申請已提交', contactPending: '私聊申請審核中，請稍候',
-      uncollect: '取消收藏', postClosed: '已結單', publishEntry: '發布'
+      uncollect: '取消收藏', postClosed: '已結單', publishEntry: '發布', applicantsFailed: '報名列表載入失敗', contactCardLink: '資訊卡：{link}'
     },
     escrow: {
       title: '擔保交易', orderNo: '訂單號 #{id}', loading: '載入中…', missing: '訂單不存在或無權查看',
@@ -1272,7 +1276,10 @@ const demandWorkspaceMessages = {
       eventConfirm: '買家確認，資金結算給賣家', eventCancel: '交易取消', eventRefund: '託管資金退回買家',
       actionFailed: '操作失敗，請稍後重試', actionDone: '操作成功', cancel: '取消', confirm: '確認',
       fundBlocked: '該資訊要求認證服務者，對方尚未完成 V 認證，暫不能支付託管金',
-      uploadImageOnly: '請選擇圖片或文件', evidencePreviewFailed: '無法預覽該檔案'
+      uploadImageOnly: '請選擇圖片或文件', evidencePreviewFailed: '無法預覽該檔案',
+      fundAction: '立即支付託管金', waitingFundAction: '等待買家支付', waitingDeliverAction: '等待賣家交付',
+      back: '返回', loadFailed: '載入失敗，請檢查網路後重試', retry: '點擊重試',
+      evidenceFallbackName: '交付憑證 {index}'
     }
   },
   en: {
@@ -1300,7 +1307,7 @@ const demandWorkspaceMessages = {
       emptyDiscover: 'Discover', emptyReset: 'Change filters',
       closeConfirmTitle: 'Take down post', closeConfirmContent: 'Other people will no longer see this post. You can relist it from your workspace.',
       closeDone: 'Post taken down', reopenConfirmTitle: 'Relist post', reopenConfirmContent: 'This post will appear in the Demand Market feed again.',
-      reopenDone: 'Post relisted', editHint: 'Editing requires a new review. Take the post down and publish it again for now.',
+      reopenDone: 'Post relisted',
       loadFailed: 'Could not load. Pull down to retry.', loadMoreFailed: 'Could not load more. Tap to retry.', retry: 'Tap to retry',
       noMore: '— That is all —', loadingMore: 'Loading more...', offlineTitle: 'Connection problem',
       offlineHint: 'Check your network and pull down to refresh', applyStatusPending: 'Applied · Pending', applyStatusAccepted: 'Selected',
@@ -1312,7 +1319,7 @@ const demandWorkspaceMessages = {
       publishedAt: 'Posted {time}',
       contactNow: 'Message', contactTitle: 'Request a private chat', contactPlaceholder: 'Say why you are reaching out',
       contactSend: 'Send request', contactSent: 'Request sent', contactPending: 'Your chat request is under review',
-      uncollect: 'Remove from saved', postClosed: 'Closed', publishEntry: 'Post'
+      uncollect: 'Remove from saved', postClosed: 'Closed', publishEntry: 'Post', applicantsFailed: 'Could not load the applicant list', contactCardLink: 'Post card: {link}'
     },
     escrow: {
       title: 'Escrow trade', orderNo: 'Order #{id}', loading: 'Loading...', missing: 'This order does not exist or you cannot view it',
@@ -1353,7 +1360,10 @@ const demandWorkspaceMessages = {
       eventConfirm: 'Buyer confirmed and funds were released', eventCancel: 'Trade cancelled', eventRefund: 'Escrow refunded to the buyer',
       actionFailed: 'Action failed. Please try again.', actionDone: 'Done', cancel: 'Cancel', confirm: 'Confirm',
       fundBlocked: 'This post requires a verified provider, and the other party is not V verified yet.',
-      uploadImageOnly: 'Choose an image or document', evidencePreviewFailed: 'This file cannot be previewed'
+      uploadImageOnly: 'Choose an image or document', evidencePreviewFailed: 'This file cannot be previewed',
+      fundAction: 'Pay into escrow now', waitingFundAction: 'Waiting for the buyer to pay', waitingDeliverAction: 'Waiting for the seller to deliver',
+      back: 'Back', loadFailed: 'Could not load. Check your connection and try again.', retry: 'Tap to retry',
+      evidenceFallbackName: 'Delivery evidence {index}'
     }
   },
   ru: {
@@ -1381,7 +1391,7 @@ const demandWorkspaceMessages = {
       emptyDiscover: 'Найти', emptyReset: 'Сбросить фильтры',
       closeConfirmTitle: 'Снять публикацию', closeConfirmContent: 'Другие пользователи больше не увидят эту публикацию. Её можно опубликовать снова из кабинета.',
       closeDone: 'Публикация снята', reopenConfirmTitle: 'Опубликовать снова', reopenConfirmContent: 'Публикация снова появится в Бирже потребностей.',
-      reopenDone: 'Публикация восстановлена', editHint: 'Для изменения нужна повторная проверка. Пока снимите публикацию и создайте её заново.',
+      reopenDone: 'Публикация восстановлена',
       loadFailed: 'Не удалось загрузить. Потяните вниз для повтора.', loadMoreFailed: 'Не удалось загрузить ещё. Нажмите для повтора.', retry: 'Нажмите для повтора',
       noMore: '— Это всё —', loadingMore: 'Загрузка...', offlineTitle: 'Проблема с сетью',
       offlineHint: 'Проверьте сеть и потяните вниз для обновления', applyStatusPending: 'Отклик · В ожидании', applyStatusAccepted: 'Выбран',
@@ -1393,7 +1403,7 @@ const demandWorkspaceMessages = {
       publishedAt: 'Опубликовано {time}',
       contactNow: 'Написать', contactTitle: 'Запросить личный чат', contactPlaceholder: 'Опишите причину обращения',
       contactSend: 'Отправить запрос', contactSent: 'Запрос отправлен', contactPending: 'Запрос на чат рассматривается',
-      uncollect: 'Убрать из избранного', postClosed: 'Закрыто', publishEntry: 'Опубликовать'
+      uncollect: 'Убрать из избранного', postClosed: 'Закрыто', publishEntry: 'Опубликовать', applicantsFailed: 'Не удалось загрузить список откликов', contactCardLink: 'Карточка: {link}'
     },
     escrow: {
       title: 'Эскроу-сделка', orderNo: 'Заказ #{id}', loading: 'Загрузка...', missing: 'Заказ не найден или нет доступа',
@@ -1434,7 +1444,10 @@ const demandWorkspaceMessages = {
       eventConfirm: 'Покупатель подтвердил, оплата переведена', eventCancel: 'Сделка отменена', eventRefund: 'Эскроу возвращён покупателю',
       actionFailed: 'Не удалось выполнить действие. Повторите попытку.', actionDone: 'Готово', cancel: 'Отмена', confirm: 'Подтвердить',
       fundBlocked: 'Публикация требует верифицированного исполнителя, но у второй стороны нет V-верификации.',
-      uploadImageOnly: 'Выберите изображение или документ', evidencePreviewFailed: 'Этот файл нельзя открыть'
+      uploadImageOnly: 'Выберите изображение или документ', evidencePreviewFailed: 'Этот файл нельзя открыть',
+      fundAction: 'Внести средства в эскроу', waitingFundAction: 'Ожидаем оплату покупателя', waitingDeliverAction: 'Ожидаем сдачу работы продавцом',
+      back: 'Назад', loadFailed: 'Не удалось загрузить. Проверьте соединение и повторите.', retry: 'Нажмите, чтобы повторить',
+      evidenceFallbackName: 'Подтверждение сдачи {index}'
     }
   },
   ja: {
@@ -1462,7 +1475,7 @@ const demandWorkspaceMessages = {
       emptyDiscover: '見つける', emptyReset: '条件を変える',
       closeConfirmTitle: '投稿を取り下げ', closeConfirmContent: '他の人には表示されなくなります。ワークスペースから再公開できます。',
       closeDone: '取り下げました', reopenConfirmTitle: '再公開', reopenConfirmContent: 'この投稿はニーズマーケットに再表示されます。',
-      reopenDone: '再公開しました', editHint: '編集には再審査が必要です。今は取り下げて再投稿してください。',
+      reopenDone: '再公開しました',
       loadFailed: '読み込めませんでした。下に引いて再試行してください。', loadMoreFailed: '追加読み込みに失敗しました。タップで再試行。', retry: 'タップで再試行',
       noMore: '— 以上です —', loadingMore: 'さらに読み込み中...', offlineTitle: '通信エラー',
       offlineHint: 'ネットワークを確認して下に引いて更新してください', applyStatusPending: '応募済み · 未対応', applyStatusAccepted: '選定済み',
@@ -1474,7 +1487,7 @@ const demandWorkspaceMessages = {
       publishedAt: '{time}に投稿',
       contactNow: 'メッセージ', contactTitle: '個別チャットを申請', contactPlaceholder: '連絡したい理由を入力',
       contactSend: '申請を送信', contactSent: '申請を送信しました', contactPending: 'チャット申請を確認中です',
-      uncollect: 'お気に入りを解除', postClosed: '終了', publishEntry: '投稿'
+      uncollect: 'お気に入りを解除', postClosed: '終了', publishEntry: '投稿', applicantsFailed: '応募一覧を読み込めませんでした', contactCardLink: 'カード：{link}'
     },
     escrow: {
       title: 'エスクロー取引', orderNo: '注文番号 #{id}', loading: '読み込み中...', missing: '注文が存在しないか閲覧権限がありません',
@@ -1515,7 +1528,10 @@ const demandWorkspaceMessages = {
       eventConfirm: '買い手が確認し、資金を支払い', eventCancel: '取引をキャンセル', eventRefund: 'エスクロー資金を買い手に返金',
       actionFailed: '操作に失敗しました。もう一度お試しください。', actionDone: '完了しました', cancel: 'キャンセル', confirm: '確認',
       fundBlocked: 'この投稿は認証サービス提供者を必須としていますが、相手はまだ V 認証を完了していません。',
-      uploadImageOnly: '画像または書類を選択してください', evidencePreviewFailed: 'このファイルは開けません'
+      uploadImageOnly: '画像または書類を選択してください', evidencePreviewFailed: 'このファイルは開けません',
+      fundAction: 'エスクローへ支払う', waitingFundAction: '買い手の支払いを待っています', waitingDeliverAction: '売り手の納品を待っています',
+      back: '戻る', loadFailed: '読み込めませんでした。通信を確認して再試行してください。', retry: 'タップして再試行',
+      evidenceFallbackName: '納品物 {index}'
     }
   },
   ko: {
@@ -1543,7 +1559,7 @@ const demandWorkspaceMessages = {
       emptyDiscover: '둘러보기', emptyReset: '조건 바꾸기',
       closeConfirmTitle: '게시물 내리기', closeConfirmContent: '다른 사람에게 보이지 않게 됩니다. 워크스페이스에서 다시 올릴 수 있습니다.',
       closeDone: '내렸습니다', reopenConfirmTitle: '다시 올리기', reopenConfirmContent: '이 게시물이 니즈 마켓에 다시 표시됩니다.',
-      reopenDone: '다시 올렸습니다', editHint: '수정에는 재심사가 필요합니다. 지금은 내린 뒤 다시 게시해 주세요.',
+      reopenDone: '다시 올렸습니다',
       loadFailed: '불러오지 못했습니다. 아래로 당겨 다시 시도하세요.', loadMoreFailed: '더 불러오지 못했습니다. 눌러서 다시 시도하세요.', retry: '눌러서 다시 시도',
       noMore: '— 끝입니다 —', loadingMore: '더 불러오는 중...', offlineTitle: '네트워크 오류',
       offlineHint: '네트워크를 확인하고 아래로 당겨 새로 고침하세요', applyStatusPending: '지원함 · 대기 중', applyStatusAccepted: '선정됨',
@@ -1555,7 +1571,7 @@ const demandWorkspaceMessages = {
       publishedAt: '{time} 게시',
       contactNow: '메시지', contactTitle: '1:1 채팅 신청', contactPlaceholder: '연락하려는 이유를 적어 주세요',
       contactSend: '신청 보내기', contactSent: '신청을 보냈습니다', contactPending: '채팅 신청을 검토 중입니다',
-      uncollect: '찜 해제', postClosed: '종료', publishEntry: '게시'
+      uncollect: '찜 해제', postClosed: '종료', publishEntry: '게시', applicantsFailed: '지원자 목록을 불러오지 못했습니다', contactCardLink: '카드: {link}'
     },
     escrow: {
       title: '에스크로 거래', orderNo: '주문번호 #{id}', loading: '불러오는 중...', missing: '주문이 없거나 볼 권한이 없습니다',
@@ -1596,7 +1612,10 @@ const demandWorkspaceMessages = {
       eventConfirm: '구매자가 확인하고 자금 지급', eventCancel: '거래 취소', eventRefund: '에스크로 자금을 구매자에게 반환',
       actionFailed: '작업에 실패했습니다. 다시 시도해 주세요.', actionDone: '완료했습니다', cancel: '취소', confirm: '확인',
       fundBlocked: '이 게시물은 인증 서비스 제공자를 요구하지만 상대방이 아직 V 인증을 마치지 않았습니다.',
-      uploadImageOnly: '이미지 또는 문서를 선택하세요', evidencePreviewFailed: '이 파일은 열 수 없습니다'
+      uploadImageOnly: '이미지 또는 문서를 선택하세요', evidencePreviewFailed: '이 파일은 열 수 없습니다',
+      fundAction: '에스크로에 입금', waitingFundAction: '구매자 입금 대기 중', waitingDeliverAction: '판매자 전달 대기 중',
+      back: '뒤로', loadFailed: '불러오지 못했습니다. 네트워크를 확인한 뒤 다시 시도하세요.', retry: '탭하여 다시 시도',
+      evidenceFallbackName: '전달 자료 {index}'
     }
   }
 }
@@ -2054,5 +2073,7 @@ for (const locale of SUPPORTED_LOCALES) {
   messages[locale].trade = tradeMessages[locale] || tradeMessages.en
   // 蛋糕 / 月饼商城（pages/cake）文案独立成模块，避免继续膨胀本文件。
   messages[locale].cake = cakeMessages[locale] || cakeMessages.en
+  // 需求市场信息流与详情页文案（pages/demandhall/index、detail）。
+  messages[locale].demandHall = demandHallMessages[locale] || demandHallMessages.en
 }
 export { messages }

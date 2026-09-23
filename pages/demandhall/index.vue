@@ -1,55 +1,57 @@
 <template>
 	<view class="container app-h5-min-screen">
-		<!-- 顶部：板块说明 + 核心双 Tab -->
-		<view class="hero">
+		<!-- 顶部：板块说明 + 核心双 Tab（仿首页 index360 的品牌黄 + 药丸导航） -->
+		<view class="hero" :class="{ 'is-scrolled': headerScrolled }">
+			<view class="hero-surface" aria-hidden="true"></view>
 			<view class="hero-top">
 				<view class="hero-title-wrap">
-					<text class="hero-title">需求市场</text>
-					<text class="hero-subtitle">技能与任务服务 · 求助找帮手 / 提供找活儿</text>
+					<text class="hero-title">{{ text.title }}</text>
+					<text class="hero-subtitle">{{ text.heroSubtitle }}</text>
 				</view>
 				<view class="hero-actions">
-					<!-- 个人工作台入口：发布记录、接单记录与收藏统一收在这里 -->
 					<view class="workspace-entry" @click="goWorkspace">
-						<uni-icons type="person-filled" size="15" color="#1a1a1a"></uni-icons>
+						<uni-icons type="person-filled" size="15" color="#775E25"></uni-icons>
 						<text class="workspace-entry-text">{{ t('workspace.entry') }}</text>
 					</view>
-					<view class="hero-stat">
-						<text class="hero-stat-num">{{ stats.totalPosts }}</text>
-						<text class="hero-stat-label">条信息</text>
-					</view>
+					<text class="hero-stat">{{ stats.totalPosts }} {{ text.entryCount }}</text>
 				</view>
 			</view>
 
-			<view class="tab-bar">
-				<view
-					class="tab-item"
-					v-for="tab in tabs"
-					:key="tab.key"
-					:class="{ active: activeTab === tab.key }"
-					@click="switchTab(tab.key)"
-				>
-					<uni-icons :type="tab.icon" size="15" :color="activeTab === tab.key ? '#1a1a1a' : '#77787d'"></uni-icons>
-					<text class="tab-label">{{ tab.label }}</text>
-					<text class="tab-count">{{ tab.key === 'demand' ? stats.demandCount : stats.serviceCount }}</text>
+			<scroll-view class="tab-scroll" scroll-x :show-scrollbar="false">
+				<view class="tab-bar">
+					<view
+						class="tab-pill"
+						v-for="tab in tabs"
+						:key="tab.key"
+						:class="{ active: activeTab === tab.key }"
+						@click="switchTab(tab.key)"
+					>
+						<text class="tab-label">{{ text.tabs[tab.key] }}</text>
+						<text class="tab-count">{{ tab.key === 'demand' ? stats.demandCount : stats.serviceCount }}</text>
+					</view>
 				</view>
-			</view>
+			</scroll-view>
 		</view>
 
 		<!-- 搜索 + 下拉筛选 -->
 		<view class="filter-bar">
 			<view class="search-row">
 				<view class="search-box">
-					<uni-icons type="search" size="16" color="#b0b0b0"></uni-icons>
+					<uni-icons type="search" size="16" color="#a49c8d"></uni-icons>
 					<input
 						class="search-input"
 						v-model="keyword"
-						placeholder="搜索需求、服务、标签关键词"
+						:placeholder="text.searchPlaceholder"
 						confirm-type="search"
 						@confirm="onSearchConfirm"
 					/>
-					<uni-icons v-if="keyword" type="clear" size="16" color="#c0c0c0" @click="clearKeyword"></uni-icons>
+					<view class="search-clear" v-if="keyword" :aria-label="text.clearKeyword" @click="clearKeyword">
+						<uni-icons type="clear" size="16" color="#c0b8a6"></uni-icons>
+					</view>
 				</view>
-				<view class="search-btn" @click="onSearchConfirm">搜索</view>
+				<view class="search-btn" :aria-label="text.searchAction" @click="onSearchConfirm">
+					<uni-icons type="search" size="18" color="#775E25"></uni-icons>
+				</view>
 			</view>
 
 			<view class="dropdown-row">
@@ -61,9 +63,9 @@
 					@click="toggleFilter(group.key)"
 				>
 					<text class="dropdown-text">{{ group.label }}</text>
-					<uni-icons :type="openFilter === group.key ? 'up' : 'down'" size="12" :color="openFilter === group.key || group.picked ? '#1a1a1a' : '#999999'"></uni-icons>
+					<uni-icons :type="openFilter === group.key ? 'up' : 'down'" size="12" :color="openFilter === group.key || group.picked ? '#775E25' : '#a49c8d'"></uni-icons>
 				</view>
-				<view class="dropdown-reset" v-if="hasActiveFilter" @click="resetFilters">重置</view>
+				<view class="dropdown-reset" v-if="hasActiveFilter" @click="resetFilters">{{ text.filterReset }}</view>
 			</view>
 
 			<!-- 下拉面板：分类（一级分类白名单） -->
@@ -75,7 +77,7 @@
 						:key="item"
 						:class="{ active: selectedCategory === item }"
 						@click="selectCategory(item)"
-					>{{ item }}</text>
+					>{{ categoryLabel(item, t) }}</text>
 				</view>
 			</view>
 
@@ -88,7 +90,7 @@
 						:key="item.value"
 						:class="{ active: locationType === item.value }"
 						@click="selectLocation(item.value)"
-					>{{ item.label }}</text>
+					>{{ locationLabel(item.value, t) }}</text>
 				</view>
 			</view>
 
@@ -101,9 +103,9 @@
 						:key="item.value"
 						:class="{ active: sort === item.value }"
 						@click="selectSort(item.value)"
-					>{{ item.label }}</text>
+					>{{ sortLabel(item.value, t) }}</text>
 				</view>
-				<text class="panel-hint">选择「距离最近」需要授权定位，按线下区域的远近排序。</text>
+				<text class="panel-hint">{{ text.sortDistanceHint }}</text>
 			</view>
 		</view>
 
@@ -111,16 +113,19 @@
 		<scroll-view
 			scroll-y
 			class="content-scroll"
+			:scroll-top="scrollTop"
+			scroll-with-animation="false"
 			refresher-enabled
 			:refresher-triggered="refreshing"
-			refresher-background="#ffffff"
+			refresher-background="#f6f5f2"
 			lower-threshold="120"
 			@refresherrefresh="onRefresh"
+			@scroll="onContentScroll"
 			@scrolltolower="onLoadMore"
 		>
 			<!-- 标签化聚类：点击标签快速筛选 -->
 			<view class="tag-strip" v-if="hotTags.length">
-				<text class="tag-chip" :class="{ active: selectedTag === '' }" @click="selectTag('')">全部</text>
+				<text class="tag-chip" :class="{ active: selectedTag === '' }" @click="selectTag('')">{{ text.tagAll }}</text>
 				<text
 					class="tag-chip"
 					v-for="tag in hotTags"
@@ -143,12 +148,19 @@
 				</view>
 			</view>
 
+			<!-- 首屏失败：明确区分「请求失败」与「没有数据」，并给出可恢复操作 -->
+			<view class="state-block" v-else-if="loadError && posts.length === 0">
+				<uni-icons type="info-filled" size="72" color="#e8e4da"></uni-icons>
+				<text class="state-title">{{ text.loadFailed }}</text>
+				<view class="state-btn" @click="retryLoad">{{ text.retry }}</view>
+			</view>
+
 			<!-- 空状态 -->
 			<view class="empty-state" v-else-if="posts.length === 0">
-				<uni-icons type="help-filled" size="96" color="#e5e5e5"></uni-icons>
-				<text class="empty-title">{{ currentTab.emptyText }}</text>
-				<text class="empty-hint">换个分类、标签或关键词，也可以直接点右下角发布你的信息</text>
-				<view class="empty-reset" @click="resetFilters">重置筛选</view>
+				<uni-icons type="help-filled" size="96" color="#e8e4da"></uni-icons>
+				<text class="empty-title">{{ text.emptyText }}</text>
+				<text class="empty-hint">{{ text.emptyHint }}</text>
+				<view class="empty-reset" @click="resetFilters">{{ text.resetFilters }}</view>
 			</view>
 
 			<!-- 卡片列表：需求卡与 服务卡 视觉区分 -->
@@ -165,7 +177,7 @@
 						<view class="card-head">
 							<text class="card-title">{{ post.title }}</text>
 							<view class="price-tag" :class="{ negotiable: post.isNegotiable }">
-								<text class="price-text">{{ formatPriceLabel(post) }}</text>
+								<text class="price-text">{{ formatPriceLabel(post, t) }}</text>
 							</view>
 						</view>
 						<text class="card-desc">{{ post.description }}</text>
@@ -177,13 +189,13 @@
 							<image class="service-avatar" :src="avatarOf(post)" mode="aspectFill"></image>
 							<view class="service-info">
 								<view class="service-name-row">
-									<text class="service-name">{{ post.author.name }}</text>
-									<text class="verify-badge" v-if="post.requireVerified">V 已认证</text>
+									<text class="service-name">{{ post.author?.name }}</text>
+									<text class="verify-badge" v-if="post.requireVerified">{{ text.verifiedShort }}</text>
 								</view>
-								<text class="service-reputation">已接 {{ post.applyCount }} 单 · {{ post.viewCount }} 次浏览 · ⭐ 好评服务者</text>
+								<text class="service-reputation">{{ text.reputation(post.applyCount, post.viewCount) }}</text>
 							</view>
 							<view class="price-tag service-price">
-								<text class="price-text">{{ formatPriceLabel(post) }}</text>
+								<text class="price-text">{{ formatPriceLabel(post, t) }}</text>
 							</view>
 						</view>
 						<text class="card-title service-title">{{ post.title }}</text>
@@ -193,7 +205,7 @@
 					<view class="badge-row">
 						<text
 							class="badge"
-							v-for="badge in buildCardBadges(post)"
+							v-for="badge in buildCardBadges(post, { t })"
 							:key="badge.text"
 							:class="`badge-${badge.tone}`"
 							@click.stop="onBadgeClick(badge)"
@@ -201,41 +213,42 @@
 					</view>
 
 					<view class="card-meta">
-						<text class="meta-author" v-if="post.type === 'service'">{{ formatRelativeTime(post.createdAt) }}发布</text>
-						<text class="meta-author" v-else>发布者 {{ post.author.name }}</text>
+						<text class="meta-author" v-if="post.type === 'service'">{{ text.publishedAt(formatRelativeTime(post.createdAt, Date.now(), t)) }}</text>
+						<text class="meta-author" v-else>{{ text.publishedBy(post.author?.name) }}</text>
 						<text class="meta-divider">·</text>
 						<text class="meta-deadline" v-if="post.type === 'demand' && post.deadline" :class="{ expired: post.deadline.expired }">
-							{{ formatDeadlineText(post.deadline) }}
+							{{ formatDeadlineText(post.deadline, Date.now(), t) }}
 						</text>
-						<text class="meta-distance" v-if="post.distanceKm != null">{{ formatDistanceText(post.distanceKm) }}</text>
-						<text class="meta-plain" v-if="!post.deadline && post.distanceKm == null">{{ formatRelativeTime(post.createdAt) }}发布</text>
-						<text class="meta-apply">已有 {{ post.applyCount }} 人{{ post.type === 'demand' ? '报名' : '接单' }}</text>
+						<text class="meta-distance" v-if="post.distanceKm != null">{{ formatDistanceText(post.distanceKm, t) }}</text>
+						<text class="meta-plain" v-if="!post.deadline && post.distanceKm == null">{{ text.publishedAt(formatRelativeTime(post.createdAt, Date.now(), t)) }}</text>
+						<text class="meta-apply">{{ text.appliedCount(post.applyCount, post.type === 'demand' ? text.applyDemandAction : text.applyServiceAction) }}</text>
 					</view>
 
 					<view class="card-actions">
 						<view class="action-btn ghost" @click.stop="toggleCollect(post)">
-							<uni-icons :type="post.isCollected ? 'star-filled' : 'star'" size="15" :color="post.isCollected ? '#1a1a1a' : '#999999'"></uni-icons>
-							<text>{{ post.isCollected ? '已收藏' : '收藏' }}</text>
+							<uni-icons :type="post.isCollected ? 'star-filled' : 'star'" size="15" :color="post.isCollected ? '#775E25' : '#a49c8d'"></uni-icons>
+							<text>{{ post.isCollected ? text.collected : text.collect }}</text>
 						</view>
 						<view class="action-btn ghost" @click.stop="contact(post)">
-							<uni-icons type="chat" size="15" color="#999999"></uni-icons>
-							<text>立即沟通</text>
+							<uni-icons type="chat" size="15" color="#a49c8d"></uni-icons>
+							<text>{{ text.contact }}</text>
 						</view>
 						<view
 							class="action-btn primary"
 							:class="{ done: isActionDone(post) }"
 							@click.stop="post.isOwner ? goDetail(post) : openApply(post)"
 						>
-							<text>{{ postActionText(post) }}</text>
+							<text>{{ postActionText(post, t) }}</text>
 						</view>
 					</view>
 				</view>
 
 				<view class="list-footer" v-if="loadingMore">
-					<uni-icons type="spinner-cycle" size="14" color="#b8bdc9"></uni-icons>
-					<text>正在加载更多...</text>
+					<uni-icons type="spinner-cycle" size="14" color="#b8b3a6"></uni-icons>
+					<text>{{ text.loadingMore }}</text>
 				</view>
-				<view class="list-footer" v-else-if="!hasMore">— 已经到底啦 —</view>
+				<view class="list-footer tappable" v-else-if="loadMoreError" @click="loadMore">{{ text.loadMoreFailed }}</view>
+				<view class="list-footer" v-else-if="!hasMore">{{ text.noMore }}</view>
 			</view>
 
 			<view class="scroll-spacer"></view>
@@ -243,71 +256,71 @@
 
 		<!-- 悬浮发布按钮 -->
 		<view class="fab" @click="openPublishEntry">
-			<uni-icons type="plusempty" size="22" color="#1a1a1a"></uni-icons>
-			<text class="fab-text">发布</text>
+			<uni-icons type="plusempty" size="22" color="#775E25"></uni-icons>
+			<text class="fab-text">{{ text.publish }}</text>
 		</view>
 
 		<!-- 发布入口抽屉 -->
-		<view class="sheet-mask app-h5-sheet-mask" v-if="showEntrySheet" @click="showEntrySheet = false">
-			<view class="sheet app-h5-sheet" @click.stop>
+		<SlideUpPanel fixed :open="showEntrySheet" :z-index="210" :label="text.publishEntryTitle" @dismiss="showEntrySheet = false">
+			<view class="sheet">
 				<view class="sheet-header">
-					<text class="sheet-title">发布到需求市场</text>
-					<text class="sheet-close" @click="showEntrySheet = false">关闭</text>
+					<text class="sheet-title">{{ text.publishEntryTitle }}</text>
+					<text class="sheet-close" @click="showEntrySheet = false">{{ text.close }}</text>
 				</view>
 				<view class="entry-list">
 					<view class="entry-item demand" @click="openPublishForm('demand')">
 						<view class="entry-icon">
-							<uni-icons type="help-filled" size="22" color="#1a1a1a"></uni-icons>
+							<uni-icons type="help-filled" size="22" color="#775E25"></uni-icons>
 						</view>
 						<view class="entry-body">
-							<text class="entry-title">发布需求（带赏金）</text>
-							<text class="entry-desc">我需要什么：翻译、跑腿、专业技能、生活求助，标注预算与截止时间</text>
+							<text class="entry-title">{{ text.entryDemandTitle }}</text>
+							<text class="entry-desc">{{ text.entryDemandDesc }}</text>
 						</view>
-						<uni-icons type="right" size="16" color="#c0c0c0"></uni-icons>
+						<uni-icons type="right" size="16" color="#c9c2b4"></uni-icons>
 					</view>
 					<view class="entry-item service" @click="openPublishForm('service')">
 						<view class="entry-icon">
-							<uni-icons type="staff-filled" size="22" color="#1a1a1a"></uni-icons>
+							<uni-icons type="staff-filled" size="22" color="#775E25"></uni-icons>
 						</view>
 						<view class="entry-body">
-							<text class="entry-title">发布服务（带标价）</text>
-							<text class="entry-desc">我能干什么：展示能力与报价，按次 / 小时 / 天计价，等待他人下单</text>
+							<text class="entry-title">{{ text.entryServiceTitle }}</text>
+							<text class="entry-desc">{{ text.entryServiceDesc }}</text>
 						</view>
-						<uni-icons type="right" size="16" color="#c0c0c0"></uni-icons>
+						<uni-icons type="right" size="16" color="#c9c2b4"></uni-icons>
 					</view>
 				</view>
 			</view>
-		</view>
+		</SlideUpPanel>
 
-		<!-- 发布表单抽屉 -->
-		<view class="sheet-mask app-h5-sheet-mask" v-if="showPublishForm" @click="closePublishForm">
-			<view class="sheet publish-sheet app-h5-sheet" @click.stop>
+		<!-- 发布 / 修改表单抽屉：两种场景共用同一套字段与校验 -->
+		<SlideUpPanel fixed :open="showPublishForm" :z-index="220" :label="publishFormTitle" @dismiss="closePublishForm" @after-close="afterPublishClose">
+			<view class="sheet publish-sheet">
 				<view class="sheet-header">
-					<text class="sheet-cancel" @click="closePublishForm">取消</text>
-					<text class="sheet-title">{{ form.type === 'demand' ? '发布需求' : '发布服务' }}</text>
-					<text class="sheet-submit" :class="{ disabled: submitting }" @click="submitPublish">{{ submitting ? '发布中...' : '发布' }}</text>
+					<text class="sheet-cancel" @click="closePublishForm">{{ text.cancel }}</text>
+					<text class="sheet-title">{{ publishFormTitle }}</text>
+					<text class="sheet-submit" :class="{ disabled: submitting }" @click="submitPublish">{{ submitting ? text.submitting : publishSubmitText }}</text>
 				</view>
 
 				<scroll-view scroll-y class="sheet-body">
 					<view class="form-block">
-						<text class="form-label">{{ form.type === 'demand' ? '一句话说清你要什么' : '一句话说清你能提供什么' }}<text class="required">*</text></text>
-						<input class="form-input" v-model="form.title" maxlength="120" :placeholder="form.type === 'demand' ? '例：急求一份菲律宾当地的租房合同翻译' : '例：提供各语种简历精修服务'" />
+						<text class="form-label">{{ form.type === 'demand' ? text.formHeadlineDemand : text.formHeadlineService }}<text class="required">*</text></text>
+						<input class="form-input" v-model="form.title" maxlength="120" :placeholder="form.type === 'demand' ? text.formHeadlineDemandPlaceholder : text.formHeadlineServicePlaceholder" />
 					</view>
 
 					<view class="form-block">
-						<text class="form-label">详细描述<text class="required">*</text></text>
+						<text class="form-label">{{ text.formDescription }}<text class="required">*</text></text>
 						<textarea
 							class="form-textarea"
 							v-model="form.description"
 							maxlength="2000"
 							auto-height
-							:placeholder="form.type === 'demand' ? '说明背景、交付要求与时间节点，减少来回沟通' : '说明你的经验、服务范围与交付方式'"
+							:placeholder="form.type === 'demand' ? text.formDescriptionDemandPlaceholder : text.formDescriptionServicePlaceholder"
 						></textarea>
 						<text class="form-counter">{{ form.description.length }}/2000</text>
 					</view>
 
 					<view class="form-block">
-						<text class="form-label">一级分类（必选 1-2 个）<text class="required">*</text></text>
+						<text class="form-label">{{ text.formCategory }}<text class="required">*</text></text>
 						<view class="form-chips">
 							<text
 								class="form-chip"
@@ -315,14 +328,14 @@
 								:key="item"
 								:class="{ active: form.categories.includes(item) }"
 								@click="toggleFormCategory(item)"
-							>{{ item }}</text>
+							>{{ categoryLabel(item, t) }}</text>
 						</view>
-						<text class="form-hint">第一个分类会作为筛选入口，第二个分类同时作为标签参与聚类。</text>
+						<text class="form-hint">{{ text.formCategoryHint }}</text>
 					</view>
 
 					<view class="form-block">
-						<text class="form-label">自定义标签（最多 5 个）</text>
-						<view class="form-chips">
+						<text class="form-label">{{ text.formTags }}</text>
+						<view class="form-chips" v-if="form.tags.length">
 							<text
 								class="form-chip active"
 								v-for="tag in form.tags"
@@ -335,11 +348,11 @@
 								class="form-input inline"
 								v-model="tagDraft"
 								maxlength="30"
-								placeholder="输入标签后点添加，例如：急单"
+								:placeholder="text.formTagPlaceholder"
 								confirm-type="done"
 								@confirm="addFormTag"
 							/>
-							<view class="inline-btn" @click="addFormTag">添加</view>
+							<view class="inline-btn" @click="addFormTag">{{ text.formTagAdd }}</view>
 						</view>
 						<view class="form-chips" v-if="hotTags.length">
 							<text
@@ -352,117 +365,126 @@
 					</view>
 
 					<view class="form-block">
-						<text class="form-label">{{ form.type === 'demand' ? '赏金预算' : '接单报价' }}</text>
+						<text class="form-label">{{ form.type === 'demand' ? text.formBudgetDemand : text.formBudgetService }}</text>
 						<view class="form-inline">
-							<input class="form-input inline" v-model="form.price" type="digit" placeholder="留空表示议价" :disabled="form.isNegotiable" />
+							<input class="form-input inline" v-model="form.price" type="digit" :placeholder="text.formPricePlaceholder" :disabled="form.isNegotiable" />
 							<picker class="form-picker" :range="priceUnitLabels" :value="priceUnitIndex" @change="onPriceUnitChange">
-								<view class="picker-value">{{ priceUnitLabels[priceUnitIndex] }}<uni-icons type="down" size="12" color="#999999"></uni-icons></view>
+								<view class="picker-value">{{ priceUnitLabels[priceUnitIndex] }}<uni-icons type="down" size="12" color="#a49c8d"></uni-icons></view>
 							</picker>
 						</view>
 						<view class="form-switch-row" @click="form.isNegotiable = !form.isNegotiable">
-							<text class="switch-label">价格可议</text>
+							<text class="switch-label">{{ text.formNegotiable }}</text>
 							<switch :checked="form.isNegotiable" color="var(--bless-primary, #C2A052)" style="transform: scale(0.7)" />
 						</view>
 					</view>
 
 					<view class="form-block">
-						<text class="form-label">服务方式<text class="required">*</text></text>
+						<text class="form-label">{{ text.formLocation }}<text class="required">*</text></text>
 						<view class="form-chips">
-							<text class="form-chip" :class="{ active: form.locationType === 'online' }" @click="form.locationType = 'online'">线上远程</text>
-							<text class="form-chip" :class="{ active: form.locationType === 'offline' }" @click="form.locationType = 'offline'">线下区域</text>
+							<text class="form-chip" :class="{ active: form.locationType === 'online' }" @click="form.locationType = 'online'">{{ locationLabel('online', t) }}</text>
+							<text class="form-chip" :class="{ active: form.locationType === 'offline' }" @click="form.locationType = 'offline'">{{ locationLabel('offline', t) }}</text>
 						</view>
 						<input
 							v-if="form.locationType === 'offline'"
 							class="form-input"
 							v-model="form.locationText"
 							maxlength="120"
-							placeholder="填写线下区域，例如：马尼拉 BGC / 深圳 南山区"
+							:placeholder="text.formLocationPlaceholder"
 						/>
 					</view>
 
 					<view class="form-block" v-if="form.type === 'demand'">
-						<text class="form-label">期望完成时间</text>
+						<text class="form-label">{{ text.formDeadline }}</text>
 						<picker mode="date" :value="form.deadlineAt" :start="todayString" @change="onDeadlineChange">
-							<view class="picker-value wide">{{ form.deadlineAt || '不设置截止时间' }}<uni-icons type="calendar" size="13" color="#999999"></uni-icons></view>
+							<view class="picker-value wide">{{ form.deadlineAt || text.formDeadlineEmpty }}<uni-icons type="calendar" size="13" color="#a49c8d"></uni-icons></view>
 						</picker>
-						<text class="form-hint">设置后会显示「距离结束还有 N 天」，帮助接单方判断优先级。</text>
+						<text class="form-hint">{{ text.formDeadlineHint }}</text>
 					</view>
 
 					<view class="form-block">
 						<view class="form-switch-row" @click="form.isUrgent = !form.isUrgent">
 							<view class="switch-copy">
-								<text class="switch-label">标记为急单</text>
-								<text class="switch-hint">急单会显示醒目标签，优先被看到</text>
+								<text class="switch-label">{{ text.formUrgent }}</text>
+								<text class="switch-hint">{{ text.formUrgentHint }}</text>
 							</view>
 							<switch :checked="form.isUrgent" color="var(--bless-primary, #C2A052)" style="transform: scale(0.7)" />
 						</view>
 						<view class="form-switch-row" @click="form.requireVerified = !form.requireVerified">
 							<view class="switch-copy">
-								<text class="switch-label">需要认证服务者</text>
-								<text class="switch-hint">勾选后卡片会展示「需认证」，提示对方资质</text>
+								<text class="switch-label">{{ text.formVerified }}</text>
+								<text class="switch-hint">{{ text.formVerifiedHint }}</text>
 							</view>
 							<switch :checked="form.requireVerified" color="var(--bless-primary, #C2A052)" style="transform: scale(0.7)" />
 						</view>
 					</view>
 
 					<view class="form-notice">
-						<uni-icons type="info" size="14" color="#999999"></uni-icons>
-						<text>建议通过平台担保交易完成付款：买家付款到平台托管 → 卖家交付 → 买家确认 → 资金结算给卖家。</text>
+						<uni-icons type="info" size="14" color="#a49c8d"></uni-icons>
+						<text>{{ text.formNotice }}</text>
 					</view>
 					<view class="sheet-spacer"></view>
 				</scroll-view>
 			</view>
-		</view>
+		</SlideUpPanel>
 
 		<!-- 报名 / 接单弹窗 -->
-		<view class="sheet-mask app-h5-sheet-mask" v-if="applyTarget" @click="closeApply">
-			<view class="sheet apply-sheet app-h5-sheet" @click.stop>
+		<SlideUpPanel fixed :open="!!applyTarget" :z-index="220" :label="applyTitle" @dismiss="closeApply" @after-close="afterApplyClose">
+			<view class="sheet apply-sheet" v-if="applyTarget">
 				<view class="sheet-header">
-					<text class="sheet-cancel" @click="closeApply">取消</text>
-					<text class="sheet-title">{{ applyTarget.type === 'demand' ? '报名接单' : '下单预约' }}</text>
-					<text class="sheet-submit" :class="{ disabled: applySubmitting }" @click="submitApply">{{ applySubmitting ? '提交中...' : '提交' }}</text>
+					<text class="sheet-cancel" @click="closeApply">{{ text.cancel }}</text>
+					<text class="sheet-title">{{ applyTitle }}</text>
+					<text class="sheet-submit" :class="{ disabled: applySubmitting }" @click="submitApply">{{ applySubmitting ? text.applySubmitting : text.applySubmit }}</text>
 				</view>
 				<view class="sheet-body static">
 					<text class="apply-title">{{ applyTarget.title }}</text>
 					<view class="form-block">
-						<text class="form-label">{{ applyTarget.type === 'demand' ? '报名说明' : '预约说明' }}<text class="required">*</text></text>
-						<textarea class="form-textarea" v-model="applyMessage" maxlength="500" auto-height placeholder="说明你的经验、可交付时间或具体需求"></textarea>
+						<text class="form-label">{{ applyTarget.type === 'demand' ? text.applyMessageLabelDemand : text.applyMessageLabelService }}<text class="required">*</text></text>
+						<textarea class="form-textarea" v-model="applyMessage" maxlength="500" auto-height :placeholder="text.applyMessagePlaceholder"></textarea>
 						<text class="form-counter">{{ applyMessage.length }}/500</text>
 					</view>
 					<view class="form-block">
-						<text class="form-label">{{ applyTarget.type === 'demand' ? '我的报价（可选）' : '预算金额（可选）' }}</text>
-						<input class="form-input" v-model="applyQuote" type="digit" :placeholder="applyTarget.price ? `参考发布者价格 ${formatPriceLabel(applyTarget)}` : '留空表示按发布者价格'" />
+						<text class="form-label">{{ applyTarget.type === 'demand' ? text.applyQuoteDemand : text.applyQuoteService }}</text>
+						<input class="form-input" v-model="applyQuote" type="digit" :placeholder="applyTarget.price ? text.applyQuoteReference(formatPriceLabel(applyTarget, t)) : text.applyQuotePlaceholder" />
 					</view>
 					<view class="form-notice">
-						<uni-icons type="info" size="14" color="#999999"></uni-icons>
-						<text>提交后发布者会收到通知，选定后可发起担保交易。</text>
+						<uni-icons type="info" size="14" color="#a49c8d"></uni-icons>
+						<text>{{ text.applyNotice }}</text>
 					</view>
 				</view>
 			</view>
-		</view>
+		</SlideUpPanel>
 	</view>
 </template>
 
 <script setup>
-import { computed, ref } from 'vue'
+import { computed, nextTick, ref } from 'vue'
 import { onLoad, onShow } from '@dcloudio/uni-app'
 import {
 	getDemandHallPostsApi,
+	getDemandHallPostApi,
 	getDemandHallHotTagsApi,
 	getDemandHallStatsApi,
 	createDemandHallPostApi,
+	updateDemandHallPostApi,
 	toggleDemandHallCollectApi,
 	createDemandHallApplicationApi
 } from '@/api/demandHall.js'
 import { createChatRequestApi, getChatRequestStatusApi } from '@/api/chat.js'
 import { t } from '@/utils/localeRuntime.js'
+import SlideUpPanel from '@/components/common/SlideUpPanel.vue'
 import {
 	DEMAND_HALL_TABS,
 	SORT_OPTIONS,
 	LOCATION_OPTIONS,
 	PRICE_UNIT_OPTIONS,
 	DEFAULT_CATEGORIES,
-	tabDefinition,
+	ALL_CATEGORY,
+	tabLabel,
+	tabEmptyText,
+	sortLabel,
+	locationLabel,
+	priceUnitLabel,
+	categoryLabel,
 	formatPriceLabel,
 	formatDeadlineText,
 	formatRelativeTime,
@@ -480,12 +502,112 @@ const tabs = DEMAND_HALL_TABS
 const sortOptions = SORT_OPTIONS
 const locationOptions = LOCATION_OPTIONS
 const priceUnitOptions = PRICE_UNIT_OPTIONS
-const priceUnitLabels = PRICE_UNIT_OPTIONS.map(item => item.label)
+
+/* ============ 顶部与文案 ============ */
+/** 页面文案集中在这里，模板里只用 text.xxx，切换语言即时生效。 */
+const text = computed(() => ({
+	title: t('demandHall.heroTitle'),
+	heroSubtitle: t('demandHall.heroSubtitle'),
+	entryCount: t('demandHall.entryCount'),
+	tabs: { demand: tabLabel('demand', t), service: tabLabel('service', t) },
+	emptyText: tabEmptyText(activeTab.value, t),
+	searchPlaceholder: t('demandHall.searchPlaceholder'),
+	searchAction: t('demandHall.searchAction'),
+	clearKeyword: t('demandHall.clearKeyword'),
+	filterCategory: t('demandHall.filterCategory'),
+	filterLocation: t('demandHall.filterLocation'),
+	filterReset: t('demandHall.filterReset'),
+	sortDistanceHint: t('demandHall.sortDistanceHint'),
+	locationDenied: t('demandHall.locationDenied'),
+	emptyHint: t('demandHall.emptyHint'),
+	resetFilters: t('demandHall.resetFilters'),
+	loadFailed: t('demandHall.loadFailed'),
+	loadMoreFailed: t('demandHall.loadMoreFailed'),
+	retry: t('demandHall.retry'),
+	tagAll: t('demandHall.tagAll'),
+	loadingMore: t('demandHall.loadingMore'),
+	noMore: t('demandHall.noMore'),
+	publish: t('demandHall.publish'),
+	publishEntryTitle: t('demandHall.publishEntryTitle'),
+	close: t('demandHall.close'),
+	entryDemandTitle: t('demandHall.entryDemandTitle'),
+	entryDemandDesc: t('demandHall.entryDemandDesc'),
+	entryServiceTitle: t('demandHall.entryServiceTitle'),
+	entryServiceDesc: t('demandHall.entryServiceDesc'),
+	formTitleDemand: t('demandHall.formTitleDemand'),
+	formTitleService: t('demandHall.formTitleService'),
+	formTitleEditDemand: t('demandHall.formTitleEditDemand'),
+	formTitleEditService: t('demandHall.formTitleEditService'),
+	formSubmitEdit: t('demandHall.formSubmitEdit'),
+	formEdited: t('demandHall.formEdited'),
+	formEditNotOwner: t('demandHall.formEditNotOwner'),
+	cancel: t('demandHall.cancel'),
+	submitting: t('demandHall.submitting'),
+	formHeadlineDemand: t('demandHall.formHeadlineDemand'),
+	formHeadlineService: t('demandHall.formHeadlineService'),
+	formHeadlineDemandPlaceholder: t('demandHall.formHeadlineDemandPlaceholder'),
+	formHeadlineServicePlaceholder: t('demandHall.formHeadlineServicePlaceholder'),
+	formDescription: t('demandHall.formDescription'),
+	formDescriptionDemandPlaceholder: t('demandHall.formDescriptionDemandPlaceholder'),
+	formDescriptionServicePlaceholder: t('demandHall.formDescriptionServicePlaceholder'),
+	formCategory: t('demandHall.formCategory'),
+	formCategoryHint: t('demandHall.formCategoryHint'),
+	formTags: t('demandHall.formTags'),
+	formTagPlaceholder: t('demandHall.formTagPlaceholder'),
+	formTagAdd: t('demandHall.formTagAdd'),
+	formTagLimit: t('demandHall.formTagLimit'),
+	formBudgetDemand: t('demandHall.formBudgetDemand'),
+	formBudgetService: t('demandHall.formBudgetService'),
+	formPricePlaceholder: t('demandHall.formPricePlaceholder'),
+	formNegotiable: t('demandHall.formNegotiable'),
+	formLocation: t('demandHall.formLocation'),
+	formLocationPlaceholder: t('demandHall.formLocationPlaceholder'),
+	formDeadline: t('demandHall.formDeadline'),
+	formDeadlineEmpty: t('demandHall.formDeadlineEmpty'),
+	formDeadlineHint: t('demandHall.formDeadlineHint'),
+	formUrgent: t('demandHall.formUrgent'),
+	formUrgentHint: t('demandHall.formUrgentHint'),
+	formVerified: t('demandHall.formVerified'),
+	formVerifiedHint: t('demandHall.formVerifiedHint'),
+	formNotice: t('demandHall.formNotice'),
+	formSubmit: t('demandHall.formSubmit'),
+	formPublished: t('demandHall.formPublished'),
+	applyDemandTitle: t('demandHall.applyDemandTitle'),
+	applyServiceTitle: t('demandHall.applyServiceTitle'),
+	applyMessageLabelDemand: t('demandHall.applyMessageLabelDemand'),
+	applyMessageLabelService: t('demandHall.applyMessageLabelService'),
+	applyMessagePlaceholder: t('demandHall.applyMessagePlaceholder'),
+	applyQuoteDemand: t('demandHall.applyQuoteDemand'),
+	applyQuoteService: t('demandHall.applyQuoteService'),
+	applyQuoteReference: price => t('demandHall.applyQuoteReference', { price }),
+	applyQuotePlaceholder: t('demandHall.applyQuotePlaceholder'),
+	applyNotice: t('demandHall.applyNotice'),
+	applySubmit: t('demandHall.applySubmit'),
+	applySubmitting: t('demandHall.applySubmitting'),
+	applyMessageRequired: t('demandHall.applyMessageRequired'),
+	applySubmitted: t('demandHall.applySubmitted'),
+	contactSelf: t('demandHall.contactSelf'),
+	contactPending: t('demandHall.contactPending'),
+	contactTitle: t('demandHall.contactTitle'),
+	contactPlaceholder: t('demandHall.contactPlaceholder'),
+	contactSend: t('demandHall.contactSend'),
+	contactSent: t('demandHall.contactSent'),
+	verifiedShort: t('demandHall.verifiedShort'),
+	reputation: (count, views) => t('demandHall.reputation', { count, views }),
+	publishedBy: name => t('demandHall.publishedBy', { name }),
+	publishedAt: time => t('demandHall.publishedAt', { time }),
+	appliedCount: (count, action) => t('demandHall.appliedCount', { count, action }),
+	applyDemandAction: t('demandHall.applyDemandAction'),
+	applyServiceAction: t('demandHall.applyServiceAction'),
+	collect: t('demandHall.collect'),
+	collected: t('demandHall.collected'),
+	contact: t('demandHall.contact')
+}))
 
 /* ============ 列表状态 ============ */
 const activeTab = ref('demand')
 const keyword = ref('')
-const selectedCategory = ref('全部')
+const selectedCategory = ref(ALL_CATEGORY)
 const selectedTag = ref('')
 const sort = ref('latest')
 const locationType = ref('all')
@@ -496,25 +618,33 @@ const posts = ref([])
 const loading = ref(true)
 const loadingMore = ref(false)
 const refreshing = ref(false)
+const loadError = ref(false)
+const loadMoreError = ref(false)
 const hasMore = ref(true)
 const currentPage = ref(0)
+const headerScrolled = ref(false)
+const scrollTop = ref(0)
 
 const stats = ref({ totalPosts: 0, demandCount: 0, serviceCount: 0, applicationCount: 0, categoryCounts: {} })
 const hotTags = ref([])
 const remoteCategories = ref([])
 
-const currentTab = computed(() => tabDefinition(activeTab.value))
 // 后端返回的分类白名单优先，接口异常时用内置默认值兜底，保证筛选栏始终可用。
 const categoryOptions = computed(() => {
 	const list = remoteCategories.value.length ? remoteCategories.value : DEFAULT_CATEGORIES
-	return ['全部', ...list]
+	return [ALL_CATEGORY, ...list]
 })
-const hasActiveFilter = computed(() => selectedCategory.value !== '全部' || selectedTag.value !== '' || locationType.value !== 'all' || sort.value !== 'latest' || !!keyword.value.trim())
+const hasActiveFilter = computed(() => selectedCategory.value !== ALL_CATEGORY || selectedTag.value !== '' || locationType.value !== 'all' || sort.value !== 'latest' || !!keyword.value.trim())
 const filterGroups = computed(() => [
-	{ key: 'category', label: selectedCategory.value === '全部' ? '分类' : selectedCategory.value, picked: selectedCategory.value !== '全部' },
-	{ key: 'location', label: locationType.value === 'all' ? '位置' : (locationOptions.find(item => item.value === locationType.value)?.label || '位置'), picked: locationType.value !== 'all' },
-	{ key: 'sort', label: sortOptions.find(item => item.value === sort.value)?.label || '排序', picked: sort.value !== 'latest' }
+	{ key: 'category', label: selectedCategory.value === ALL_CATEGORY ? text.value.filterCategory : categoryLabel(selectedCategory.value, t), picked: selectedCategory.value !== ALL_CATEGORY },
+	{ key: 'location', label: locationType.value === 'all' ? text.value.filterLocation : locationLabel(locationType.value, t), picked: locationType.value !== 'all' },
+	{ key: 'sort', label: sortLabel(sort.value, t), picked: sort.value !== 'latest' }
 ])
+const priceUnitLabels = computed(() => priceUnitOptions.map(item => priceUnitLabel(item.value, t)))
+const applyTitle = computed(() => {
+	if (!applyTarget.value) return ''
+	return applyTarget.value.type === 'demand' ? text.value.applyDemandTitle : text.value.applyServiceTitle
+})
 
 function avatarOf(post) {
 	if (post.author?.avatar) return post.author.avatar
@@ -525,11 +655,23 @@ function isActionDone(post) {
 	return !!post.isOwner || !!post.hasApplied || post.status === 'closed'
 }
 
+/**
+ * 切换筛选 / Tab 时把列表滚回顶部。
+ * 列表高度变化时旧的 scrollTop 会被钳位，视觉上就是“页面震一下”。
+ */
+async function resetListScroll() {
+	await nextTick()
+	scrollTop.value = scrollTop.value === 0 ? 0.0001 : 0
+	await nextTick()
+	scrollTop.value = 0
+}
+
 /* ============ 数据加载 ============ */
 async function loadPosts({ reset = false } = {}) {
 	const page = reset ? 1 : currentPage.value + 1
 	if (!reset && !hasMore.value) return
 	if (!reset) loadingMore.value = true
+	loadMoreError.value = false
 	try {
 		const data = await getDemandHallPostsApi(buildListParams({
 			tab: activeTab.value,
@@ -546,11 +688,16 @@ async function loadPosts({ reset = false } = {}) {
 		posts.value = reset ? list : [...posts.value, ...list]
 		hasMore.value = !!data?.hasMore
 		currentPage.value = page
+		loadError.value = false
 	} catch (error) {
-		// 请求层已提示错误；首屏失败时清空列表避免展示陈旧数据。
+		// 请求层已提示错误。首屏失败要落在失败态而不是空数据态，
+		// 否则服务端 500 会被显示成「暂时没有求助信息」。
 		if (reset) {
 			posts.value = []
-			hasMore.value = false
+			loadError.value = true
+		} else {
+			// 加载更多失败时保留 hasMore，用户点一下就能重试同一页。
+			loadMoreError.value = true
 		}
 	} finally {
 		loading.value = false
@@ -559,9 +706,24 @@ async function loadPosts({ reset = false } = {}) {
 	}
 }
 
-function reloadList() {
+/** 首屏 / 下拉刷新失败后的重试入口。 */
+function retryLoad() {
+	loading.value = true
+	void loadSideData()
+	return reloadList()
+}
+
+/** 加载更多失败后的重试入口（复用同一页）。 */
+function loadMore() {
+	void loadPosts()
+}
+
+function reloadList({ scrollUp = false } = {}) {
 	currentPage.value = 0
 	hasMore.value = true
+	loadError.value = false
+	loadMoreError.value = false
+	if (scrollUp) void resetListScroll()
 	return loadPosts({ reset: true })
 }
 
@@ -586,6 +748,10 @@ function onLoadMore() {
 	void loadPosts()
 }
 
+function onContentScroll(event) {
+	headerScrolled.value = Number(event?.detail?.scrollTop) > 4
+}
+
 /* ============ 筛选交互 ============ */
 function toggleFilter(key) {
 	openFilter.value = openFilter.value === key ? '' : key
@@ -599,26 +765,25 @@ function switchTab(key) {
 	if (activeTab.value === key) return
 	activeTab.value = key
 	closeFilter()
-	reloadList()
-	uni.vibrateShort?.({ fail: () => {} })
+	reloadList({ scrollUp: true })
 }
 
 function selectCategory(value) {
 	selectedCategory.value = value
 	closeFilter()
-	reloadList()
+	reloadList({ scrollUp: true })
 }
 
 function selectLocation(value) {
 	locationType.value = value
 	closeFilter()
-	reloadList()
+	reloadList({ scrollUp: true })
 }
 
 function selectTag(tag) {
 	const next = selectedTag.value === tag ? '' : tag
 	selectedTag.value = next
-	reloadList()
+	reloadList({ scrollUp: true })
 }
 
 /** 只有自定义标签可以被点击聚类，属性标签（急单 / 线上完成等）不参与筛选。 */
@@ -647,34 +812,34 @@ async function selectSort(value) {
 		if (!position) {
 			sort.value = 'latest'
 			closeFilter()
-			uni.showToast({ title: '未获取到定位，已按最新发布排序', icon: 'none' })
-			reloadList()
+			uni.showToast({ title: text.value.locationDenied, icon: 'none' })
+			reloadList({ scrollUp: true })
 			return
 		}
 	}
 	sort.value = value
 	closeFilter()
-	reloadList()
+	reloadList({ scrollUp: true })
 }
 
 function onSearchConfirm() {
 	closeFilter()
-	reloadList()
+	reloadList({ scrollUp: true })
 }
 
 function clearKeyword() {
 	keyword.value = ''
-	reloadList()
+	reloadList({ scrollUp: true })
 }
 
 function resetFilters() {
 	keyword.value = ''
-	selectedCategory.value = '全部'
+	selectedCategory.value = ALL_CATEGORY
 	selectedTag.value = ''
 	locationType.value = 'all'
 	sort.value = 'latest'
 	closeFilter()
-	reloadList()
+	reloadList({ scrollUp: true })
 }
 
 /* ============ 收藏 / 报名 ============ */
@@ -698,7 +863,7 @@ const applyQuote = ref('')
 const applySubmitting = ref(false)
 
 function openApply(post) {
-	const blocked = canApplyToPost(post)
+	const blocked = canApplyToPost(post, t)
 	if (blocked) {
 		uni.showToast({ title: blocked, icon: 'none' })
 		return
@@ -709,15 +874,21 @@ function openApply(post) {
 }
 
 function closeApply() {
-	applyTarget.value = null
+	// 收起动画结束后再清空内容，避免面板在收起过程中被瞬间抽空。
 	applySubmitting.value = false
+	applyTarget.value = null
+}
+
+function afterApplyClose() {
+	applyMessage.value = ''
+	applyQuote.value = ''
 }
 
 async function submitApply() {
 	const post = applyTarget.value
 	if (!post || applySubmitting.value) return
 	if (!applyMessage.value.trim()) {
-		uni.showToast({ title: '请填写说明', icon: 'none' })
+		uni.showToast({ title: text.value.applyMessageRequired, icon: 'none' })
 		return
 	}
 	applySubmitting.value = true
@@ -729,7 +900,7 @@ async function submitApply() {
 		post.hasApplied = true
 		post.myApplicationStatus = 'pending'
 		post.applyCount = Number(post.applyCount || 0) + 1
-		uni.showToast({ title: '已提交，等待发布者处理', icon: 'success' })
+		uni.showToast({ title: text.value.applySubmitted, icon: 'success' })
 		closeApply()
 	} catch (error) {
 		applySubmitting.value = false
@@ -739,13 +910,13 @@ async function submitApply() {
 /* ============ 立即沟通（接入应用内 IM） ============ */
 function buildContactMessage(post) {
 	const link = `pages/demandhall/detail?id=${post.id}`
-	return `你好，我在需求市场看到「${post.title}」，想和你沟通一下。\n信息卡：${link}`
+	return `${t('demandHall.contactCardPrefix', { title: post.title })}\n${link}`
 }
 
 async function contact(post) {
 	const currentUserId = Number(uni.getStorageSync('USER_INFO')?.id)
 	if (currentUserId && Number(post.userId) === currentUserId) {
-		uni.showToast({ title: '这是你发布的内容', icon: 'none' })
+		uni.showToast({ title: text.value.contactSelf, icon: 'none' })
 		return
 	}
 	try {
@@ -755,21 +926,21 @@ async function contact(post) {
 			return
 		}
 		if (status?.status === 'pending' || status?.status === 'processing') {
-			uni.showToast({ title: '私聊申请审核中，请稍候', icon: 'none' })
+			uni.showToast({ title: text.value.contactPending, icon: 'none' })
 			return
 		}
 		uni.showModal({
-			title: '申请私聊',
+			title: text.value.contactTitle,
 			editable: true,
-			placeholderText: '说明来意，通过后即可聊天',
+			placeholderText: text.value.contactPlaceholder,
 			content: buildContactMessage(post),
-			cancelText: '取消',
-			confirmText: '发送申请',
+			cancelText: text.value.cancel,
+			confirmText: text.value.contactSend,
 			success: async ({ confirm, content }) => {
 				if (!confirm) return
 				try {
 					await createChatRequestApi({ targetUserId: post.userId, message: (content || buildContactMessage(post)).slice(0, 500) })
-					uni.showToast({ title: '申请已提交，审核通过后可聊天', icon: 'success' })
+					uni.showToast({ title: text.value.contactSent, icon: 'success' })
 				} catch (error) { /* 请求层已提示 */ }
 			}
 		})
@@ -785,12 +956,20 @@ function goWorkspace() {
 	uni.navigateTo({ url: `/pages/demandhall/workspace?tab=posts` })
 }
 
-/* ============ 发布 ============ */
+/* ============ 发布 / 修改 ============ */
 const showEntrySheet = ref(false)
 const showPublishForm = ref(false)
 const submitting = ref(false)
 const tagDraft = ref('')
 const form = ref(buildPublishDefaults('demand'))
+/** 非空表示当前抽屉处于「修改」模式；发布与修改共用同一套字段与校验。 */
+const editingId = ref(null)
+const isEditing = computed(() => editingId.value != null)
+const publishFormTitle = computed(() => {
+	if (isEditing.value) return form.value.type === 'demand' ? text.value.formTitleEditDemand : text.value.formTitleEditService
+	return form.value.type === 'demand' ? text.value.formTitleDemand : text.value.formTitleService
+})
+const publishSubmitText = computed(() => (isEditing.value ? text.value.formSubmitEdit : text.value.formSubmit))
 const priceUnitIndex = computed(() => Math.max(0, priceUnitOptions.findIndex(item => item.value === form.value.priceUnit)))
 const todayString = computed(() => {
 	const now = new Date()
@@ -800,22 +979,87 @@ const todayString = computed(() => {
 
 function openPublishEntry() {
 	openFilter.value = ''
+	editingId.value = null
 	showEntrySheet.value = true
 }
 
 function openPublishForm(type) {
 	showEntrySheet.value = false
+	editingId.value = null
 	form.value = buildPublishDefaults(type)
 	tagDraft.value = ''
 	// 一级分类必选，默认预填当前筛选分类（没有筛选时取第一个分类），减少操作步骤。
-	const preset = selectedCategory.value !== '全部' ? selectedCategory.value : (categoryOptions.value[1] || DEFAULT_CATEGORIES[0])
+	const preset = selectedCategory.value !== ALL_CATEGORY ? selectedCategory.value : (categoryOptions.value[1] || DEFAULT_CATEGORIES[0])
 	form.value.categories = [preset]
 	showPublishForm.value = true
 }
 
+/**
+ * 打开发布表单的「修改」模式：把已有信息回填到同一套字段里。
+ * 入口来自工作台 / 详情页的「修改」按钮（带 editId=N 跳过来）。
+ */
+async function openEditForm(id) {
+	const postId = Number(id)
+	if (!postId) return
+	openFilter.value = ''
+	try {
+		const data = await getDemandHallPostApi(postId)
+		const target = data?.post
+		if (!target) {
+			uni.showToast({ title: text.value.loadFailed, icon: 'none' })
+			return
+		}
+		if (!target.isOwner) {
+			uni.showToast({ title: text.value.formEditNotOwner, icon: 'none' })
+			return
+		}
+		const defaults = buildPublishDefaults(target.type)
+		form.value = {
+			...defaults,
+			type: target.type,
+			title: target.title || '',
+			description: target.description || '',
+			categories: target.category ? [target.category] : [],
+			tags: Array.isArray(target.tags) ? [...target.tags] : [],
+			price: target.price == null ? '' : String(target.price),
+			priceUnit: target.priceUnit || 'total',
+			isNegotiable: !!target.isNegotiable,
+			locationType: target.locationType || 'online',
+			locationText: target.locationText || '',
+			// 沿用原坐标，避免「距离最近」排序因为一次编辑而丢失位置。
+			latitude: target.latitude ?? null,
+			longitude: target.longitude ?? null,
+			isUrgent: !!target.isUrgent,
+			requireVerified: !!target.requireVerified,
+			// 已过期的截止时间不能回填：后端只接受未来时间，否则用户不改这一项就保存不了。
+			deadlineAt: target.deadline?.expired ? '' : formatDateInput(target.deadlineAt)
+		}
+		editingId.value = postId
+		tagDraft.value = ''
+		showPublishForm.value = true
+	} catch (error) {
+		// 请求层已提示；失败时保持列表原样，不打开表单。
+	}
+}
+
+/** 时间戳 -> picker 需要的 YYYY-MM-DD。 */
+function formatDateInput(timestamp) {
+	const value = Number(timestamp)
+	if (!Number.isFinite(value) || value <= 0) return ''
+	const date = new Date(value)
+	const pad = item => String(item).padStart(2, '0')
+	return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}`
+}
+
 function closePublishForm() {
 	showPublishForm.value = false
+}
+
+function afterPublishClose() {
 	submitting.value = false
+	tagDraft.value = ''
+	// 收起动画结束后再清掉编辑目标，避免面板在收起过程中切换标题。
+	editingId.value = null
 }
 
 function toggleFormCategory(category) {
@@ -837,7 +1081,7 @@ function addFormTag(tag) {
 	if (!value) return
 	if (form.value.tags.includes(value)) return
 	if (form.value.tags.length >= 5) {
-		uni.showToast({ title: '最多 5 个标签', icon: 'none' })
+		uni.showToast({ title: text.value.formTagLimit, icon: 'none' })
 		return
 	}
 	form.value.tags = [...form.value.tags, value]
@@ -855,17 +1099,32 @@ function onDeadlineChange(event) {
 	form.value.deadlineAt = event.detail.value
 }
 
+/**
+ * 线下信息补坐标：有坐标的帖子才能参与「距离最近」排序。
+ * 定位失败不阻塞发布，只是这条信息不参与距离排序。
+ */
+async function resolvePublishCoords() {
+	const current = form.value
+	if (current.locationType !== 'offline') return { latitude: null, longitude: null }
+	const latitude = Number(current.latitude)
+	const longitude = Number(current.longitude)
+	if (Number.isFinite(latitude) && Number.isFinite(longitude)) return { latitude, longitude }
+	const position = await ensureCoords()
+	return position ? { latitude: position.latitude, longitude: position.longitude } : { latitude: null, longitude: null }
+}
+
 async function submitPublish() {
 	if (submitting.value) return
 	const current = form.value
-	const error = validatePublishForm(current)
+	const error = validatePublishForm(current, t)
 	if (error) {
 		uni.showToast({ title: error, icon: 'none' })
 		return
 	}
 	submitting.value = true
 	try {
-		await createDemandHallPostApi({
+		const position = await resolvePublishCoords()
+		const payload = {
 			type: current.type,
 			title: current.title.trim(),
 			description: current.description.trim(),
@@ -876,16 +1135,21 @@ async function submitPublish() {
 			isNegotiable: current.isNegotiable || current.price === '',
 			locationType: current.locationType,
 			locationText: current.locationText.trim(),
+			latitude: position.latitude,
+			longitude: position.longitude,
 			deadlineAt: current.type === 'demand' && current.deadlineAt ? new Date(`${current.deadlineAt}T23:59:59`).getTime() : null,
 			isUrgent: current.isUrgent,
 			requireVerified: current.requireVerified
-		})
+		}
+		const editedId = editingId.value
+		if (editedId) await updateDemandHallPostApi(editedId, payload)
+		else await createDemandHallPostApi(payload)
 		const publishedType = current.type
 		closePublishForm()
-		uni.showToast({ title: '发布成功', icon: 'success' })
+		uni.showToast({ title: editedId ? text.value.formEdited : text.value.formPublished, icon: 'success' })
 		if (activeTab.value !== publishedType) activeTab.value = publishedType
 		void loadSideData()
-		reloadList()
+		reloadList({ scrollUp: true })
 	} catch (error) {
 		submitting.value = false
 	}
@@ -897,6 +1161,8 @@ onLoad(options => {
 	void loadPosts({ reset: true })
 	// 工作台的「发布」入口带 compose=1 过来，落地即打开发布抽屉，少一次点击。
 	if (options?.compose) setTimeout(() => { showEntrySheet.value = true }, 300)
+	// 工作台 / 详情页的「修改」入口带 editId 过来，落地即打开修改抽屉。
+	if (options?.editId) setTimeout(() => { void openEditForm(options.editId) }, 300)
 })
 
 onShow(() => {
@@ -911,11 +1177,15 @@ onShow(() => {
 <style scoped lang="scss">
 // 与首页 index360 统一的品牌色板
 $brand-yellow: var(--bless-primary, #C2A052);
-$bg-color: #ffffff;
-$text-main: #1a1a1a;
-$text-sub: #999999;
-$gray-bg: #f5f6f8;
-$line-color: #f2f2f4;
+$brand-soft: var(--bless-soft, #F1E4BD);
+$brand-ink: var(--bless-text, #775E25);
+$bg-color: #f6f5f2;
+$surface: #ffffff;
+$text-main: #292825;
+$text-sub: #8b8984;
+$text-muted: #a49c8d;
+$gray-bg: #f4f3f1;
+$line-color: #f0eeea;
 
 .container {
 	display: flex;
@@ -925,51 +1195,69 @@ $line-color: #f2f2f4;
 	position: relative;
 }
 
-/* ============ 顶部标题 + 双 Tab（白底导航风格） ============ */
+/* ============ 顶部标题 + 双 Tab（品牌黄 / 毛玻璃导航） ============ */
 .hero {
+	position: relative;
 	flex-shrink: 0;
-	padding: 20rpx 30rpx 0;
+	// 背景交给 hero-surface：H5 上它承担毛玻璃，其余端保持纯色。
+	background: transparent;
+}
+
+.hero-surface {
+	position: absolute;
+	top: 0;
+	right: 0;
+	bottom: 0;
+	left: 0;
+	z-index: 0;
 	background: $bg-color;
+	pointer-events: none;
+}
+
+.hero-top,
+.tab-scroll {
+	position: relative;
+	z-index: 1;
 }
 
 .hero-top {
 	display: flex;
-	align-items: flex-start;
+	align-items: center;
 	justify-content: space-between;
+	gap: 20rpx;
+	padding: 20rpx 30rpx 0;
 }
 
 .hero-title-wrap {
-	flex: 1;
+	flex: 1 1 0;
 	min-width: 0;
+	overflow: hidden;
 }
 
 .hero-title {
 	display: block;
-	font-size: 40rpx;
-	font-weight: bold;
+	font-size: 44rpx;
+	font-weight: 650;
 	color: $text-main;
-	letter-spacing: 1rpx;
+	letter-spacing: -1rpx;
 }
 
 .hero-subtitle {
 	display: block;
+	max-width: 100%;
 	margin-top: 8rpx;
 	font-size: 22rpx;
 	color: $text-sub;
-}
-
-.hero-stat {
-	display: flex;
-	flex-direction: column;
-	align-items: flex-end;
-	padding-top: 6rpx;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
 }
 
 .hero-actions {
 	display: flex;
 	flex-direction: column;
 	align-items: flex-end;
-	gap: 12rpx;
+	gap: 10rpx;
 	flex-shrink: 0;
 }
 
@@ -982,79 +1270,88 @@ $line-color: #f2f2f4;
 	padding: 0 24rpx;
 	border-radius: 30rpx;
 	background: $brand-yellow;
-	box-shadow: 0 4rpx 12rpx rgba(194,160,82,0.35);
-	transition: transform 160ms ease-out;
+	transition: transform 140ms cubic-bezier(.23, 1, .32, 1), background-color 140ms ease-out;
 
 	&:active {
-		transform: scale(0.96);
+		transform: scale(.96);
+		background: var(--bless-pressed, #AA873C);
 	}
 }
 
 .workspace-entry-text {
 	font-size: 24rpx;
-	font-weight: bold;
-	color: $text-main;
+	font-weight: 600;
+	color: $brand-ink;
 }
 
-.hero-stat-num {
-	font-size: 32rpx;
-	font-weight: bold;
-	color: $text-main;
-}
-
-.hero-stat-label {
+.hero-stat {
 	font-size: 20rpx;
-	color: $text-sub;
+	color: $text-muted;
+}
+
+.tab-scroll {
+	width: 100%;
+	padding: 18rpx 0 16rpx;
+	white-space: nowrap;
+
+	::-webkit-scrollbar {
+		display: none;
+		width: 0;
+		height: 0;
+		color: transparent;
+	}
 }
 
 .tab-bar {
-	display: flex;
-	gap: 4rpx;
-	margin-top: 24rpx;
-	padding: 4rpx;
-	border-radius: 24rpx;
-	background: #e9e9ec;
+	display: inline-flex;
+	align-items: center;
+	padding: 0 30rpx;
 }
 
-.tab-item {
-	flex: 1;
-	display: flex;
+.tab-pill {
+	display: inline-flex;
 	align-items: center;
-	justify-content: center;
 	gap: 10rpx;
-	height: 70rpx;
-	border-radius: 20rpx;
-	transition: background 0.2s;
+	height: 68rpx;
+	padding: 0 30rpx;
+	margin-right: 16rpx;
+	border-radius: 34rpx;
+	background: $surface;
+	flex-shrink: 0;
+	transition: background-color 160ms ease-out, transform 140ms cubic-bezier(.23, 1, .32, 1);
+
+	&:active {
+		transform: scale(.97);
+	}
 
 	&.active {
-		background: $brand-yellow;
-		box-shadow: 0 4rpx 12rpx rgba(194,160,82,0.35);
+		background: $brand-soft;
 
 		.tab-label {
-			color: $text-main;
-			font-weight: bold;
+			color: $brand-ink;
+			font-weight: 650;
 		}
 
 		.tab-count {
-			background: rgba(26, 26, 26, 0.12);
-			color: $text-main;
+			background: rgba(119, 94, 37, .14);
+			color: $brand-ink;
 		}
 	}
 }
 
 .tab-label {
-	font-size: 27rpx;
-	color: #77787d;
-	font-weight: 600;
+	font-size: 28rpx;
+	font-weight: 500;
+	color: $text-main;
 }
 
 .tab-count {
-	min-width: 42rpx;
-	height: 34rpx;
+	min-width: 40rpx;
+	height: 32rpx;
 	padding: 0 10rpx;
-	border-radius: 17rpx;
-	background: rgba(26, 26, 26, 0.06);
-	color: #77787d;
+	border-radius: 16rpx;
+	background: $gray-bg;
+	color: $text-sub;
 	font-size: 20rpx;
 	display: flex;
 	align-items: center;
@@ -1064,7 +1361,7 @@ $line-color: #f2f2f4;
 /* ============ 搜索与筛选 ============ */
 .filter-bar {
 	flex-shrink: 0;
-	padding: 18rpx 30rpx 14rpx;
+	padding: 0 30rpx 14rpx;
 	background: $bg-color;
 }
 
@@ -1076,36 +1373,53 @@ $line-color: #f2f2f4;
 
 .search-box {
 	flex: 1;
+	min-width: 0;
 	display: flex;
 	align-items: center;
 	gap: 12rpx;
-	height: 72rpx;
+	height: 76rpx;
 	padding: 0 26rpx;
-	border-radius: 36rpx;
-	background: $gray-bg;
+	border-radius: 38rpx;
+	background: $surface;
+	box-sizing: border-box;
 }
 
 .search-input {
 	flex: 1;
+	min-width: 0;
 	font-size: 27rpx;
 	color: $text-main;
 }
 
+.search-clear {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	width: 48rpx;
+	height: 48rpx;
+	flex-shrink: 0;
+}
+
 .search-btn {
-	padding: 0 32rpx;
-	height: 72rpx;
-	line-height: 72rpx;
-	border-radius: 36rpx;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	width: 76rpx;
+	height: 76rpx;
+	flex-shrink: 0;
+	border-radius: 50%;
 	background: $brand-yellow;
-	color: $text-main;
-	font-size: 26rpx;
-	font-weight: bold;
+	transition: transform 140ms cubic-bezier(.23, 1, .32, 1);
+
+	&:active {
+		transform: scale(.95);
+	}
 }
 
 .dropdown-row {
 	display: flex;
 	align-items: center;
-	gap: 16rpx;
+	gap: 14rpx;
 	margin-top: 16rpx;
 }
 
@@ -1113,43 +1427,45 @@ $line-color: #f2f2f4;
 	display: flex;
 	align-items: center;
 	gap: 8rpx;
-	height: 60rpx;
+	height: 62rpx;
 	padding: 0 24rpx;
-	border-radius: 30rpx;
-	background: $gray-bg;
+	border-radius: 31rpx;
+	background: $surface;
 	max-width: 300rpx;
+	transition: background-color 160ms ease-out;
 
 	&.active,
 	&.picked {
-		background: $brand-yellow;
+		background: $brand-soft;
 	}
 }
 
 .dropdown-text {
 	font-size: 24rpx;
-	color: #666666;
+	color: $text-sub;
 	overflow: hidden;
 	white-space: nowrap;
 	text-overflow: ellipsis;
 
 	.active &,
 	.picked & {
-		color: $text-main;
+		color: $brand-ink;
 		font-weight: 600;
 	}
 }
 
 .dropdown-reset {
 	margin-left: auto;
+	padding: 10rpx 0 10rpx 10rpx;
 	font-size: 24rpx;
-	color: $text-sub;
+	color: $text-muted;
 }
 
 .filter-panel {
 	margin-top: 16rpx;
 	padding: 20rpx;
-	border-radius: 18rpx;
-	background: $gray-bg;
+	border-radius: 24rpx;
+	background: $surface;
 }
 
 .panel-chips {
@@ -1161,13 +1477,13 @@ $line-color: #f2f2f4;
 .panel-chip {
 	padding: 12rpx 28rpx;
 	border-radius: 30rpx;
-	background: #fff;
+	background: $gray-bg;
 	font-size: 24rpx;
-	color: #666666;
+	color: #655d51;
 
 	&.active {
-		background: $brand-yellow;
-		color: $text-main;
+		background: $brand-soft;
+		color: $brand-ink;
 		font-weight: 600;
 	}
 }
@@ -1176,7 +1492,7 @@ $line-color: #f2f2f4;
 	display: block;
 	margin-top: 14rpx;
 	font-size: 21rpx;
-	color: $text-sub;
+	color: $text-muted;
 }
 
 /* ============ 信息流 ============ */
@@ -1189,19 +1505,19 @@ $line-color: #f2f2f4;
 	display: flex;
 	flex-wrap: wrap;
 	gap: 14rpx;
-	padding: 4rpx 30rpx 6rpx;
+	padding: 6rpx 30rpx 4rpx;
 }
 
 .tag-chip {
 	padding: 10rpx 24rpx;
 	border-radius: 28rpx;
-	background: $gray-bg;
+	background: $surface;
 	font-size: 22rpx;
-	color: #666666;
+	color: #655d51;
 
 	&.active {
-		background: $brand-yellow;
-		color: $text-main;
+		background: $brand-soft;
+		color: $brand-ink;
 		font-weight: 600;
 	}
 }
@@ -1211,11 +1527,11 @@ $line-color: #f2f2f4;
 }
 
 .card {
-	background: #fff;
-	border-radius: 20rpx;
+	background: $surface;
+	border-radius: 24rpx;
 	padding: 26rpx;
 	margin-bottom: 24rpx;
-	box-shadow: 0 2rpx 16rpx rgba(0, 0, 0, 0.05);
+	box-shadow: 0 2rpx 10rpx rgba(45, 42, 34, .04);
 	border-left: 8rpx solid $brand-yellow;
 }
 
@@ -1225,7 +1541,7 @@ $line-color: #f2f2f4;
 }
 
 .service-card {
-	border-left-color: #1a1a1a;
+	border-left-color: $brand-soft;
 }
 
 .card-head {
@@ -1238,9 +1554,10 @@ $line-color: #f2f2f4;
 .card-title {
 	flex: 1;
 	font-size: 30rpx;
-	font-weight: bold;
+	font-weight: 600;
 	color: $text-main;
 	line-height: 1.42;
+	overflow-wrap: anywhere;
 }
 
 .service-title {
@@ -1251,13 +1568,14 @@ $line-color: #f2f2f4;
 .card-desc {
 	margin-top: 12rpx;
 	font-size: 25rpx;
-	color: #666666;
+	color: #6f6a63;
 	line-height: 1.55;
 	overflow: hidden;
 	text-overflow: ellipsis;
 	display: -webkit-box;
 	-webkit-line-clamp: 3;
 	-webkit-box-orient: vertical;
+	overflow-wrap: anywhere;
 }
 
 .price-tag {
@@ -1265,25 +1583,29 @@ $line-color: #f2f2f4;
 	align-items: center;
 	gap: 6rpx;
 	flex-shrink: 0;
+	max-width: 46%;
 	padding: 8rpx 20rpx;
 	border-radius: 24rpx;
-	background: $brand-yellow;
-	color: $text-main;
+	background: $brand-soft;
+	color: $brand-ink;
 
 	&.negotiable {
 		background: $gray-bg;
-		color: #666666;
+		color: $text-sub;
 	}
 }
 
 .service-price {
-	background: $brand-yellow;
-	color: $text-main;
+	background: $brand-soft;
+	color: $brand-ink;
 }
 
 .price-text {
 	font-size: 28rpx;
-	font-weight: bold;
+	font-weight: 650;
+	overflow: hidden;
+	white-space: nowrap;
+	text-overflow: ellipsis;
 }
 
 .service-head {
@@ -1296,7 +1618,7 @@ $line-color: #f2f2f4;
 	width: 70rpx;
 	height: 70rpx;
 	border-radius: 50%;
-	background: #e8e8e8;
+	background: #ece9e2;
 	flex-shrink: 0;
 }
 
@@ -1309,19 +1631,24 @@ $line-color: #f2f2f4;
 	display: flex;
 	align-items: center;
 	gap: 10rpx;
+	min-width: 0;
 }
 
 .service-name {
 	font-size: 30rpx;
-	font-weight: bold;
+	font-weight: 600;
 	color: $text-main;
+	overflow: hidden;
+	white-space: nowrap;
+	text-overflow: ellipsis;
 }
 
 .verify-badge {
+	flex-shrink: 0;
 	padding: 2rpx 12rpx;
 	border-radius: 10rpx;
-	background: $brand-yellow;
-	color: $text-main;
+	background: $brand-soft;
+	color: $brand-ink;
 	font-size: 19rpx;
 	font-weight: 600;
 }
@@ -1331,6 +1658,9 @@ $line-color: #f2f2f4;
 	margin-top: 6rpx;
 	font-size: 22rpx;
 	color: $text-sub;
+	overflow: hidden;
+	white-space: nowrap;
+	text-overflow: ellipsis;
 }
 
 .badge-row {
@@ -1345,7 +1675,9 @@ $line-color: #f2f2f4;
 	border-radius: 20rpx;
 	font-size: 21rpx;
 	background: $gray-bg;
-	color: #666666;
+	color: #655d51;
+	max-width: 100%;
+	overflow-wrap: anywhere;
 }
 
 .badge-urgent {
@@ -1355,28 +1687,33 @@ $line-color: #f2f2f4;
 }
 
 .badge-online {
-	background: #e9f7ef;
-	color: #1f9d55;
+	background: $brand-soft;
+	color: $brand-ink;
 }
 
 .badge-location {
 	background: $gray-bg;
-	color: #666666;
+	color: #655d51;
 }
 
 .badge-verified {
-	background: rgba(194,160,82,0.28);
-	color: $text-main;
+	background: rgba(194, 160, 82, .22);
+	color: $brand-ink;
 }
 
 .badge-tag {
 	background: $gray-bg;
-	color: #8a8a8f;
+	color: $text-sub;
+}
+
+.badge-neutral {
+	background: $gray-bg;
+	color: #655d51;
 }
 
 .badge-muted {
-	background: #e8eaef;
-	color: #5a6270;
+	background: #ecebe7;
+	color: #6f6a63;
 	font-weight: 600;
 }
 
@@ -1396,20 +1733,20 @@ $line-color: #f2f2f4;
 }
 
 .meta-divider {
-	color: #d8d8dc;
+	color: #d9d5cc;
 }
 
 .meta-deadline {
-	color: #b26b00;
+	color: #a1791f;
 	font-weight: 600;
 
 	&.expired {
-		color: #b8bdc9;
+		color: $text-muted;
 	}
 }
 
 .meta-distance {
-	color: #666666;
+	color: #6f6a63;
 }
 
 .meta-apply {
@@ -1434,22 +1771,27 @@ $line-color: #f2f2f4;
 	height: 68rpx;
 	border-radius: 34rpx;
 	font-size: 25rpx;
+	transition: transform 140ms cubic-bezier(.23, 1, .32, 1), background-color 140ms ease-out;
+
+	&:active {
+		transform: scale(.97);
+	}
 
 	&.ghost {
 		flex: 1;
 		background: $gray-bg;
-		color: #666666;
+		color: #655d51;
 	}
 
 	&.primary {
 		flex: 1.3;
 		background: $brand-yellow;
-		color: $text-main;
-		font-weight: bold;
+		color: $brand-ink;
+		font-weight: 600;
 	}
 
 	&.primary.done {
-		background: #eef0f6;
+		background: #ecebe7;
 		color: $text-sub;
 	}
 }
@@ -1461,7 +1803,38 @@ $line-color: #f2f2f4;
 	gap: 8rpx;
 	padding: 26rpx 0;
 	font-size: 23rpx;
-	color: #b8bdc9;
+	color: $text-muted;
+
+	&.tappable {
+		color: #a1791f;
+		font-weight: 600;
+	}
+}
+
+/* ============ 请求失败状态：与空数据区分开 ============ */
+.state-block {
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	gap: 18rpx;
+	padding: 150rpx 60rpx;
+}
+
+.state-title {
+	font-size: 26rpx;
+	color: $text-sub;
+	text-align: center;
+	line-height: 1.6;
+}
+
+.state-btn {
+	margin-top: 8rpx;
+	padding: 14rpx 44rpx;
+	border-radius: 32rpx;
+	background: $brand-yellow;
+	color: $brand-ink;
+	font-size: 25rpx;
+	font-weight: 600;
 }
 
 .scroll-spacer {
@@ -1470,17 +1843,17 @@ $line-color: #f2f2f4;
 
 /* 骨架屏 */
 .skeleton-card {
-	background: #fff;
-	border-radius: 20rpx;
+	background: $surface;
+	border-radius: 24rpx;
 	padding: 26rpx;
 	margin-bottom: 24rpx;
-	box-shadow: 0 2rpx 16rpx rgba(0, 0, 0, 0.04);
+	box-shadow: 0 2rpx 10rpx rgba(45, 42, 34, .03);
 }
 
 .skeleton-line {
 	height: 24rpx;
 	border-radius: 12rpx;
-	background: #f0f1f5;
+	background: #f0eeea;
 	margin-bottom: 16rpx;
 
 	&.wide {
@@ -1517,8 +1890,9 @@ $line-color: #f2f2f4;
 
 .empty-title {
 	font-size: 28rpx;
-	color: #666666;
+	color: #6f6a63;
 	font-weight: 600;
+	text-align: center;
 }
 
 .empty-hint {
@@ -1532,8 +1906,8 @@ $line-color: #f2f2f4;
 	margin-top: 12rpx;
 	padding: 14rpx 44rpx;
 	border-radius: 32rpx;
-	background: $brand-yellow;
-	color: $text-main;
+	background: $brand-soft;
+	color: $brand-ink;
 	font-size: 25rpx;
 	font-weight: 600;
 }
@@ -1542,7 +1916,7 @@ $line-color: #f2f2f4;
 .fab {
 	position: fixed;
 	right: 32rpx;
-	--app-fixed-bottom-base: calc(env(safe-area-inset-bottom) + 120rpx);
+	--app-fixed-bottom-base: 120rpx;
 	bottom: calc(var(--app-fixed-bottom-base) + var(--app-viewport-bottom-offset, 0px));
 	z-index: 90;
 	display: flex;
@@ -1553,58 +1927,68 @@ $line-color: #f2f2f4;
 	height: 92rpx;
 	border-radius: 46rpx;
 	background: $brand-yellow;
-	box-shadow: 0 8rpx 20rpx rgba(194,160,82,0.45);
+	box-shadow: 0 8rpx 20rpx rgba(194, 160, 82, .38);
+	transition: transform 140ms cubic-bezier(.23, 1, .32, 1);
+
+	&:active {
+		transform: scale(.96);
+	}
 }
 
 .fab-text {
 	font-size: 27rpx;
-	color: $text-main;
-	font-weight: bold;
+	color: $brand-ink;
+	font-weight: 600;
 }
 
-/* ============ 底部抽屉 ============ */
-.sheet-mask {
-	position: fixed;
-	inset: 0;
-	z-index: 200;
-	display: flex;
-	align-items: flex-end;
-	background: rgba(0, 0, 0, 0.42);
-}
-
+/* ============ 底部抽屉（SlideUpPanel 内容） ============ */
 .sheet {
 	width: 100%;
-	background: #fff;
-	border-radius: 28rpx 28rpx 0 0;
+	background: $surface;
 	display: flex;
 	flex-direction: column;
-	max-height: 88vh;
+	max-height: 84vh;
+	box-sizing: border-box;
+	overflow: hidden;
+}
+
+.publish-sheet {
+	max-height: 86vh;
 }
 
 .sheet-header {
 	display: flex;
 	align-items: center;
 	justify-content: space-between;
+	gap: 16rpx;
 	padding: 26rpx 28rpx;
 	border-bottom: 1rpx solid $line-color;
 	flex-shrink: 0;
 }
 
 .sheet-title {
+	flex: 1;
+	min-width: 0;
+	text-align: center;
 	font-size: 30rpx;
-	font-weight: bold;
+	font-weight: 600;
 	color: $text-main;
+	overflow: hidden;
+	white-space: nowrap;
+	text-overflow: ellipsis;
 }
 
 .sheet-cancel,
 .sheet-close {
+	flex-shrink: 0;
 	font-size: 27rpx;
 	color: $text-sub;
 }
 
 .sheet-submit {
+	flex-shrink: 0;
 	font-size: 26rpx;
-	color: $text-main;
+	color: $brand-ink;
 	font-weight: 600;
 	background: $brand-yellow;
 	padding: 8rpx 26rpx;
@@ -1612,7 +1996,7 @@ $line-color: #f2f2f4;
 
 	&.disabled {
 		background: $gray-bg;
-		color: #c0c0c0;
+		color: $text-muted;
 	}
 }
 
@@ -1626,15 +2010,24 @@ $line-color: #f2f2f4;
 	gap: 18rpx;
 	padding: 26rpx 22rpx;
 	margin-bottom: 18rpx;
-	border-radius: 20rpx;
+	border-radius: 24rpx;
 	background: $gray-bg;
+	transition: transform 140ms cubic-bezier(.23, 1, .32, 1);
+
+	&:last-child {
+		margin-bottom: 0;
+	}
+
+	&:active {
+		transform: scale(.98);
+	}
 }
 
 .entry-icon {
 	width: 76rpx;
 	height: 76rpx;
 	border-radius: 50%;
-	background: $brand-yellow;
+	background: $brand-soft;
 	display: flex;
 	align-items: center;
 	justify-content: center;
@@ -1649,38 +2042,39 @@ $line-color: #f2f2f4;
 .entry-title {
 	display: block;
 	font-size: 28rpx;
-	font-weight: bold;
+	font-weight: 600;
 	color: $text-main;
+	overflow-wrap: anywhere;
 }
 
 .entry-desc {
 	display: block;
 	margin-top: 8rpx;
 	font-size: 22rpx;
-	color: #8a8a8f;
+	color: $text-sub;
 	line-height: 1.5;
+	overflow-wrap: anywhere;
 }
 
 .sheet-body {
 	flex: 1;
 	min-height: 0;
 	padding: 22rpx 28rpx;
+	box-sizing: border-box;
 
 	&.static {
-		padding-bottom: 40rpx;
+		padding-bottom: calc(40rpx + env(safe-area-inset-bottom));
 	}
-}
-
-.apply-sheet .sheet-body.static {
-	padding-bottom: calc(40rpx + env(safe-area-inset-bottom));
 }
 
 .sheet-spacer {
 	height: 40rpx;
 }
 
+/* ============ 表单控件：统一盒模型，窄屏不溢出 ============ */
 .form-block {
 	margin-bottom: 30rpx;
+	min-width: 0;
 }
 
 .form-label {
@@ -1689,6 +2083,7 @@ $line-color: #f2f2f4;
 	font-size: 26rpx;
 	font-weight: 600;
 	color: $text-main;
+	overflow-wrap: anywhere;
 }
 
 .required {
@@ -1706,8 +2101,11 @@ $line-color: #f2f2f4;
 	color: $text-main;
 	box-sizing: border-box;
 
+	// 行内输入框由 flex 决定宽度，避免 width:100% 与同排按钮叠加后撑破容器。
 	&.inline {
-		flex: 1;
+		flex: 1 1 0;
+		width: auto;
+		min-width: 0;
 	}
 }
 
@@ -1715,12 +2113,13 @@ $line-color: #f2f2f4;
 	width: 100%;
 	min-height: 160rpx;
 	padding: 20rpx 24rpx;
-	border-radius: 20rpx;
+	border-radius: 24rpx;
 	background: $gray-bg;
 	font-size: 26rpx;
 	color: $text-main;
 	line-height: 1.55;
 	box-sizing: border-box;
+	overflow-wrap: anywhere;
 }
 
 .form-counter {
@@ -1728,7 +2127,7 @@ $line-color: #f2f2f4;
 	margin-top: 8rpx;
 	text-align: right;
 	font-size: 21rpx;
-	color: #b8bdc9;
+	color: $text-muted;
 }
 
 .form-chips {
@@ -1742,11 +2141,13 @@ $line-color: #f2f2f4;
 	border-radius: 30rpx;
 	background: $gray-bg;
 	font-size: 24rpx;
-	color: #666666;
+	color: #655d51;
+	max-width: 100%;
+	overflow-wrap: anywhere;
 
 	&.active {
-		background: $brand-yellow;
-		color: $text-main;
+		background: $brand-soft;
+		color: $brand-ink;
 		font-weight: 600;
 	}
 
@@ -1759,14 +2160,16 @@ $line-color: #f2f2f4;
 	display: block;
 	margin-top: 12rpx;
 	font-size: 21rpx;
-	color: $text-sub;
+	color: $text-muted;
 	line-height: 1.5;
+	overflow-wrap: anywhere;
 }
 
 .form-inline {
 	display: flex;
 	align-items: center;
 	gap: 16rpx;
+	min-width: 0;
 
 	& + .form-chips {
 		margin-top: 16rpx;
@@ -1774,33 +2177,41 @@ $line-color: #f2f2f4;
 }
 
 .inline-btn {
+	flex-shrink: 0;
 	padding: 0 32rpx;
 	height: 80rpx;
 	line-height: 80rpx;
 	border-radius: 40rpx;
 	background: $brand-yellow;
-	color: $text-main;
+	color: $brand-ink;
 	font-size: 25rpx;
 	font-weight: 600;
 }
 
 .form-picker {
-	flex-shrink: 0;
+	flex: 0 0 auto;
+	max-width: 40%;
 }
 
 .picker-value {
 	display: flex;
 	align-items: center;
+	justify-content: space-between;
 	gap: 8rpx;
 	height: 80rpx;
 	padding: 0 24rpx;
 	border-radius: 40rpx;
 	background: $gray-bg;
 	font-size: 25rpx;
-	color: #666666;
+	color: #655d51;
+	min-width: 0;
+	overflow: hidden;
+	white-space: nowrap;
+	text-overflow: ellipsis;
+	box-sizing: border-box;
 
 	&.wide {
-		justify-content: space-between;
+		width: 100%;
 	}
 }
 
@@ -1814,6 +2225,7 @@ $line-color: #f2f2f4;
 
 .switch-copy {
 	flex: 1;
+	min-width: 0;
 }
 
 .switch-label {
@@ -1825,34 +2237,96 @@ $line-color: #f2f2f4;
 	display: block;
 	margin-top: 6rpx;
 	font-size: 21rpx;
-	color: $text-sub;
+	color: $text-muted;
+	overflow-wrap: anywhere;
 }
 
 .form-notice {
 	display: flex;
+	align-items: flex-start;
 	gap: 12rpx;
 	padding: 20rpx;
-	border-radius: 16rpx;
+	border-radius: 20rpx;
 	background: $gray-bg;
 	font-size: 22rpx;
-	color: #8a8a8f;
+	color: $text-sub;
 	line-height: 1.6;
+
+	text {
+		flex: 1;
+		min-width: 0;
+		overflow-wrap: anywhere;
+	}
 }
 
 .apply-title {
 	display: block;
 	margin-bottom: 22rpx;
 	font-size: 28rpx;
-	font-weight: bold;
+	font-weight: 600;
 	color: $text-main;
 	line-height: 1.45;
+	overflow-wrap: anywhere;
 }
-</style>
 
-<style scoped>
+/* 毛玻璃只覆盖导航栏与紧邻下缘，滚动时渐显、回到顶部渐隐 */
 /* #ifdef H5 */
-.publish-sheet {
-	max-height: calc(100dvh - var(--window-top, 44px) - 24px);
+@supports ((-webkit-backdrop-filter: blur(1px)) or (backdrop-filter: blur(1px))) {
+	.hero-surface {
+		background: rgba(246, 245, 242, .82);
+		-webkit-backdrop-filter: blur(14px);
+		backdrop-filter: blur(14px);
+		opacity: 0;
+		transition: opacity 200ms ease-out;
+	}
+
+	.hero.is-scrolled .hero-surface {
+		opacity: 1;
+		bottom: -10px;
+		-webkit-mask-image: linear-gradient(to bottom, #000 calc(100% - 10px), transparent);
+		mask-image: linear-gradient(to bottom, #000 calc(100% - 10px), transparent);
+	}
 }
+
 /* #endif */
+
+@media (min-width: 680px) {
+	.hero,
+	.filter-bar {
+		max-width: 660px;
+		width: 100%;
+		margin: 0 auto;
+	}
+}
+
+@media (max-width: 350px) {
+	.hero-title {
+		font-size: 40rpx;
+	}
+
+	.hero-subtitle {
+		font-size: 20rpx;
+	}
+}
+
+@media (prefers-reduced-motion: reduce) {
+	.workspace-entry,
+	.tab-pill,
+	.search-btn,
+	.action-btn,
+	.fab,
+	.entry-item,
+	.hero-surface {
+		transition: none;
+	}
+
+	.workspace-entry:active,
+	.tab-pill:active,
+	.search-btn:active,
+	.action-btn:active,
+	.fab:active,
+	.entry-item:active {
+		transform: none;
+	}
+}
 </style>

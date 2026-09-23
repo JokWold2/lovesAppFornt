@@ -275,11 +275,16 @@ function assertBalancedTags(source, label) {
 test('pages.json 注册工作台与担保交易订单页', async () => {
 	const raw = await read('../pages.json')
 	const pages = JSON.parse(raw.replace(/^\s*\/\/.*$/gm, ''))
-	const paths = pages.pages.map(page => page.path)
-	assert.ok(paths.includes('pages/demandhall/workspace'), '缺少个人工作台页面')
-	assert.ok(paths.includes('pages/demandhall/orderDetail'), '缺少担保交易订单页')
-	assert.equal(pages.pages.find(page => page.path === 'pages/demandhall/workspace').style.navigationBarTitleText, '我的工作台')
-	assert.equal(pages.pages.find(page => page.path === 'pages/demandhall/orderDetail').style.navigationBarTitleText, '担保交易')
+	// 需求市场的四个页面都在分包里，断言必须按「root + path」拼出完整路径。
+	const entries = new Map()
+	for (const page of pages.pages || []) entries.set(page.path, page)
+	for (const sub of pages.subPackages || pages.subpackages || []) {
+		for (const page of sub.pages || []) entries.set(`${sub.root}/${page.path}`, page)
+	}
+	assert.ok(entries.has('pages/demandhall/workspace'), '缺少个人工作台页面')
+	assert.ok(entries.has('pages/demandhall/orderDetail'), '缺少担保交易订单页')
+	assert.equal(entries.get('pages/demandhall/workspace').style.navigationBarTitleText, '我的工作台')
+	assert.equal(entries.get('pages/demandhall/orderDetail').style.navigationBarTitleText, '担保交易')
 })
 
 test('信息流顶部提供工作台入口', async () => {
@@ -357,4 +362,40 @@ test('工作台与订单页文案在六种语言里都补齐', async () => {
 		const occurrences = locale.split(`${key}:`).length - 1
 		assert.ok(occurrences >= 6, `escrow.${key} 需要在 6 种语言里都补齐（当前 ${occurrences}）`)
 	}
+	// 底部操作栏与失败态用到的键过去缺失，界面上一直显示中文兜底。
+	for (const key of [
+		'fundAction', 'waitingFundAction', 'waitingDeliverAction', 'back', 'loadFailed', 'retry', 'evidenceFallbackName'
+	]) {
+		const occurrences = locale.split(`${key}:`).length - 1
+		assert.ok(occurrences >= 6, `escrow.${key} 需要在 6 种语言里都补齐（当前 ${occurrences}）`)
+	}
+	// 工作台的重新上架 / 修改文案必须被真正使用，而不是只定义不用。
+	const workspace = await read('../pages/demandhall/workspace.vue')
+	assert.ok(workspace.includes("t('workspace.reopenDone')"), '重新上架成功要有反馈文案')
+	assert.ok(workspace.includes('reopenDemandHallPostApi'), '重新上架需要调用后端接口')
+	assert.ok(workspace.includes('goEditPost'), '「修改」要跳到编辑表单而不是只弹提示')
+	assert.ok(!workspace.includes('editHint'), '修改已实现，不应再提示「需要重新发布」')
+	assert.ok(workspace.includes('applicantsError'), '报名列表失败不能显示成「还没有人报名」')
+	assert.ok(workspace.includes('getDemandHallOrderSummaryApi'), '看板收支要用服务端聚合，避免本地分页少算')
+})
+
+test('工作台按帖子的订单过滤与看板聚合都有测试覆盖', () => {
+	// 服务端聚合优先：本地 orders 只是当前页帖子的子集。
+	const serverSummary = buildReputationSummary({
+		userId: 5,
+		accountLevel: 0,
+		summary: { earned: 900, spent: 120, ongoingOrders: 4, completedOrders: 12, accountLevel: 4, isVerified: true }
+	})
+	assert.equal(serverSummary.earned, 900)
+	assert.equal(serverSummary.spent, 120)
+	assert.equal(serverSummary.ongoingOrders, 4)
+	assert.equal(serverSummary.scoreCount, 12)
+	assert.equal(serverSummary.isVerified, true)
+	// 接口失败时退回本地估算，看板不会变成 0。
+	const fallback = buildReputationSummary({
+		userId: 5,
+		orders: [{ id: 1, amount: 200, status: 'completed', buyerUserId: 3, sellerUserId: 5 }]
+	})
+	assert.equal(fallback.earned, 200)
+	assert.equal(fallback.isVerified, false)
 })

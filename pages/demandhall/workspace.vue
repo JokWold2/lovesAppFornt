@@ -73,6 +73,8 @@
 		<scroll-view
 			scroll-y
 			class="content-scroll"
+			:scroll-top="scrollTop"
+			scroll-with-animation="false"
 			refresher-enabled
 			:refresher-triggered="refreshing"
 			refresher-background="#ffffff"
@@ -121,7 +123,7 @@
 						<view class="card-head">
 							<text class="card-title">{{ item.post.title }}</text>
 							<view class="price-tag" :class="{ negotiable: item.post.isNegotiable }">
-								<text class="price-text">{{ formatPriceLabel(item.post) }}</text>
+								<text class="price-text">{{ formatPriceLabel(item.post, t) }}</text>
 							</view>
 						</view>
 						<text class="card-desc">{{ item.post.description }}</text>
@@ -129,14 +131,14 @@
 						<view class="badge-row">
 							<text
 								class="badge"
-								v-for="badge in buildCardBadges(item.post)"
+								v-for="badge in buildCardBadges(item.post, { t })"
 								:key="badge.text"
 								:class="`badge-${badge.tone}`"
 							>{{ badge.tone === 'tag' ? '#' + badge.text : badge.text }}</text>
 						</view>
 
 						<view class="card-meta">
-							<text>{{ t('workspace.publishedAt', { time: formatRelativeTime(item.post.createdAt) }) }}</text>
+							<text>{{ t('workspace.publishedAt', { time: formatRelativeTime(item.post.createdAt, Date.now(), t) }) }}</text>
 							<text class="meta-divider">·</text>
 							<text>{{ item.post.type === 'demand' ? t('workspace.postApplyDemand', { count: item.post.applyCount }) : t('workspace.postApplyService', { count: item.post.applyCount }) }}</text>
 							<text class="meta-divider">·</text>
@@ -167,9 +169,9 @@
 						</view>
 						<text class="card-desc">{{ item.message }}</text>
 						<view class="card-meta">
-							<text>{{ formatRelativeTime(item.createdAt) }}</text>
+							<text>{{ formatRelativeTime(item.createdAt, Date.now(), t) }}</text>
 							<text class="meta-divider">·</text>
-							<text>{{ item.post?.category }}</text>
+							<text>{{ categoryLabel(item.post?.category, t) }}</text>
 							<text class="meta-apply" v-if="item.post?.status === 'closed'">{{ t('workspace.postClosed') }}</text>
 						</view>
 						<view class="card-actions">
@@ -185,14 +187,14 @@
 						<view class="card-head" @click="goPostDetail(post.id)">
 							<text class="card-title">{{ post.title }}</text>
 							<view class="price-tag" :class="{ negotiable: post.isNegotiable }">
-								<text class="price-text">{{ formatPriceLabel(post) }}</text>
+								<text class="price-text">{{ formatPriceLabel(post, t) }}</text>
 							</view>
 						</view>
 						<text class="card-desc" @click="goPostDetail(post.id)">{{ post.description }}</text>
 						<view class="badge-row">
 							<text
 								class="badge"
-								v-for="badge in buildCardBadges(post)"
+								v-for="badge in buildCardBadges(post, { t })"
 								:key="badge.text"
 								:class="`badge-${badge.tone}`"
 							>{{ badge.tone === 'tag' ? '#' + badge.text : badge.text }}</text>
@@ -200,11 +202,11 @@
 						<view class="card-meta">
 							<text class="meta-author">{{ post.author?.name }}</text>
 							<text class="meta-divider">·</text>
-							<text>{{ formatRelativeTime(post.createdAt) }}</text>
+							<text>{{ formatRelativeTime(post.createdAt, Date.now(), t) }}</text>
 						</view>
 						<view class="card-actions">
 							<view class="action-btn ghost" @click.stop="toggleCollect(post)">
-								<uni-icons type="star-filled" size="15" color="#1a1a1a"></uni-icons>
+								<uni-icons type="star-filled" size="15" color="#775E25"></uni-icons>
 								<text>{{ t('workspace.uncollect') }}</text>
 							</view>
 							<view class="action-btn primary" @click.stop="goPostDetail(post.id)">{{ t('workspace.actionDetail') }}</view>
@@ -225,13 +227,13 @@
 
 		<!-- 悬浮发布按钮 -->
 		<view class="fab" @click="goPublish">
-			<uni-icons type="plusempty" size="22" color="#1a1a1a"></uni-icons>
+			<uni-icons type="plusempty" size="22" color="#775E25"></uni-icons>
 			<text class="fab-text">{{ t('workspace.publishEntry') }}</text>
 		</view>
 
 		<!-- 报名者管理面板 -->
-		<view class="sheet-mask app-h5-sheet-mask" v-if="applicantTarget" @click="closeApplicants">
-			<view class="sheet app-h5-sheet" @click.stop>
+		<SlideUpPanel fixed :open="!!applicantTarget" :z-index="210" :label="t('workspace.applicationsTitle')" @dismiss="closeApplicants">
+			<view class="sheet">
 				<view class="sheet-header">
 					<view class="sheet-head-copy">
 						<text class="sheet-title">{{ t('workspace.applicationsTitle') }}</text>
@@ -244,6 +246,11 @@
 					<view class="applicant-empty" v-if="applicantsLoading">
 						<uni-icons type="spinner-cycle" size="18" color="#b8bdc9"></uni-icons>
 						<text>{{ t('workspace.loading') }}</text>
+					</view>
+					<!-- 报名列表请求失败要和「没人报名」区分开，并给出重试 -->
+					<view class="applicant-empty is-column" v-else-if="applicantsError">
+						<text>{{ t('workspace.applicantsFailed') }}</text>
+						<view class="state-btn" @click="loadApplicants">{{ t('workspace.retry') }}</view>
 					</view>
 					<view class="applicant-empty" v-else-if="applicants.length === 0">{{ t('workspace.applicationsEmpty') }}</view>
 
@@ -259,7 +266,7 @@
 								<text class="applicant-quote">
 									{{ item.quoteAmount != null ? t('workspace.applicantQuote', { amount: formatAmount(item.quoteAmount) }) : t('workspace.applicantNoQuote') }}
 								</text>
-								<text class="applicant-time">{{ formatRelativeTime(item.createdAt) }}</text>
+								<text class="applicant-time">{{ formatRelativeTime(item.createdAt, Date.now(), t) }}</text>
 							</view>
 							<view class="applicant-actions">
 								<template v-if="item.status === 'pending'">
@@ -277,11 +284,11 @@
 					<view class="sheet-spacer"></view>
 				</scroll-view>
 			</view>
-		</view>
+		</SlideUpPanel>
 
 		<!-- 发起担保交易 -->
-		<view class="sheet-mask app-h5-sheet-mask" v-if="orderTarget" @click="closeOrderSheet">
-			<view class="sheet app-h5-sheet" @click.stop>
+		<SlideUpPanel fixed :open="!!orderTarget" :z-index="210" :label="t('workspace.actionAdvance')" @dismiss="closeOrderSheet" @after-close="afterOrderSheetClose">
+			<view class="sheet" v-if="orderTarget">
 				<view class="sheet-header">
 					<text class="sheet-cancel" @click="closeOrderSheet">{{ t('common.cancel') }}</text>
 					<text class="sheet-title">{{ t('workspace.actionAdvance') }}</text>
@@ -302,29 +309,32 @@
 					</view>
 				</view>
 			</view>
-		</view>
+		</SlideUpPanel>
 	</view>
 </template>
 
 <script setup>
-import { computed, ref } from 'vue'
+import { computed, nextTick, ref } from 'vue'
 import { onLoad, onShow } from '@dcloudio/uni-app'
 import {
 	getMyDemandHallPostsApi,
-	getDemandHallPostsApi,
 	getDemandHallApplicationsApi,
 	handleDemandHallApplicationApi,
 	createDemandHallOrderApi,
 	getDemandHallOrdersApi,
+	getDemandHallOrderSummaryApi,
 	closeDemandHallPostApi,
+	reopenDemandHallPostApi,
 	toggleDemandHallCollectApi
 } from '@/api/demandHall.js'
 import { createChatRequestApi, getChatRequestStatusApi } from '@/api/chat.js'
 import { t } from '@/utils/localeRuntime.js'
+import SlideUpPanel from '@/components/common/SlideUpPanel.vue'
 import {
 	formatPriceLabel,
 	formatRelativeTime,
 	buildCardBadges,
+	categoryLabel,
 	applicationStatusMeta
 } from '@/utils/demandHallPresentation.js'
 import {
@@ -335,7 +345,6 @@ import {
 	formatAmount,
 	myPostActions,
 	myPostStatusMeta,
-	resolveMyPostStatus,
 	workspaceEmptyState
 } from '@/utils/demandHallWorkspace.js'
 
@@ -361,6 +370,8 @@ const posts = ref([])
 const applications = ref([])
 const collections = ref([])
 const orders = ref([])
+// 收支 / 单量的服务端聚合结果；接口失败时保持 null，看板退回本地估算。
+const orderSummary = ref(null)
 const loading = ref(true)
 const loadingMore = ref(false)
 const refreshing = ref(false)
@@ -370,6 +381,7 @@ const loadMoreError = ref(false)
 const collectionError = ref(false)
 const hasMore = ref(true)
 const currentPage = ref(0)
+const scrollTop = ref(0)
 
 const currentUserId = computed(() => Number(uni.getStorageSync('USER_INFO')?.id) || 0)
 
@@ -380,14 +392,14 @@ const myPostItems = computed(() => {
 		.filter(group => group.post.type === postKind.value)
 		.map(group => ({
 			...group,
-			statusMeta: myPostStatusMeta(group.post, { hasActiveOrder: group.orders.some(order => ['created', 'funded', 'delivered'].includes(order.status)) }),
-			actions: myPostActions(group.post, { orderCount: group.post.applyCount })
+			statusMeta: myPostStatusMeta(group.post, { hasActiveOrder: group.orders.some(order => ['created', 'funded', 'delivered'].includes(order.status)), t }),
+			actions: myPostActions(group.post, { orderCount: group.post.applyCount, t })
 		}))
 })
 
 const applyItems = computed(() => applications.value.map(item => ({
 	...item,
-	statusMeta: applicationStatusMeta(item.status) || { text: item.status, tone: 'muted' }
+	statusMeta: applicationStatusMeta(item.status, t) || { text: item.status, tone: 'muted' }
 })))
 
 /**
@@ -410,7 +422,9 @@ const reputation = computed(() => buildReputationSummary({
 	posts: posts.value,
 	orders: orders.value,
 	accountLevel: Number(uni.getStorageSync('USER_INFO')?.accountLevel || uni.getStorageSync('USER_INFO')?.account_level || 0),
-	userId: currentUserId.value
+	userId: currentUserId.value,
+	// 收支与单量以服务端聚合为准，本地订单只是当前页帖子的子集。
+	summary: orderSummary.value
 }))
 
 const emptyState = computed(() => {
@@ -444,21 +458,33 @@ async function fetchTab(tabKey, page) {
 	return { list: Array.isArray(data?.applications) ? data.applications : [], hasMore: !!data?.hasMore }
 }
 
+/**
+ * 「我发布的」关联的托管订单：只取当前已加载帖子对应的订单。
+ * 后端 GET /orders 支持 postIds 过滤，这样既不会因为默认条数上限漏单，
+ * 也不用把全部订单拉到前端再匹配。
+ */
+async function fetchOrdersForPosts() {
+	const postIds = posts.value.map(post => Number(post.id)).filter(Boolean)
+	if (!postIds.length) return []
+	const data = await getDemandHallOrdersApi({ postIds: postIds.join(','), pageSize: 50 })
+	return Array.isArray(data?.orders) ? data.orders : []
+}
+
 async function loadList({ reset = false } = {}) {
 	const page = reset ? 1 : currentPage.value + 1
 	if (!reset && !hasMore.value) return
 	if (!reset) loadingMore.value = true
 	loadMoreError.value = false
 	try {
-		// 收藏列表与订单都要用来渲染统计看板，切换 Tab 时一起刷新，避免数字对不上。
-		const [target, orderData, collectionData] = await Promise.all([
+		// 看板数字来自服务端聚合；收藏列表也要跟着刷新，避免三个 Tab 的数字对不上。
+		const [target, summaryData, collectionData] = await Promise.all([
 			fetchTab(activeTab.value, page),
-			getDemandHallOrdersApi().catch(() => ({ orders: [] })),
+			getDemandHallOrderSummaryApi().catch(() => null),
 			activeTab.value === 'collections'
 				? Promise.resolve(null)
 				: fetchTab('collections', 1).catch(() => null)
 		])
-		orders.value = Array.isArray(orderData?.orders) ? orderData.orders : []
+		if (summaryData) orderSummary.value = summaryData
 		if (collectionData) {
 			collections.value = collectionData.list
 			collectionError.value = false
@@ -473,6 +499,12 @@ async function loadList({ reset = false } = {}) {
 		hasMore.value = more
 		currentPage.value = page
 		loadError.value = false
+
+		// 「我发布的」卡片的交易角标依赖订单，列表本身成功后就补拉一次；
+		// 订单失败不影响列表渲染，只是角标退回「招募中」。
+		if (activeTab.value === 'posts') {
+			orders.value = await fetchOrdersForPosts().catch(() => orders.value)
+		}
 	} catch (error) {
 		if (reset) {
 			loadError.value = true
@@ -503,18 +535,30 @@ function onLoadMore() {
 	void loadList()
 }
 
+/**
+ * 切换 Tab 时把列表滚回顶部。
+ * 列表高度变化时旧的 scrollTop 会被钳位，视觉上就是“页面震一下”。
+ */
+async function resetListScroll() {
+	await nextTick()
+	scrollTop.value = scrollTop.value === 0 ? 0.0001 : 0
+	await nextTick()
+	scrollTop.value = 0
+}
+
 function switchTab(key) {
 	if (activeTab.value === key) return
 	activeTab.value = key
 	// 切 Tab 后列表内容完全不同，先回到骨架屏再拉数据，避免展示上一个 Tab 的卡片。
 	loading.value = true
+	void resetListScroll()
 	reload()
-	uni.vibrateShort?.({ fail: () => {} })
 }
 
 function switchPostKind(key) {
 	if (postKind.value === key) return
 	postKind.value = key
+	void resetListScroll()
 }
 
 /* ============ 我发布的管理动作 ============ */
@@ -524,7 +568,7 @@ function onPostAction(item, action) {
 		return
 	}
 	if (action.action === 'edit') {
-		uni.showToast({ title: t('workspace.editHint'), icon: 'none' })
+		goEditPost(item.post.id)
 		return
 	}
 	if (action.action === 'close') {
@@ -536,21 +580,32 @@ function onPostAction(item, action) {
 	}
 }
 
+/**
+ * 修改走信息流页的发布抽屉（同一套字段与校验），带上 editId 过去即可回填；
+ * 提交成功后返回这里，工作台的列表会重新拉取。
+ */
+function goEditPost(id) {
+	if (!id) return
+	uni.navigateTo({ url: `/pages/demandhall/index?editId=${id}` })
+}
+
 async function updatePostStatus(post, shouldClose) {
 	const confirmed = await confirmDialog({
 		title: shouldClose ? t('workspace.closeConfirmTitle') : t('workspace.reopenConfirmTitle'),
 		content: shouldClose ? t('workspace.closeConfirmContent') : t('workspace.reopenConfirmContent')
 	})
 	if (!confirmed) return
-	if (!shouldClose) {
-		// 后端只提供结单接口：重新上架需要重新发布，这里如实告知而不是假装成功。
-		uni.showToast({ title: t('workspace.editHint'), icon: 'none' })
-		return
-	}
 	try {
-		await closeDemandHallPostApi(post.id)
-		post.status = 'closed'
-		uni.showToast({ title: t('workspace.closeDone'), icon: 'success' })
+		if (shouldClose) {
+			await closeDemandHallPostApi(post.id)
+			post.status = 'closed'
+			uni.showToast({ title: t('workspace.closeDone'), icon: 'success' })
+		} else {
+			const result = await reopenDemandHallPostApi(post.id)
+			post.status = result?.post?.status || 'active'
+			uni.showToast({ title: t('workspace.reopenDone'), icon: 'success' })
+		}
+		await reload()
 	} catch (error) { /* 请求层已提示 */ }
 }
 
@@ -558,6 +613,7 @@ async function updatePostStatus(post, shouldClose) {
 const applicantTarget = ref(null)
 const applicants = ref([])
 const applicantsLoading = ref(false)
+const applicantsError = ref(false)
 const applicantBusy = ref(0)
 const orderSubmitting = ref(false)
 
@@ -569,7 +625,7 @@ function applicantTone(status) {
 
 function applicantStatusText(status) {
 	const key = { pending: 'workspace.applicantPending', accepted: 'workspace.applicantAccepted', rejected: 'workspace.applicantRejected', cancelled: 'workspace.applicantCancelled' }[status]
-	return key ? t(key) : status
+	return key ? t(key) : t('workspace.applicantPending')
 }
 
 /** 该报名者对应的托管订单：已发起过就直接进入订单页，不重复创建。 */
@@ -585,6 +641,7 @@ function orderOfItem(item) {
 async function openApplicants(post) {
 	applicantTarget.value = { post }
 	applicants.value = []
+	applicantsError.value = false
 	applicantsLoading.value = true
 	await loadApplicants()
 }
@@ -592,11 +649,15 @@ async function openApplicants(post) {
 async function loadApplicants() {
 	const postId = applicantTarget.value?.post?.id
 	if (!postId) return
+	applicantsLoading.value = true
+	applicantsError.value = false
 	try {
 		const data = await getDemandHallApplicationsApi(postId)
 		applicants.value = Array.isArray(data?.applications) ? data.applications : []
 	} catch (error) {
+		// 请求失败不能显示成「还没有人报名」，否则发布者会以为无人应答。
 		applicants.value = []
+		applicantsError.value = true
 	} finally {
 		applicantsLoading.value = false
 	}
@@ -605,6 +666,7 @@ async function loadApplicants() {
 function closeApplicants() {
 	applicantTarget.value = null
 	applicants.value = []
+	applicantsError.value = false
 	applicantBusy.value = 0
 }
 
@@ -634,6 +696,11 @@ function openOrderSheet(item) {
 
 function closeOrderSheet() {
 	orderTarget.value = null
+}
+
+function afterOrderSheetClose() {
+	orderAmount.value = ''
+	orderRemark.value = ''
 	orderSubmitting.value = false
 }
 
@@ -677,7 +744,9 @@ async function toggleCollect(post) {
 }
 
 function buildContactMessage(post) {
-	return `你好，我在需求市场看到「${post.title}」，想和你沟通一下。\n信息卡：pages/demandhall/detail?id=${post.id}`
+	// 预填的私聊文案同样要走语言系统，否则英文 / 俄语界面下会发出中文消息。
+	const link = `pages/demandhall/detail?id=${post?.id}`
+	return `${t('demandHall.contactCardPrefix', { title: post?.title || '' })}\n${t('workspace.contactCardLink', { link })}`
 }
 
 async function contactOwner(post) {
@@ -757,18 +826,21 @@ onShow(() => {
 </script>
 
 <style scoped lang="scss">
-// 与 demandhall/index.vue 共用的品牌色板
+// 与首页 index360 统一的品牌色板
 $brand-yellow: var(--bless-primary, #C2A052);
-$text-main: #1a1a1a;
-$text-sub: #999999;
-$gray-bg: #f5f6f8;
-$line-color: #f2f2f4;
+$brand-soft: var(--bless-soft, #F1E4BD);
+$brand-ink: var(--bless-text, #775E25);
+$text-main: #292825;
+$text-sub: #8b8984;
+$text-muted: #a49c8d;
+$gray-bg: #f4f3f1;
+$line-color: #f0eeea;
 
 .container {
 	display: flex;
 	flex-direction: column;
 	height: 100vh;
-	background: #ffffff;
+	background: #f6f5f2;
 	position: relative;
 }
 
@@ -776,7 +848,7 @@ $line-color: #f2f2f4;
 .hero {
 	flex-shrink: 0;
 	padding: 20rpx 30rpx 0;
-	background: #ffffff;
+	background: #f6f5f2;
 }
 
 .hero-top {
@@ -838,12 +910,12 @@ $line-color: #f2f2f4;
 	gap: 8rpx;
 	padding: 8rpx 20rpx;
 	border-radius: 24rpx;
-	background: #e8eaef;
-	color: #5a6270;
+	background: #ecebe7;
+	color: #6f6a63;
 
 	&.verified {
-		background: $brand-yellow;
-		color: $text-main;
+		background: $brand-soft;
+		color: $brand-ink;
 	}
 }
 
@@ -888,7 +960,7 @@ $line-color: #f2f2f4;
 	display: block;
 	margin-top: 16rpx;
 	padding-top: 16rpx;
-	border-top: 1rpx solid #e9e9ec;
+	border-top: 1rpx solid $line-color;
 	font-size: 21rpx;
 	color: #b26b00;
 	font-weight: 600;
@@ -909,7 +981,7 @@ $line-color: #f2f2f4;
 	margin-top: 22rpx;
 	padding: 4rpx;
 	border-radius: 24rpx;
-	background: #e9e9ec;
+	background: #f0eeea;
 }
 
 .tab-item {
@@ -927,20 +999,20 @@ $line-color: #f2f2f4;
 		box-shadow: 0 4rpx 12rpx rgba(194,160,82,0.35);
 
 		.tab-label {
-			color: $text-main;
-			font-weight: bold;
+			color: $brand-ink;
+			font-weight: 650;
 		}
 
 		.tab-count {
-			background: rgba(26, 26, 26, 0.12);
-			color: $text-main;
+			background: rgba(119, 94, 37, .14);
+			color: $brand-ink;
 		}
 	}
 }
 
 .tab-label {
 	font-size: 26rpx;
-	color: #77787d;
+	color: $text-sub;
 	font-weight: 600;
 }
 
@@ -949,8 +1021,8 @@ $line-color: #f2f2f4;
 	height: 32rpx;
 	padding: 0 10rpx;
 	border-radius: 16rpx;
-	background: rgba(26, 26, 26, 0.06);
-	color: #77787d;
+	background: #f0eeea;
+	color: $text-sub;
 	font-size: 20rpx;
 	display: flex;
 	align-items: center;
@@ -972,8 +1044,8 @@ $line-color: #f2f2f4;
 	transition: background 0.2s;
 
 	&.active {
-		background: $brand-yellow;
-		color: $text-main;
+		background: $brand-soft;
+		color: $brand-ink;
 		font-weight: 600;
 	}
 }
@@ -1003,7 +1075,7 @@ $line-color: #f2f2f4;
 }
 
 .service-card {
-	border-left-color: #1a1a1a;
+	border-left-color: $brand-soft;
 }
 
 /* 状态角标：招募中 / 进行中 / 已完结 / 已关闭 */
@@ -1015,12 +1087,12 @@ $line-color: #f2f2f4;
 	border-radius: 0 20rpx 0 20rpx;
 	font-size: 21rpx;
 	font-weight: 600;
-	background: #e8eaef;
-	color: #5a6270;
+	background: #ecebe7;
+	color: #6f6a63;
 
 	&.tone-recruiting {
-		background: $brand-yellow;
-		color: $text-main;
+		background: $brand-soft;
+		color: $brand-ink;
 	}
 
 	&.tone-ongoing {
@@ -1035,8 +1107,8 @@ $line-color: #f2f2f4;
 
 	&.tone-closed,
 	&.tone-muted {
-		background: #e8eaef;
-		color: #5a6270;
+		background: #ecebe7;
+		color: #6f6a63;
 	}
 
 	&.tone-pending {
@@ -1086,7 +1158,7 @@ $line-color: #f2f2f4;
 	padding: 8rpx 20rpx;
 	border-radius: 24rpx;
 	background: $brand-yellow;
-	color: $text-main;
+	color: $brand-ink;
 
 	&.negotiable {
 		background: $gray-bg;
@@ -1141,8 +1213,8 @@ $line-color: #f2f2f4;
 }
 
 .badge-muted {
-	background: #e8eaef;
-	color: #5a6270;
+	background: #ecebe7;
+	color: #6f6a63;
 	font-weight: 600;
 }
 
@@ -1201,8 +1273,8 @@ $line-color: #f2f2f4;
 
 	&.primary {
 		flex: 1.4;
-		background: $brand-yellow;
-		color: $text-main;
+		background: $brand-soft;
+		color: $brand-ink;
 		font-weight: bold;
 	}
 }
@@ -1283,7 +1355,7 @@ $line-color: #f2f2f4;
 	padding: 14rpx 44rpx;
 	border-radius: 32rpx;
 	background: $brand-yellow;
-	color: $text-main;
+	color: $brand-ink;
 	font-size: 25rpx;
 	font-weight: 600;
 }
@@ -1328,8 +1400,8 @@ $line-color: #f2f2f4;
 	}
 
 	&.primary {
-		background: $brand-yellow;
-		color: $text-main;
+		background: $brand-soft;
+		color: $brand-ink;
 	}
 
 	&.ghost {
@@ -1353,7 +1425,7 @@ $line-color: #f2f2f4;
 	height: 92rpx;
 	border-radius: 46rpx;
 	background: $brand-yellow;
-	box-shadow: 0 8rpx 20rpx rgba(194,160,82,0.45);
+	box-shadow: 0 8rpx 20rpx rgba(194, 160, 82, .38);
 	transition: transform 160ms ease-out;
 
 	&:active {
@@ -1363,27 +1435,19 @@ $line-color: #f2f2f4;
 
 .fab-text {
 	font-size: 27rpx;
-	color: $text-main;
-	font-weight: bold;
+	color: $brand-ink;
+	font-weight: 600;
 }
 
-/* ============ 底部抽屉 ============ */
-.sheet-mask {
-	position: fixed;
-	inset: 0;
-	z-index: 200;
-	display: flex;
-	align-items: flex-end;
-	background: rgba(0, 0, 0, 0.42);
-}
-
+/* ============ 底部抽屉（SlideUpPanel 内容） ============ */
 .sheet {
 	width: 100%;
 	background: #fff;
-	border-radius: 28rpx 28rpx 0 0;
 	display: flex;
 	flex-direction: column;
-	max-height: 88vh;
+	max-height: 84vh;
+	box-sizing: border-box;
+	overflow: hidden;
 }
 
 .sheet-header {
@@ -1423,7 +1487,7 @@ $line-color: #f2f2f4;
 
 .sheet-submit {
 	font-size: 26rpx;
-	color: $text-main;
+	color: $brand-ink;
 	font-weight: 600;
 	background: $brand-yellow;
 	padding: 8rpx 26rpx;
@@ -1458,6 +1522,14 @@ $line-color: #f2f2f4;
 	font-size: 24rpx;
 	color: $text-sub;
 	text-align: center;
+
+	// 失败态是「说明 + 重试按钮」，竖排避免长语言下挤在一行。
+	&.is-column {
+		flex-direction: column;
+		gap: 20rpx;
+		padding: 60rpx 24rpx;
+		overflow-wrap: anywhere;
+	}
 }
 
 .applicant-item {
@@ -1475,7 +1547,7 @@ $line-color: #f2f2f4;
 	width: 74rpx;
 	height: 74rpx;
 	border-radius: 50%;
-	background: #eef0f6;
+	background: #ece9e2;
 	flex-shrink: 0;
 }
 
@@ -1505,8 +1577,8 @@ $line-color: #f2f2f4;
 	padding: 4rpx 16rpx;
 	border-radius: 18rpx;
 	font-size: 20rpx;
-	background: #e8eaef;
-	color: #5a6270;
+	background: #ecebe7;
+	color: #6f6a63;
 
 	&.tone-pending {
 		background: #fff1e8;
@@ -1523,8 +1595,9 @@ $line-color: #f2f2f4;
 	display: block;
 	margin-top: 10rpx;
 	font-size: 24rpx;
-	color: #5a6270;
+	color: #6f6a63;
 	line-height: 1.6;
+	overflow-wrap: anywhere;
 }
 
 .applicant-foot {
@@ -1569,8 +1642,8 @@ $line-color: #f2f2f4;
 	}
 
 	&.primary {
-		background: $brand-yellow;
-		color: $text-main;
+		background: $brand-soft;
+		color: $brand-ink;
 		font-weight: 600;
 	}
 }
@@ -1612,5 +1685,25 @@ $line-color: #f2f2f4;
 	font-size: 21rpx;
 	color: $text-sub;
 	line-height: 1.5;
+}
+
+@media (prefers-reduced-motion: reduce) {
+	.hero-back,
+	.tab-item,
+	.kind-chip,
+	.action-btn,
+	.empty-btn,
+	.mini-btn,
+	.fab {
+		transition: none;
+	}
+
+	.hero-back:active,
+	.action-btn:active,
+	.empty-btn:active,
+	.mini-btn:active,
+	.fab:active {
+		transform: none;
+	}
 }
 </style>

@@ -85,20 +85,22 @@ export function request(options) {
         const isNoAuth = noAuth
 
         // HTTP 层错误（4xx/5xx）—— 后端是 express，会返回 { error: '...' }
+        // reject 的对象带上 statusCode：页面需要区分「请求失败」与「资源不存在(404)」，
+        // 否则服务端错误会被显示成正常的空数据 / 内容已删除。
         if (res.statusCode === 401) {
           const msg = (res.data && res.data.error) || '请求失败'
           if (isNoAuth) {
             if (!silent) showToast(msg)
-            return reject(res.data || { error: msg })
+            return reject(Object.assign({ statusCode: 401 }, res.data || { error: msg }))
           }
           if (!silent) showToast('登录已过期')
           if (!skipAuthRedirect) logoutAndRedirect(false)
-          return reject(res.data || { error: '未授权' })
+          return reject(Object.assign({ statusCode: 401 }, res.data || { error: '未授权' }))
         }
         if (res.statusCode >= 400) {
           const msg = (res.data && (res.data.error || res.data.message)) || `请求失败 (${res.statusCode})`
           if (!silent) showToast(msg)
-          return reject(res.data || { error: msg })
+          return reject(Object.assign({ statusCode: res.statusCode }, res.data || { error: msg }))
         }
 
         // 业务层约定：如果后端返回 { code, data, message }
@@ -127,7 +129,8 @@ export function request(options) {
       },
       fail: (err) => {
         if (!silent) showToast('网络异常，请稍后再试')
-        reject(err)
+        // statusCode 0 表示没拿到响应（断网 / 超时），与 4xx / 5xx 区分开。
+        reject(Object.assign({ statusCode: 0 }, err))
       }
     })
   })

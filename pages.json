@@ -176,6 +176,7 @@
 					"path": "index",
 					"style": {
 						"navigationBarTitleText": "需求市场",
+						"navigationBarBackgroundColor": "#C2A052",
 						"navigationBarTextStyle": "white",
 						"enablePullDownRefresh": false
 					}
@@ -184,7 +185,7 @@
 					"path": "detail",
 					"style": {
 						"navigationBarTitleText": "信息详情",
-						"navigationBarBackgroundColor": "#ff6b35",
+						"navigationBarBackgroundColor": "#C2A052",
 						"navigationBarTextStyle": "white"
 					}
 				},
@@ -192,8 +193,8 @@
 					"path": "workspace",
 					"style": {
 						"navigationBarTitleText": "我的工作台",
-						"navigationBarBackgroundColor": "#ffce00",
-						"navigationBarTextStyle": "black",
+						"navigationBarBackgroundColor": "#C2A052",
+						"navigationBarTextStyle": "white",
 						"enablePullDownRefresh": false
 					}
 				},
@@ -201,8 +202,8 @@
 					"path": "orderDetail",
 					"style": {
 						"navigationBarTitleText": "担保交易",
-						"navigationBarBackgroundColor": "#ffce00",
-						"navigationBarTextStyle": "black",
+						"navigationBarBackgroundColor": "#C2A052",
+						"navigationBarTextStyle": "white",
 						"enablePullDownRefresh": false
 					}
 				}

@@ -5,10 +5,16 @@
 			<text>{{ t('escrow.loading') }}</text>
 		</view>
 
+		<view class="state-box" v-else-if="loadError">
+			<uni-icons type="info-filled" size="70" color="#e2e5ee"></uni-icons>
+			<text>{{ t('escrow.loadFailed') }}</text>
+			<view class="state-btn" @click="loadOrder">{{ t('escrow.retry') }}</view>
+		</view>
+
 		<view class="state-box" v-else-if="!order">
 			<uni-icons type="info-filled" size="70" color="#e2e5ee"></uni-icons>
 			<text>{{ t('escrow.missing') }}</text>
-			<view class="state-btn" @click="goBack">{{ t('escrow.cancel') }}</view>
+			<view class="state-btn" @click="goBack">{{ t('escrow.back') }}</view>
 		</view>
 
 		<template v-else>
@@ -60,11 +66,11 @@
 				<view class="badge-row">
 					<text class="badge badge-urgent" v-if="post?.isUrgent">{{ t('escrow.snapshotUrgent') }}</text>
 					<text class="badge badge-verified" v-if="post?.requireVerified">{{ t('escrow.snapshotRequireVerified') }}</text>
-					<text class="badge" v-if="post?.category">#{{ post?.category }}</text>
+					<text class="badge" v-if="post?.category">#{{ categoryLabel(post?.category, t) }}</text>
 				</view>
 				<view class="snapshot-meta" v-if="post?.deadlineAt">
 					<uni-icons type="calendar" size="13" color="#999999"></uni-icons>
-					<text>{{ t('escrow.snapshotDeadline') }} · {{ formatDeadlineText(post.deadline) }}</text>
+					<text>{{ t('escrow.snapshotDeadline') }} · {{ formatDeadlineText(post.deadlineAt, Date.now(), t) }}</text>
 				</view>
 			</view>
 
@@ -162,7 +168,7 @@
 						<view class="timeline-dot"></view>
 						<view class="timeline-body">
 							<text class="timeline-text">{{ eventLabel(event) }}</text>
-							<text class="timeline-time">{{ formatRelativeTime(event.createdAt) }}</text>
+							<text class="timeline-time">{{ formatRelativeTime(event.createdAt, Date.now(), t) }}</text>
 						</view>
 					</view>
 				</view>
@@ -176,7 +182,7 @@
 					class="bar-btn"
 					v-for="action in actions"
 					:key="action.action"
-					:class="[action.tone, { busy: actionBusy }]"
+					:class="[action.tone, { busy: actionBusy, disabled: action.disabled }]"
 					@click="onActionTap(action)"
 				>{{ action.label }}</view>
 			</view>
@@ -196,12 +202,12 @@ import {
 	DEMAND_HALL_UPLOAD_URL
 } from '@/api/demandHall.js'
 import { t } from '@/utils/localeRuntime.js'
-import { formatDeadlineText, formatRelativeTime } from '@/utils/demandHallPresentation.js'
+import { categoryLabel, formatDeadlineText, formatPriceLabel, formatRelativeTime } from '@/utils/demandHallPresentation.js'
 import {
 	escrowActionBar,
 	escrowSteps,
 	evidenceKind,
-	evidenceName,
+	evidenceName as evidenceNameOf,
 	evidenceUrl,
 	formatAmount,
 	orderEventText,
@@ -217,6 +223,8 @@ const isBuyer = ref(false)
 const isSeller = ref(false)
 const requiresVerifiedSeller = ref(false)
 const loading = ref(true)
+// 加载失败要能重试，不能和「订单不存在 / 无权查看」共用一个终态。
+const loadError = ref(false)
 const actionBusy = ref(false)
 
 /* ============ 展示派生 ============ */
@@ -258,7 +266,7 @@ const closedContent = computed(() => {
 const closedTone = computed(() => (order.value?.status === 'completed' ? 'done' : 'muted'))
 const closedIcon = computed(() => (order.value?.status === 'completed' ? 'checkbox-filled' : 'info-filled'))
 
-const snapshotPriceLabel = computed(() => post.value?.priceLabel || (post.value?.isNegotiable ? '议价' : `￥${formatAmount(post.value?.price)}`))
+const snapshotPriceLabel = computed(() => (post.value ? formatPriceLabel(post.value, t) : ''))
 
 const overdue = computed(() => overdueState({ status: order.value?.status, deadlineAt: post.value?.deadlineAt }))
 
@@ -269,7 +277,7 @@ const canSubmitDelivery = computed(() => isSeller.value && ['funded', 'delivered
 
 const deliveryTimeText = computed(() => {
 	if (!order.value?.deliverySubmittedAt) return ''
-	const text = formatRelativeTime(order.value.deliverySubmittedAt)
+	const text = formatRelativeTime(order.value.deliverySubmittedAt, Date.now(), t)
 	// 首次交付展示「交付于 …」，后续补充凭证展示「最近更新 …」。
 	return order.value.status === 'funded'
 		? t('escrow.deliveryAt', { time: text })
@@ -280,7 +288,8 @@ const actions = computed(() => escrowActionBar({
 	status: order.value?.status,
 	isBuyer: isBuyer.value,
 	isSeller: isSeller.value,
-	requiresVerified: requiresVerifiedSeller.value
+	requiresVerified: requiresVerifiedSeller.value,
+	t
 }))
 
 function avatarOf(user) {
@@ -291,8 +300,9 @@ function avatarOf(user) {
 function eventLabel(event) {
 	const key = `escrow.event${eventKeySuffix(event.event)}`
 	const translated = t(key)
-	// 未登记的轨迹类型回退到展示逻辑层的默认文案，避免页面出现翻译键名。
-	return translated === key ? orderEventText(event) : translated
+	// 未登记的轨迹类型回退到展示逻辑层的默认文案；默认文案再接一层信息流文案，
+	// 保证不会出现翻译键名。
+	return translated === key ? orderEventText(event, t) : translated
 }
 
 function eventKeySuffix(event) {
@@ -311,6 +321,8 @@ function eventKeySuffix(event) {
 
 /* ============ 数据加载 ============ */
 async function loadOrder() {
+	loading.value = true
+	loadError.value = false
 	try {
 		const data = await getDemandHallOrderApi(orderId.value)
 		if (!data?.order) {
@@ -326,7 +338,10 @@ async function loadOrder() {
 		requiresVerifiedSeller.value = !!data.requiresVerifiedSeller
 		syncDeliveryDraft()
 	} catch (error) {
+		// 404 = 订单不存在（或无权查看由 403 表达，同样属于终态）；
+		// 其它错误（网络 / 5xx）要能重试。
 		order.value = null
+		loadError.value = ![403, 404].includes(Number(error?.statusCode))
 	} finally {
 		loading.value = false
 	}
@@ -391,16 +406,25 @@ function removeDraftEvidence(index) {
 	draftEvidence.value = draftEvidence.value.filter((_, position) => position !== index)
 }
 
+function evidenceName(item, index = 0) {
+	return evidenceNameOf(item, index, t)
+}
+
+/**
+ * 预览凭证：
+ *  - 草稿里的凭证还没提交，必须和已提交的凭证合并成同一个预览列表，
+ *    否则点开草稿图片时会因为它不在 urls 里而预览到别的图。
+ */
 function previewEvidence(item, index) {
 	const url = evidenceUrl(item)
 	if (evidenceKind(url) !== 'image') {
 		uni.showToast({ title: evidenceName(item, index), icon: 'none' })
 		return
 	}
-	uni.previewImage({
-		urls: evidence.value.map(evidenceUrl).filter(Boolean),
-		current: url
-	})
+	const submitted = evidence.value.map(evidenceUrl).filter(Boolean)
+	const drafts = draftEvidence.value.map(evidenceUrl).filter(Boolean)
+	const urls = [...new Set([...submitted, ...drafts, url])]
+	uni.previewImage({ urls, current: url })
 }
 
 async function submitDelivery() {
@@ -431,6 +455,8 @@ const CONFIRM_KEYS = {
 }
 
 function onActionTap(action) {
+	// 不可用按钮（等待对方操作 / 已结束）保持可见但不可点，避免重复提交。
+	if (action?.disabled) return
 	// 需要认证服务者的订单在卖家未认证时拦截付款，先弹说明再询问是否继续。
 	if (action.action === 'fund' && requiresVerifiedSeller.value) {
 		showVerifiedGate()
@@ -531,16 +557,20 @@ onShow(() => {
 </script>
 
 <style scoped lang="scss">
+// 与首页 index360 统一的品牌色板
 $brand-yellow: var(--bless-primary, #C2A052);
-$text-main: #1a1a1a;
-$text-sub: #999999;
-$gray-bg: #f5f6f8;
-$line-color: #f2f2f4;
+$brand-soft: var(--bless-soft, #F1E4BD);
+$brand-ink: var(--bless-text, #775E25);
+$text-main: #292825;
+$text-sub: #8b8984;
+$text-muted: #a49c8d;
+$gray-bg: #f4f3f1;
+$line-color: #f0eeea;
 
 .page {
 	min-height: 100vh;
 	padding: 20rpx 24rpx 0;
-	background: #f5f6f8;
+	background: #f6f5f2;
 	box-sizing: border-box;
 }
 
@@ -558,8 +588,8 @@ $line-color: #f2f2f4;
 	margin-top: 10rpx;
 	padding: 14rpx 44rpx;
 	border-radius: 30rpx;
-	background: $brand-yellow;
-	color: $text-main;
+	background: $brand-soft;
+	color: $brand-ink;
 	font-size: 25rpx;
 	font-weight: 600;
 }
@@ -569,7 +599,7 @@ $line-color: #f2f2f4;
 	border-radius: 22rpx;
 	padding: 26rpx;
 	margin-bottom: 20rpx;
-	box-shadow: 0 4rpx 14rpx rgba(31, 41, 55, 0.06);
+	box-shadow: 0 2rpx 10rpx rgba(45, 42, 34, .04);
 }
 
 /* ============ 进度条 ============ */
@@ -618,22 +648,22 @@ $line-color: #f2f2f4;
 	height: 44rpx;
 	margin: 0 auto;
 	border-radius: 50%;
-	background: #eef0f6;
-	color: #8a8a8f;
+	background: #ecebe7;
+	color: $text-sub;
 	display: flex;
 	align-items: center;
 	justify-content: center;
 	transition: background 200ms ease-out;
 
 	.step.done & {
-		background: $brand-yellow;
-		color: $text-main;
+		background: $brand-soft;
+		color: $brand-ink;
 	}
 
 	.step.active & {
 		background: $brand-yellow;
-		color: $text-main;
-		box-shadow: 0 0 0 6rpx rgba(194,160,82,0.28);
+		color: $brand-ink;
+		box-shadow: 0 0 0 6rpx rgba(194, 160, 82, .22);
 	}
 }
 
@@ -649,7 +679,7 @@ $line-color: #f2f2f4;
 	left: calc(50% + 22rpx);
 	right: calc(-50% + 22rpx);
 	height: 4rpx;
-	background: #eef0f6;
+	background: #ecebe7;
 
 	.step.done & {
 		background: $brand-yellow;
@@ -664,7 +694,7 @@ $line-color: #f2f2f4;
 
 	.step.done &,
 	.step.active & {
-		color: $text-main;
+		color: $brand-ink;
 		font-weight: 600;
 	}
 }
@@ -676,9 +706,9 @@ $line-color: #f2f2f4;
 	margin-top: 24rpx;
 	padding: 20rpx;
 	border-radius: 16rpx;
-	background: #e8eaef;
+	background: #ecebe7;
 	font-size: 23rpx;
-	color: #5a6270;
+	color: #6f6a63;
 	line-height: 1.55;
 
 	&.tone-completed {
@@ -691,7 +721,7 @@ $line-color: #f2f2f4;
 	display: block;
 	margin-top: 22rpx;
 	font-size: 22rpx;
-	color: #8a8a8f;
+	color: $text-sub;
 	line-height: 1.6;
 }
 
@@ -1204,12 +1234,29 @@ $line-color: #f2f2f4;
 	}
 
 	&.disabled {
-		background: #eef0f6;
+		background: #ecebe7;
 		color: $text-sub;
 	}
 
 	&.busy {
 		opacity: 0.6;
+	}
+}
+
+@media (prefers-reduced-motion: reduce) {
+	.step-dot,
+	.timeout-btn,
+	.delivery-submit,
+	.upload-btn,
+	.bar-btn {
+		transition: none;
+	}
+
+	.timeout-btn:active,
+	.delivery-submit:active,
+	.upload-btn:active,
+	.bar-btn:active {
+		transform: none;
 	}
 }
 </style>

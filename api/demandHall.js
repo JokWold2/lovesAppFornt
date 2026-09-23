@@ -1,4 +1,4 @@
-import { del, get, post } from '@/utils/request.js'
+import { del, get, post, put } from '@/utils/request.js'
 
 /**
  * 需求市场接口
@@ -23,8 +23,14 @@ export const getDemandHallPostApi = (id) => get(`/api/demand-hall/posts/${id}`)
 // 发布需求或服务
 export const createDemandHallPostApi = (payload) => post('/api/demand-hall/posts', payload)
 
+// 修改自己发布的需求 / 服务（字段约束与发布一致，改完会重新上架）
+export const updateDemandHallPostApi = (id, payload) => put(`/api/demand-hall/posts/${id}`, payload)
+
 // 结单（发布者标记已完成）
 export const closeDemandHallPostApi = (id) => post(`/api/demand-hall/posts/${id}/close`)
+
+// 重新上架已下架的信息
+export const reopenDemandHallPostApi = (id) => post(`/api/demand-hall/posts/${id}/reopen`)
 
 // 软删除自己的帖子
 export const deleteDemandHallPostApi = (id) => del(`/api/demand-hall/posts/${id}`)
@@ -52,7 +58,9 @@ export const handleDemandHallApplicationApi = (id, payload) => post(`/api/demand
 
 /* ============ 担保交易（资金托管） ============ */
 
-export const getDemandHallOrdersApi = () => get('/api/demand-hall/orders')
+export const getDemandHallOrdersApi = (params = {}) => get('/api/demand-hall/orders', params)
+// 工作台看板：累计赚取 / 支出 / 进行中单量由服务端按全量订单聚合
+export const getDemandHallOrderSummaryApi = () => get('/api/demand-hall/orders/summary')
 // 订单详情：附带原信息快照、交易对象与「需要认证服务者」的校验结果
 export const getDemandHallOrderApi = (id) => get(`/api/demand-hall/orders/${id}`)
 

@@ -38,14 +38,20 @@ export function workspaceTabDefinition(key) {
  * 招募中 = 还在等信息流报名；进行中 = 已选定接单方且有进行中的托管订单；
  * 已完结 = 托管订单完成；已关闭 = 发布者结单但没有进行中的交易。
  */
-export function myPostStatusMeta(status, { hasActiveOrder = false } = {}) {
+export function myPostStatusMeta(status, { hasActiveOrder = false, t } = {}) {
   const meta = {
-    recruiting: { text: '招募中', tone: 'recruiting' },
-    ongoing: { text: '进行中', tone: 'ongoing' },
-    completed: { text: '已完结', tone: 'completed' },
-    closed: { text: '已关闭', tone: 'closed' }
+    recruiting: { text: translate(t, 'workspace.statusRecruiting', '招募中'), tone: 'recruiting' },
+    ongoing: { text: translate(t, 'workspace.statusOngoing', '进行中'), tone: 'ongoing' },
+    completed: { text: translate(t, 'workspace.statusCompleted', '已完结'), tone: 'completed' },
+    closed: { text: translate(t, 'workspace.statusClosed', '已关闭'), tone: 'closed' }
   }
   return meta[resolveMyPostStatus(status, { hasActiveOrder })] || meta.recruiting
+}
+
+/** 统一读取文案：优先走页面传入的 t()，缺失时回退到内置中文。 */
+function translate(t, key, fallback) {
+  const translated = typeof t === 'function' ? t(key) : undefined
+  return typeof translated === 'string' && translated !== key ? translated : fallback
 }
 
 export function resolveMyPostStatus(post = {}, { hasActiveOrder = false } = {}) {
@@ -77,13 +83,16 @@ export function buildMyPostGroups(posts = [], orders = []) {
 }
 
 /** 我发布的卡片底部管理按钮：修改、下架 / 重新上架、查看报名者。 */
-export function myPostActions(post = {}, { orderCount = 0 } = {}) {
+export function myPostActions(post = {}, { orderCount = 0, t } = {}) {
+  const applicationsLabel = orderCount > 0
+    ? translate(t, 'workspace.actionApplicationsCount', `查看报名者（${orderCount}）`).replace('{count}', String(orderCount))
+    : translate(t, 'workspace.actionApplications', '查看报名者')
   const actions = [
-    { action: 'edit', label: '修改', tone: 'ghost' },
-    { action: 'applications', label: orderCount > 0 ? `查看报名者（${orderCount}）` : '查看报名者', tone: 'primary' }
+    { action: 'edit', label: translate(t, 'workspace.actionEdit', '修改'), tone: 'ghost' },
+    { action: 'applications', label: applicationsLabel, tone: 'primary' }
   ]
-  if (post.status === 'closed') actions.splice(1, 0, { action: 'reopen', label: '重新上架', tone: 'ghost' })
-  else actions.splice(1, 0, { action: 'close', label: '下架', tone: 'ghost' })
+  if (post.status === 'closed') actions.splice(1, 0, { action: 'reopen', label: translate(t, 'workspace.actionReopen', '重新上架'), tone: 'ghost' })
+  else actions.splice(1, 0, { action: 'close', label: translate(t, 'workspace.actionClose', '下架'), tone: 'ghost' })
   return actions
 }
 
@@ -91,8 +100,11 @@ export function myPostActions(post = {}, { orderCount = 0 } = {}) {
  * 信誉看板数据。
  * 累计收入 / 支出只统计已完结（completed）的托管订单，进行中的资金不算进账，
  * 避免给用户「钱已经到手」的错误预期；评分按完成单量给出，无单时不虚构评分。
+ *
+ * 收支与单量的权威来源是服务端聚合接口（summary）：本地只拿得到当前页帖子对应的订单，
+ * 直接累加会少算。传了 summary 就用它，没传（或接口失败）时退回本地估算。
  */
-export function buildReputationSummary({ posts = [], orders = [], accountLevel = 0, userId = 0 } = {}) {
+export function buildReputationSummary({ posts = [], orders = [], accountLevel = 0, userId = 0, summary = null } = {}) {
   const viewerId = Number(userId) || 0
   const list = Array.isArray(orders) ? orders.filter(Boolean) : []
   const completed = list.filter(order => order.status === 'completed')
@@ -109,21 +121,29 @@ export function buildReputationSummary({ posts = [], orders = [], accountLevel =
       ongoing += 1
     }
   }
+  const serverEarned = Number(summary?.earned)
+  const serverSpent = Number(summary?.spent)
+  const serverOngoing = Number(summary?.ongoingOrders)
+  const serverCompleted = Number(summary?.completedOrders)
+  const useServer = !!summary && Number.isFinite(serverEarned) && Number.isFinite(serverSpent)
+  const completedCount = useServer && Number.isFinite(serverCompleted) ? serverCompleted : completed.length
+  const serverLevel = Number(summary?.accountLevel)
+  const level = Number.isFinite(serverLevel) && serverLevel > 0 ? serverLevel : (Number(accountLevel) || 0)
   const postList = Array.isArray(posts) ? posts : []
   const postCount = postList.length
   return {
-    accountLevel: Number(accountLevel) || 0,
-    isVerified: isVerifiedAccount(accountLevel),
-    earned: round2(earned),
-    spent: round2(spent),
-    ongoingOrders: ongoing,
-    completedOrders: completed.length,
+    accountLevel: level,
+    isVerified: typeof summary?.isVerified === 'boolean' ? summary.isVerified : isVerifiedAccount(level),
+    earned: round2(useServer ? serverEarned : earned),
+    spent: round2(useServer ? serverSpent : spent),
+    ongoingOrders: useServer && Number.isFinite(serverOngoing) ? serverOngoing : ongoing,
+    completedOrders: completedCount,
     postCount,
     recruitingCount: postList.filter(post => post.status !== 'closed').length,
     closedCount: postList.filter(post => post.status === 'closed').length,
     // 无完成单量时返回 null，页面显示「暂无评分」而不是伪造 5.0。
-    score: completed.length ? round1(4.6 + Math.min(completed.length, 40) / 100) : null,
-    scoreCount: completed.length
+    score: completedCount ? round1(4.6 + Math.min(completedCount, 40) / 100) : null,
+    scoreCount: completedCount
   }
 }
 
@@ -190,37 +210,37 @@ export function isOrderClosed(status) {
  * 订单页底部固定操作栏：按当前身份与状态动态渲染主 / 次按钮。
  * 与后端 ORDER_ACTIONS 保持一致，前端只做展示层可用性控制，最终仍以接口校验为准。
  */
-export function escrowActionBar({ status, isBuyer = false, isSeller = false, requiresVerified = false } = {}) {
+export function escrowActionBar({ status, isBuyer = false, isSeller = false, requiresVerified = false, t } = {}) {
   const actions = []
   if (status === 'created') {
     if (isBuyer) {
       actions.push({
         action: 'fund',
-        label: '立即支付托管金',
+        label: translate(t, 'escrow.fundAction', '立即支付托管金'),
         tone: 'primary',
         // 需要认证服务者但卖家未认证时，按钮保持可见但点击会被拦截并提示原因。
         blocked: requiresVerified,
-        blockedText: '该信息要求认证服务者，对方尚未完成 V 认证，暂不能支付托管金'
+        blockedText: translate(t, 'escrow.fundBlocked', '该信息要求认证服务者，对方尚未完成 V 认证，暂不能支付托管金')
       })
-      actions.push({ action: 'cancel', label: '取消交易', tone: 'ghost' })
+      actions.push({ action: 'cancel', label: translate(t, 'escrow.cancelTitle', '取消交易'), tone: 'ghost' })
     } else if (isSeller) {
-      actions.push({ action: 'waiting_fund', label: '等待买家支付', tone: 'disabled', disabled: true })
+      actions.push({ action: 'waiting_fund', label: translate(t, 'escrow.waitingFundAction', '等待买家支付'), tone: 'disabled', disabled: true })
     }
   } else if (status === 'funded') {
-    if (isSeller) actions.push({ action: 'delivery', label: '提交交付凭证', tone: 'primary' })
-    if (isBuyer) actions.push({ action: 'waiting_deliver', label: '等待卖家交付', tone: 'disabled', disabled: true })
-    if (isBuyer) actions.push({ action: 'refund', label: '申请退款', tone: 'ghost' })
+    if (isSeller) actions.push({ action: 'delivery', label: translate(t, 'escrow.deliverySubmit', '提交交付凭证'), tone: 'primary' })
+    if (isBuyer) actions.push({ action: 'waiting_deliver', label: translate(t, 'escrow.waitingDeliverAction', '等待卖家交付'), tone: 'disabled', disabled: true })
+    if (isBuyer) actions.push({ action: 'refund', label: translate(t, 'escrow.refundTitle', '申请退款'), tone: 'ghost' })
   } else if (status === 'delivered') {
-    if (isBuyer) actions.push({ action: 'confirm', label: '确认验收并付款', tone: 'primary' })
-    if (isBuyer) actions.push({ action: 'refund', label: '申请介入退款', tone: 'ghost' })
+    if (isBuyer) actions.push({ action: 'confirm', label: translate(t, 'escrow.confirmTitle', '确认验收并付款'), tone: 'primary' })
+    if (isBuyer) actions.push({ action: 'refund', label: translate(t, 'escrow.refundTitle', '申请介入退款'), tone: 'ghost' })
     // 卖家随时可以催办；到达期望完成时间后页面会额外给出超时警告。
-    if (isSeller) actions.push({ action: 'remind', label: '提醒验收', tone: 'primary' })
+    if (isSeller) actions.push({ action: 'remind', label: translate(t, 'escrow.remindBuyer', '提醒验收'), tone: 'primary' })
   } else if (status === 'completed') {
-    actions.push({ action: 'done', label: '交易已完成', tone: 'disabled', disabled: true })
+    actions.push({ action: 'done', label: translate(t, 'escrow.doneTitle', '交易已完成'), tone: 'disabled', disabled: true })
   } else if (status === 'cancelled') {
-    actions.push({ action: 'done', label: '交易已取消', tone: 'disabled', disabled: true })
+    actions.push({ action: 'done', label: translate(t, 'escrow.cancelledTitle', '交易已取消'), tone: 'disabled', disabled: true })
   } else if (status === 'refunded') {
-    actions.push({ action: 'done', label: '已退款', tone: 'disabled', disabled: true })
+    actions.push({ action: 'done', label: translate(t, 'escrow.refundedTitle', '已退款'), tone: 'disabled', disabled: true })
   }
   return actions
 }
@@ -251,9 +271,23 @@ export const ORDER_EVENT_TEXT = {
   refund: '托管资金退回买家'
 }
 
-export function orderEventText(event) {
+/** 轨迹文案键：与 demandHall 命名空间一一对应，便于页面按语言渲染。 */
+const ORDER_EVENT_KEY = {
+  create: 'detailEscrowEventCreate',
+  fund: 'detailEscrowEventFund',
+  deliver: 'detailEscrowEventDeliver',
+  deliver_update: 'detailEscrowEventDeliver',
+  remind: 'detailEscrowEventRemind',
+  confirm: 'detailEscrowEventConfirm',
+  cancel: 'detailEscrowEventCancel',
+  refund: 'detailEscrowEventRefund'
+}
+
+export function orderEventText(event, t) {
   const key = typeof event === 'string' ? event : event?.event
-  return ORDER_EVENT_TEXT[key] || key || ''
+  if (!key) return ''
+  // 已登记的轨迹类型优先走语言系统，未登记的返回原始键名供页面兜底。
+  return translate(t, `demandHall.${ORDER_EVENT_KEY[key]}`, ORDER_EVENT_TEXT[key] || key)
 }
 
 /** 交付凭证展示：区分图片与文档，图片走预览，文档走下载提示。 */
@@ -263,12 +297,17 @@ export function evidenceKind(url) {
   return IMAGE_EXTENSION.test(String(url || '')) ? 'image' : 'file'
 }
 
-export function evidenceName(item, index = 0) {
+export function evidenceName(item, index = 0, t) {
   if (item && typeof item === 'object' && item.name) return item.name
   const url = typeof item === 'string' ? item : item?.url || ''
   const clean = String(url).split('?')[0]
   const name = clean.slice(clean.lastIndexOf('/') + 1)
-  return name || `交付凭证 ${index + 1}`
+  if (name) return name
+  // 没带文件名的凭证用序号兜底，文案同样走语言系统。
+  const fallback = `交付凭证 ${index + 1}`
+  if (typeof t !== 'function') return fallback
+  const translated = t('escrow.evidenceFallbackName', { index: index + 1 })
+  return typeof translated === 'string' && translated !== 'escrow.evidenceFallbackName' ? translated : fallback
 }
 
 export function evidenceUrl(item) {

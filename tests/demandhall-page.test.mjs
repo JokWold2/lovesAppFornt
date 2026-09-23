@@ -179,19 +179,41 @@ function assertBalancedTags(source, label) {
 	assert.deepEqual(stack, [], `${label}: 存在未闭合的标签`)
 }
 
+/**
+ * pages.json 的页面可能注册在主包，也可能注册在分包里（需求市场已迁到 subPackages）。
+ * 这里统一还原成「完整路径 -> page 配置」的映射，避免断言绑定在某一种目录结构上。
+ */
+function collectPageEntries(pagesConfig) {
+	const entries = new Map()
+	for (const page of pagesConfig.pages || []) entries.set(page.path, page)
+	for (const sub of pagesConfig.subPackages || pagesConfig.subpackages || []) {
+		for (const page of sub.pages || []) entries.set(`${sub.root}/${page.path}`, page)
+	}
+	return entries
+}
+
 test('pages.json 注册需求市场主页面与详情页', async () => {
 	const raw = await read('../pages.json')
 	const pages = JSON.parse(raw.replace(/^\s*\/\/.*$/gm, ''))
-	const paths = pages.pages.map(page => page.path)
-	assert.ok(paths.includes('pages/demandhall/index'), '缺少需求市场主页面')
-	assert.ok(paths.includes('pages/demandhall/detail'), '缺少需求市场详情页')
-	const home = pages.pages.find(page => page.path === 'pages/demandhall/index')
+	const entries = collectPageEntries(pages)
+	assert.ok(entries.has('pages/demandhall/index'), '缺少需求市场主页面')
+	assert.ok(entries.has('pages/demandhall/detail'), '缺少需求市场详情页')
+	const home = entries.get('pages/demandhall/index')
 	assert.equal(home.style.navigationBarTitleText, '需求市场')
+	// 导航栏是白字，必须配深色底，否则标题在白底上不可见。
+	assert.equal(home.style.navigationBarTextStyle, 'white')
+	assert.ok(home.style.navigationBarBackgroundColor, '白字导航栏需要显式配置背景色')
 })
 
 test('首页入口列表包含需求市场', async () => {
 	const source = await read('../pages/index/index360.vue')
-	assert.match(source, /name: '需求市场', page: "\/pages\/demandhall\/index"/)
+	// 入口名走语言系统（hs('requests')），不再断言中文字面量。
+	assert.match(source, /\{\s*name:\s*hs\('requests'\),\s*page:\s*"\/pages\/demandhall\/index"\s*\}/)
+	const homeSearch = await read('../utils/homeSearchMessages.js')
+	for (const locale of ['zh-Hans', 'zh-Hant', 'en', 'ru', 'ja', 'ko']) {
+		assert.ok(homeSearch.includes(locale), `首页入口文案缺少 ${locale}`)
+	}
+	assert.equal(homeSearch.split('"requests":').length - 1, 6, 'requests 需要在 6 种语言里都补齐')
 })
 
 test('主页面包含筛选栏、双 Tab、两类卡片与悬浮发布抽屉', async () => {
@@ -214,17 +236,68 @@ test('主页面包含筛选栏、双 Tab、两类卡片与悬浮发布抽屉', a
 	assert.ok(source.includes("from '@/utils/demandHallPresentation.js'"))
 })
 
+test('主页面区分加载中、空数据、首屏失败与加载更多失败', async () => {
+	const source = await read('../pages/demandhall/index.vue')
+	// 四种状态各自有独立分支，失败态可重试。
+	for (const keyword of [
+		'v-if="loading"', 'v-else-if="loadError && posts.length === 0"', 'v-else-if="posts.length === 0"',
+		'v-if="loadingMore"', 'v-else-if="loadMoreError"'
+	]) {
+		assert.ok(source.includes(keyword), `信息流缺少状态分支 ${keyword}`)
+	}
+	const { demandHallMessages } = await import('../utils/demandHallMessages.js')
+	for (const locale of ['zh-Hans', 'zh-Hant', 'en', 'ru', 'ja', 'ko']) {
+		for (const key of ['loadFailed', 'loadMoreFailed', 'retry']) {
+			assert.equal(typeof demandHallMessages[locale]?.[key], 'string', `${locale} 缺少 ${key}`)
+		}
+	}
+	assert.ok(source.includes('function retryLoad') && source.includes('function loadMore'), '失败态需要可恢复操作')
+})
+
+test('主页面复用发布抽屉完成「修改」并采集线下坐标', async () => {
+	const source = await read('../pages/demandhall/index.vue')
+	assert.ok(source.includes('updateDemandHallPostApi'), '修改需要调用更新接口')
+	assert.ok(source.includes('getDemandHallPostApi'), '修改需要先取回原内容回填')
+	for (const handler of ['openEditForm', 'formatDateInput', 'resolvePublishCoords']) {
+		assert.ok(source.includes(`function ${handler}`), `主页面缺少 ${handler}`)
+	}
+	// 线下信息必须把坐标一起提交，「距离最近」排序才有数据可用。
+	assert.ok(source.includes('latitude: position.latitude') && source.includes('longitude: position.longitude'))
+	assert.match(source, /editId/, '修改入口通过 editId 参数进入')
+})
+
 test('详情页覆盖报名、担保交易与 IM 沟通', async () => {
 	const source = await read('../pages/demandhall/detail.vue')
 	assertBalancedTags(source, 'detail.vue')
-	for (const keyword of ['报名 / 接单记录', '担保交易', '发起担保交易', '立即沟通', '标记结单']) {
-		assert.ok(source.includes(keyword), `详情页缺少「${keyword}」`)
+	// 详情页文案已全部接入语言系统，这里断言文案键而不是中文字面量。
+	for (const keyword of [
+		'demandHall.detailApplicationsTitle', 'demandHall.detailEscrowTitle', 'demandHall.detailEscrow',
+		'demandHall.contact', 'demandHall.detailClosePost'
+	]) {
+		assert.ok(source.includes(keyword), `详情页缺少文案键「${keyword}」`)
 	}
-	for (const handler of ['handleApplication', 'submitApply', 'submitOrder', 'runOrderAction', 'contact']) {
+	for (const handler of ['handleApplication', 'submitApply', 'submitOrder', 'runOrderAction', 'contact', 'reopenPost', 'editPost']) {
 		assert.ok(source.includes(`function ${handler}`) || source.includes(`async function ${handler}`), `详情页缺少 ${handler}`)
 	}
 	assert.ok(source.includes('createDemandHallOrderApi'), '详情页需要发起托管交易')
 	assert.ok(source.includes('createChatRequestApi'), '详情页需要复用应用内 IM')
+	assert.ok(source.includes('reopenDemandHallPostApi'), '详情页需要能重新上架')
+	// 请求失败与「内容不存在」必须是两个状态，失败态要能重试。
+	assert.ok(source.includes('v-else-if="loadError"'), '详情页需要独立的请求失败态')
+	assert.ok(source.includes('applicationsError'), '报名列表失败不能显示成「还没有人报名」')
+	// 新增文案必须在六种语言里都补齐，避免回退成翻译键名。
+	const { demandHallMessages } = await import('../utils/demandHallMessages.js')
+	const required = [
+		'detailApplicationsTitle', 'detailEscrowTitle', 'detailEscrow', 'contact', 'detailClosePost',
+		'detailApplyTitleDemand', 'detailEscrowConfirmConfirm',
+		'detailLoadFailed', 'detailApplicationsFailed', 'detailTimelineEmpty',
+		'detailEditPost', 'detailReopenPost', 'detailReopenDone'
+	]
+	for (const locale of ['zh-Hans', 'zh-Hant', 'en', 'ru', 'ja', 'ko']) {
+		for (const key of required) {
+			assert.equal(typeof demandHallMessages[locale]?.[key], 'string', `${locale} 缺少 ${key}`)
+		}
+	}
 })
 
 test('接口封装覆盖需求市场的全部后端路由', async () => {
@@ -235,6 +308,10 @@ test('接口封装覆盖需求市场的全部后端路由', async () => {
 	]) {
 		assert.ok(source.includes(path), `缺少接口 ${path}`)
 	}
+	// 修改 / 重新上架 / 看板聚合都需要封装
+	assert.ok(source.includes('updateDemandHallPostApi') && source.includes('put('), '缺少修改接口封装')
+	assert.ok(source.includes('reopenDemandHallPostApi'), '缺少重新上架接口封装')
+	assert.ok(source.includes('getDemandHallOrderSummaryApi'), '缺少订单聚合接口封装')
 })
 
 test('互动消息能把需求市场通知跳回对应页面', async () => {
