@@ -143,37 +143,39 @@
 			<view class="scroll-bottom-spacer"></view>
 		</scroll-view>
 
-		<!-- 创建话题弹窗 -->
-		<view class="modal-mask" v-if="showCreateModal" @click="closeCreateModal">
-			<view class="create-modal" @click.stop>
-				<text class="modal-title">{{ t('community.createTitle') }}</text>
+		<!-- 创建话题与其他 BLESS 提示共用跨端底部容器。 -->
+		<BlessSheet :open="showCreateModal" :busy="creating" :label="t('community.createTitle')" :z-index="1400" @dismiss="closeCreateModal">
+			<view class="create-sheet">
+				<view class="create-handle" aria-hidden="true" />
+				<view class="create-heading"><view class="create-mark" aria-hidden="true">✦</view><view class="create-heading-copy"><text class="create-brand">BLESS</text><text class="create-title">{{ t('community.createTitle') }}</text></view></view>
 				<input
-					class="modal-input"
+					class="create-input"
 					v-model="createForm.name"
 					:placeholder="t('community.createNamePlaceholder')"
 					maxlength="20"
 					confirm-type="done"
+					:adjust-position="true"
+					:cursor-spacing="24"
 				/>
 				<input
-					class="modal-input"
+					class="create-input"
 					v-model="createForm.description"
 					:placeholder="t('community.createDescPlaceholder')"
 					maxlength="200"
+					:adjust-position="true"
+					:cursor-spacing="24"
 				/>
-				<view class="modal-actions">
-					<view class="modal-btn ghost" @click="closeCreateModal">{{ t('common.cancel') }}</view>
-					<view
-						class="modal-btn primary"
-						:class="{ disabled: !createForm.name.trim() || creating }"
-						@click="submitCreateTopic"
-					>{{ creating ? t('community.creating') : t('community.createSubmit') }}</view>
+				<view class="create-actions">
+					<button class="create-button secondary" :disabled="creating" @click="closeCreateModal">{{ t('common.cancel') }}</button>
+					<button class="create-button primary" :disabled="!createForm.name.trim() || creating" @click="submitCreateTopic">{{ creating ? t('community.creating') : t('community.createSubmit') }}</button>
 				</view>
 			</view>
-		</view>
+		</BlessSheet>
 	</view>
 </template>
 
 <script setup>
+import './locale.js'
 import { ref, computed, watch, onMounted } from 'vue'
 import { onLoad, onShow } from '@dcloudio/uni-app'
 import {
@@ -181,16 +183,17 @@ import {
 	getCommunityHotTopicsApi,
 	toggleCommunityTopicFollowApi,
 	createCommunityTopicApi
-} from '@/api/community.js'
+} from '@/pages/community/api/community.js'
 import { isLoggedIn } from '@/utils/auth.js'
 import { currentLocale, t } from '@/utils/localeRuntime.js'
+import BlessSheet from '@/components/common/BlessSheet.vue'
 import {
 	COMMUNITY_TOPICS_ROUTE,
 	communityTopicRoute,
 	ensureCommunityLogin,
 	formatCommunityNumber,
 	rankTier
-} from '@/utils/communityHub.js'
+} from '@/pages/community/utils/communityHub.js'
 
 const PAGE_SIZE = 20
 const SEARCH_DEBOUNCE_MS = 300
@@ -811,70 +814,36 @@ $line-color: #f2f2f4;
 	}
 }
 
-/* ---------- 创建话题弹窗 ---------- */
-.modal-mask {
-	position: fixed;
-	inset: 0;
-	z-index: 200;
-	display: flex;
-	align-items: center;
-	justify-content: center;
-	padding: 0 60rpx;
-	background: rgba(0, 0, 0, 0.4);
+/* ---------- BLESS 创建话题底部表单 ---------- */
+.create-sheet {
+	width: 100%; max-height: 80vh; box-sizing: border-box; display: flex; flex-direction: column;
+	padding: 0 20px 20px; padding-bottom: calc(20px + env(safe-area-inset-bottom));
+	border-radius: 30px 30px 0 0; background: #fffdf9; color: #292825;
 }
-
-.create-modal {
-	width: 100%;
-	padding: 36rpx 32rpx 28rpx;
-	background: #ffffff;
-	border-radius: 28rpx;
-
-	.modal-title {
-		display: block;
-		margin-bottom: 26rpx;
-		font-size: 32rpx;
-		font-weight: 700;
-		color: $text-main;
-	}
-
-	.modal-input {
-		width: 100%;
-		height: 84rpx;
-		margin-bottom: 20rpx;
-		padding: 0 26rpx;
-		background: $gray-bg;
-		border-radius: 18rpx;
-		font-size: 27rpx;
-		color: $text-main;
-	}
-
-	.modal-actions {
-		display: flex;
-		gap: 20rpx;
-		margin-top: 12rpx;
-	}
-
-	.modal-btn {
-		flex: 1;
-		padding: 20rpx 0;
-		border-radius: 36rpx;
-		text-align: center;
-		font-size: 27rpx;
-		font-weight: 600;
-
-		&.ghost {
-			background: $gray-bg;
-			color: #666666;
-		}
-
-		&.primary {
-			background: $brand-yellow;
-			color: $text-main;
-		}
-
-		&.disabled {
-			opacity: 0.5;
-		}
-	}
+.create-handle { align-self: center; flex: none; width: 34px; height: 4px; margin: 10px 0 18px; border-radius: 4px; background: #d6d2ca; }
+.create-heading { display: flex; align-items: center; gap: 12px; min-width: 0; margin-bottom: 18px; }
+.create-mark { display: flex; align-items: center; justify-content: center; flex: none; width: 42px; height: 42px; border-radius: 14px; background: #f8efd8; color: #775e25; font-size: 25px; }
+.create-heading-copy { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.create-brand { color: #775e25; font-size: 10px; font-weight: 700; letter-spacing: 1.3px; }
+.create-title { color: #292825; font-size: 20px; font-weight: 700; line-height: 1.35; word-break: break-word; }
+.create-input {
+	flex: none; width: 100%; height: 48px; box-sizing: border-box; margin-bottom: 12px; padding: 0 15px;
+	border: 1px solid #e7e0d3; border-radius: 15px; background: #faf8f4;
+	color: #292825; font-size: 14px;
 }
+.create-actions { flex: none; display: flex; gap: 10px; width: 100%; margin-top: 6px; }
+.create-button {
+	flex: 1; min-width: 0; min-height: 48px; margin: 0; padding: 9px 11px; box-sizing: border-box;
+	display: flex; align-items: center; justify-content: center; border-radius: 15px;
+	font-size: 14px; font-weight: 600; line-height: 1.35; white-space: normal; word-break: break-word;
+	transition-property: transform; transition-duration: 140ms; transition-timing-function: cubic-bezier(.23,1,.32,1);
+}
+.create-button::after { border: none; }
+.create-button:active { transform: scale(.97); }
+.create-button.secondary { border: 1px solid #e7e0d3; background: #faf8f4; color: #666055; }
+.create-button.primary { background: #c2a052; color: #292825; }
+.create-button[disabled] { opacity: .55; }
+/* #ifdef H5 */
+@media (prefers-reduced-motion: reduce) { .create-button { transition-duration: 0ms; } }
+/* #endif */
 </style>

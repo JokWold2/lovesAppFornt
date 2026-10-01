@@ -24,7 +24,7 @@ import {
 	resolveMyPostStatus,
 	workspaceEmptyState,
 	workspaceTabDefinition
-} from '../utils/demandHallWorkspace.js'
+} from '../pages/demandhall/utils/demandHallWorkspace.js'
 
 const read = relativePath => readFile(new URL(relativePath, import.meta.url), 'utf8')
 const FIXED_NOW = Date.parse('2026-09-20T10:00:00+08:00')
@@ -312,7 +312,7 @@ test('工作台页面覆盖统计看板、三级 Tab、报名者面板与空状�
 	// 下拉刷新与触底加载与信息流一致
 	assert.ok(source.includes('refresher-enabled') && source.includes('@scrolltolower') && source.includes('lower-threshold'))
 	assert.ok(source.includes('emptyDiscover'), '空状态需要「去发现」引流')
-	assert.ok(source.includes("from '@/utils/demandHallWorkspace.js'"))
+	assert.ok(source.includes("from '@/pages/demandhall/utils/demandHallWorkspace.js'"))
 	assert.ok(source.includes("from '@/utils/localeRuntime.js'"), '工作台文案要接入语言系统')
 })
 
@@ -328,14 +328,14 @@ test('担保交易订单页覆盖进度条、快照、凭证与底部操作栏',
 	assert.ok(source.includes('submitDemandHallOrderDeliveryApi'), '卖家需要能提交交付凭证')
 	assert.ok(source.includes('getDemandHallOrderApi'), '订单页需要订单详情接口')
 	assert.ok(source.includes('requiresVerifiedSeller'), '需要认证的订单要有支付前校验')
-	assert.ok(source.includes("from '@/utils/demandHallWorkspace.js'"))
+	assert.ok(source.includes("from '@/pages/demandhall/utils/demandHallWorkspace.js'"))
 	assert.ok(source.includes("from '@/utils/localeRuntime.js'"), '订单页文案要接入语言系统')
 	// 上传走 uni.uploadFile，不能误用 JSON 请求通道
 	assert.ok(source.includes('uni.uploadFile'), '交付凭证上传需要 uni.uploadFile')
 })
 
 test('接口封装覆盖工作台与订单页需要的后端路由', async () => {
-	const source = await read('../api/demandHall.js')
+	const source = await read('../pages/demandhall/api/demandHall.js')
 	for (const path of [
 		'/api/demand-hall/mine', '/api/demand-hall/orders', '/api/demand-hall/orders/${id}',
 		'/api/demand-hall/orders/${id}/status', '/api/demand-hall/orders/${id}/delivery'
@@ -346,7 +346,7 @@ test('接口封装覆盖工作台与订单页需要的后端路由', async () =>
 })
 
 test('工作台与订单页文案在六种语言里都补齐', async () => {
-	const locale = await read('../utils/locale.js')
+	const locale = await read('../pages/demandhall/demandWorkspaceMessages.js')
 	assert.ok(locale.includes('demandWorkspaceMessages'), '缺少工作台文案命名空间')
 	for (const key of [
 		'tabPosts', 'tabApplies', 'tabCollections', 'selectApplicant', 'emptyDiscover',

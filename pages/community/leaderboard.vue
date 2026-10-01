@@ -158,9 +158,10 @@
 </template>
 
 <script setup>
+import './locale.js'
 import { ref, computed, watch, onMounted } from 'vue'
 import { onLoad } from '@dcloudio/uni-app'
-import { getCommunityLeaderboardApi } from '@/api/community.js'
+import { getCommunityLeaderboardApi } from '@/pages/community/api/community.js'
 import { currentLocale, t } from '@/utils/localeRuntime.js'
 import { getUserInfo } from '@/utils/auth.js'
 import {
@@ -171,7 +172,7 @@ import {
 	formatCommunityNumber,
 	formatCommunityTime,
 	rankTier
-} from '@/utils/communityHub.js'
+} from '@/pages/community/utils/communityHub.js'
 
 const PAGE_LIMIT = 20
 

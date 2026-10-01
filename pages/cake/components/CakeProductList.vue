@@ -171,15 +171,15 @@
 <script setup>
 import { computed, onMounted, ref } from 'vue'
 import { onShow } from '@dcloudio/uni-app'
-import CakeNavBar from '@/components/cake/CakeNavBar.vue'
-import CakeCartFab from '@/components/cake/CakeCartFab.vue'
-import CakeProductCard from '@/components/cake/CakeProductCard.vue'
-import CakeProductRow from '@/components/cake/CakeProductRow.vue'
-import CakeSkuPanel from '@/components/cake/CakeSkuPanel.vue'
-import CakeStateView from '@/components/cake/CakeStateView.vue'
+import CakeNavBar from '@/pages/cake/components/CakeNavBar.vue'
+import CakeCartFab from '@/pages/cake/components/CakeCartFab.vue'
+import CakeProductCard from '@/pages/cake/components/CakeProductCard.vue'
+import CakeProductRow from '@/pages/cake/components/CakeProductRow.vue'
+import CakeSkuPanel from '@/pages/cake/components/CakeSkuPanel.vue'
+import CakeStateView from '@/pages/cake/components/CakeStateView.vue'
 import { currentLocale, t } from '@/utils/localeRuntime.js'
-import { addCakeCartItemApi, getCakeCartApi, getCakeCategoriesApi, getCakeProductsApi } from '@/api/cake.js'
-import { CAKE_ROUTES, cakeCartState, createCakeScrollProgress, goCakePage, pickCakeText } from '@/utils/cake.js'
+import { addCakeCartItemApi, getCakeCartApi, getCakeCategoriesApi, getCakeProductsApi } from '@/pages/cake/api/cake.js'
+import { CAKE_ROUTES, cakeCartState, createCakeScrollProgress, goCakePage, pickCakeText } from '@/pages/cake/utils/cake.js'
 
 const props = defineProps({
   navTitleKey: { type: String, required: true },

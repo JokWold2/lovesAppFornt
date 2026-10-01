@@ -112,9 +112,10 @@ import ChatSheet from '@/components/chat/ChatSheet.vue'
 import ProfileDetailSheet from '@/components/profile/ProfileDetailSheet.vue'
 import { handleMembershipError, openMembershipUpgrade } from '@/utils/membership.js'
 import { currentLocale, t } from '@/utils/localeRuntime.js'
-import { searchOptionLabel } from '@/utils/searchPresentation.js'
-import { buildSearchPayload, countAdvancedFilters, createSearchForm } from '@/utils/searchCandidateFilters.js'
+import { searchOptionLabel } from '@/pages/searchPerson/utils/searchPresentation.js'
+import { buildSearchPayload, countAdvancedFilters, createSearchForm } from '@/pages/searchPerson/utils/searchCandidateFilters.js'
 import { useProfileDetailSheet } from '@/utils/useProfileDetailSheet.js'
+import { publicDisplayName } from '@/utils/publicDisplayName.js'
 
 const { profileId: sheetProfileId, pageVisible: sheetPageVisible, open: openProfileSheet, close: closeProfileSheet } = useProfileDetailSheet()
 const form = reactive(createSearchForm())
@@ -161,7 +162,7 @@ function openAdvancedFilters () { showAdvancedFilters.value = true }
 function closeAdvancedFilters () { if (!searching.value) showAdvancedFilters.value = false }
 function onResultClick (item) { openProfileSheet(item.id) }
 function onFindRecommend () { uni.showToast({ title: t('search.inDevelopment'), icon: 'none' }) }
-function candidateName (item) { const nativeName = `${item.native_last_name || ''}${item.native_first_name || ''}`.trim(); return nativeName || [item.en_first_name, item.en_last_name].filter(Boolean).join(' ') || t('search.notFilled') }
+function candidateName (item) { return publicDisplayName(item, item, t('search.notFilled')) }
 function candidateInitial (item) { return candidateName(item).slice(0, 1) || '?' }
 function candidateMeta (item) { const values = []; if (item.generation) values.push(choiceLabel(item.generation)); if (item.birth_year) values.push(t('search.yearsOld', { count: new Date().getFullYear() - Number(item.birth_year) })); if (item.height) values.push(`${item.height}cm`); return values.join(' · ') || t('search.notFilled') }
 function candidateDetail (item) { return [item.country, item.church_name, item.occupation].filter(Boolean).join(' · ') }

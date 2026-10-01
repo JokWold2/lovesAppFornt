@@ -2,7 +2,7 @@ import test from 'node:test'
 import assert from 'node:assert/strict'
 
 let filters = null
-try { filters = await import('../utils/searchCandidateFilters.js') } catch (_) {}
+try { filters = await import('../pages/searchPerson/utils/searchCandidateFilters.js') } catch (_) {}
 
 test('candidate search starts unrestricted and keeps the three primary groups multi-select', () => {
   assert.ok(filters?.createSearchForm, 'candidate filter model is not implemented yet')

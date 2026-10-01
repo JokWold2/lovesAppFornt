@@ -310,10 +310,12 @@
 				</view>
 			</view>
 		</SlideUpPanel>
+		<BlessDialog ref="blessDialog" />
 	</view>
 </template>
 
 <script setup>
+import './locale.js'
 import { computed, nextTick, ref } from 'vue'
 import { onLoad, onShow } from '@dcloudio/uni-app'
 import {
@@ -326,17 +328,18 @@ import {
 	closeDemandHallPostApi,
 	reopenDemandHallPostApi,
 	toggleDemandHallCollectApi
-} from '@/api/demandHall.js'
+} from '@/pages/demandhall/api/demandHall.js'
 import { createChatRequestApi, getChatRequestStatusApi } from '@/api/chat.js'
 import { t } from '@/utils/localeRuntime.js'
 import SlideUpPanel from '@/components/common/SlideUpPanel.vue'
+import BlessDialog from '@/components/common/BlessDialog.vue'
 import {
 	formatPriceLabel,
 	formatRelativeTime,
 	buildCardBadges,
 	categoryLabel,
 	applicationStatusMeta
-} from '@/utils/demandHallPresentation.js'
+} from '@/pages/demandhall/utils/demandHallPresentation.js'
 import {
 	WORKSPACE_ROLE_BY_TAB,
 	WORKSPACE_TABS,
@@ -346,7 +349,7 @@ import {
 	myPostActions,
 	myPostStatusMeta,
 	workspaceEmptyState
-} from '@/utils/demandHallWorkspace.js'
+} from '@/pages/demandhall/utils/demandHallWorkspace.js'
 
 const PAGE_SIZE = 10
 
@@ -592,7 +595,8 @@ function goEditPost(id) {
 async function updatePostStatus(post, shouldClose) {
 	const confirmed = await confirmDialog({
 		title: shouldClose ? t('workspace.closeConfirmTitle') : t('workspace.reopenConfirmTitle'),
-		content: shouldClose ? t('workspace.closeConfirmContent') : t('workspace.reopenConfirmContent')
+		content: shouldClose ? t('workspace.closeConfirmContent') : t('workspace.reopenConfirmContent'),
+		tone: shouldClose ? 'danger' : 'info'
 	})
 	if (!confirmed) return
 	try {
@@ -761,20 +765,17 @@ async function contactOwner(post) {
 			uni.showToast({ title: t('workspace.contactPending'), icon: 'none' })
 			return
 		}
-		uni.showModal({
+		const { confirm, content } = await blessDialog.value.open({
 			title: t('workspace.contactTitle'),
 			editable: true,
 			placeholderText: t('workspace.contactPlaceholder'),
 			content: buildContactMessage(post),
 			confirmText: t('workspace.contactSend'),
-			success: async ({ confirm, content }) => {
-				if (!confirm) return
-				try {
-					await createChatRequestApi({ targetUserId: post.userId, message: (content || buildContactMessage(post)).slice(0, 500) })
-					uni.showToast({ title: t('workspace.contactSent'), icon: 'success' })
-				} catch (error) { /* 请求层已提示 */ }
-			}
+			tone: 'heart'
 		})
+		if (!confirm) return
+		await createChatRequestApi({ targetUserId: post.userId, message: (content || buildContactMessage(post)).slice(0, 500) })
+		uni.showToast({ title: t('workspace.contactSent'), icon: 'success' })
 	} catch (error) { /* 请求层已提示 */ }
 }
 
@@ -803,15 +804,11 @@ function goPublish() {
 	uni.navigateTo({ url: '/pages/demandhall/index?compose=1' })
 }
 
-function confirmDialog({ title, content }) {
-	return new Promise(resolve => {
-		uni.showModal({
-			title,
-			content,
-			success: ({ confirm }) => resolve(confirm),
-			fail: () => resolve(false)
-		})
-	})
+const blessDialog = ref(null)
+
+async function confirmDialog({ title, content, tone }) {
+	const { confirm } = await blessDialog.value.open({ title, content, tone })
+	return confirm
 }
 
 onLoad(options => {

@@ -1,4 +1,4 @@
-import { buildTimeDivider } from './chatMessagePresentation.js'
+import { buildTimeDivider } from '../../../utils/chatMessagePresentation.js'
 
 export function buildChatDisplayItems(messages = []) {
   return messages.flatMap((message, index) => {

@@ -1,13 +1,13 @@
 <template>
   <!-- #ifdef MP-WEIXIN -->
   <page-container :show="opened" position="bottom" :duration="duration" :z-index="1300" :close-on-slide-down="false" custom-style="height:100%;background:transparent;" @beforeleave="beginClose" @afterleave="finishClose">
-    <view class="photo-sheet-frame" :style="frameStyle"><ProfilePhotoWorkspace ref="workspace" :photos="photos" :busy="busy" :initial-index="initialIndex" @close="beginClose" @upload="$emit('upload', $event)" @remove="$emit('remove', $event)" @facebook="$emit('facebook')" /></view>
+    <view class="photo-sheet-frame" :style="frameStyle"><ProfilePhotoWorkspace ref="workspace" :photos="photos" :busy="busy" :initial-index="initialIndex" @close="beginClose" @upload="$emit('upload', $event)" @remove="$emit('remove', $event)" @facebook="$emit('facebook')" /><slot /></view>
   </page-container>
   <!-- #endif -->
   <!-- #ifndef MP-WEIXIN -->
   <view class="photo-sheet-host" role="dialog" aria-modal="true" :aria-label="t('photoManager.title')">
     <view class="photo-sheet-scrim" :class="{ opened }" @touchmove.stop.prevent @click="beginClose" />
-    <view class="photo-sheet-frame" :class="{ opened }" :style="frameStyle" @touchmove.stop><ProfilePhotoWorkspace ref="workspace" :photos="photos" :busy="busy" :initial-index="initialIndex" @close="beginClose" @upload="$emit('upload', $event)" @remove="$emit('remove', $event)" @facebook="$emit('facebook')" /></view>
+    <view class="photo-sheet-frame" :class="{ opened }" :style="frameStyle" @touchmove.stop><ProfilePhotoWorkspace ref="workspace" :photos="photos" :busy="busy" :initial-index="initialIndex" @close="beginClose" @upload="$emit('upload', $event)" @remove="$emit('remove', $event)" @facebook="$emit('facebook')" /><slot /></view>
   </view>
   <!-- #endif -->
 </template>

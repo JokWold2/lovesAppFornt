@@ -1,7 +1,12 @@
 // pages/cake 共用工具：多语言文本取值、金额/距离格式化、订单状态映射、
 // 底部导航定义、购物车角标状态。所有页面统一从这里取，避免各自实现不一致。
 import { ref } from 'vue'
-import { config } from './config.js'
+import { config } from '../../../utils/config.js'
+import cakePlaceholder from '../static/placeholder-cake.png'
+import breadPlaceholder from '../static/placeholder-bread.png'
+import drinkPlaceholder from '../static/placeholder-drink.png'
+import cookiePlaceholder from '../static/placeholder-cookie.png'
+import mooncakePlaceholder from '../static/placeholder-mooncake.png'
 
 export const CAKE_ROUTES = Object.freeze({
   home: '/pages/cake/index',
@@ -103,7 +108,7 @@ export function formatCakeDistance(meters) {
 
 // 只有后端托管的资源才需要拼接口域名：
 //  - /uploads/... 由 Express 静态目录提供，必须拼 baseURL
-//  - /static/...  是前端包内资源（占位图等），拼了反而会 404
+//  - 本地占位图由构建器解析为对应平台的资源地址，拼了接口域名反而会 404
 export function resolveCakeImageUrl(url) {
   if (!url || typeof url !== 'string') return ''
   if (/^(https?:)?\/\//i.test(url) || url.startsWith('data:')) return url
@@ -114,11 +119,11 @@ export function resolveCakeImageUrl(url) {
 // 商品图按分类兜底到本地静态占位图，避免图片缺失时页面出现破图。
 export function cakePlaceholderImage(categoryCode) {
   const code = String(categoryCode || '')
-  if (code.startsWith('cake')) return '/static/cake/placeholder-cake.png'
-  if (code === 'bread') return '/static/cake/placeholder-bread.png'
-  if (code === 'drink') return '/static/cake/placeholder-drink.png'
-  if (code === 'cookie-gift') return '/static/cake/placeholder-cookie.png'
-  return '/static/cake/placeholder-mooncake.png'
+  if (code.startsWith('cake')) return cakePlaceholder
+  if (code === 'bread') return breadPlaceholder
+  if (code === 'drink') return drinkPlaceholder
+  if (code === 'cookie-gift') return cookiePlaceholder
+  return mooncakePlaceholder
 }
 
 // 门店营业状态：后端给 businessStatus，缺失时回退到 isOpen。

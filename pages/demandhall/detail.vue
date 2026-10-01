@@ -226,10 +226,12 @@
 				</view>
 			</SlideUpPanel>
 		</template>
+		<BlessDialog ref="blessDialog" />
 	</view>
 </template>
 
 <script setup>
+import './locale.js'
 import { computed, ref } from 'vue'
 import { onLoad, onShow } from '@dcloudio/uni-app'
 import {
@@ -244,10 +246,11 @@ import {
 	reopenDemandHallPostApi,
 	deleteDemandHallPostApi,
 	toggleDemandHallCollectApi
-} from '@/api/demandHall.js'
+} from '@/pages/demandhall/api/demandHall.js'
 import { createChatRequestApi, getChatRequestStatusApi } from '@/api/chat.js'
 import { t } from '@/utils/localeRuntime.js'
 import SlideUpPanel from '@/components/common/SlideUpPanel.vue'
+import BlessDialog from '@/components/common/BlessDialog.vue'
 import {
 	formatPriceLabel,
 	formatDeadlineText,
@@ -258,8 +261,8 @@ import {
 	orderStatusMeta,
 	nextOrderActions,
 	canApplyToPost
-} from '@/utils/demandHallPresentation.js'
-import { formatAmount } from '@/utils/demandHallWorkspace.js'
+} from '@/pages/demandhall/utils/demandHallPresentation.js'
+import { formatAmount } from '@/pages/demandhall/utils/demandHallWorkspace.js'
 
 const postId = ref(null)
 const post = ref(null)
@@ -269,6 +272,7 @@ const loadError = ref(false)
 const applications = ref([])
 const applicationsError = ref(false)
 const order = ref(null)
+const blessDialog = ref(null)
 
 /** 页面文案集中在这里，模板里只用 text.xxx，切换语言即时生效。 */
 const text = computed(() => ({
@@ -543,15 +547,13 @@ async function runOrderAction(action) {
 		cancel: t('demandHall.detailEscrowConfirmCancel'),
 		refund: t('demandHall.detailEscrowConfirmRefund')
 	}[action.action]
-	const confirmed = await new Promise(resolve => {
-		uni.showModal({
-			title: text.value.detailEscrowConfirmTitle,
-			content: confirmText || text.value.detailEscrowConfirmFallback,
-			success: ({ confirm }) => resolve(confirm),
-			fail: () => resolve(false)
-		})
+	const { confirm } = await blessDialog.value.open({
+		title: text.value.detailEscrowConfirmTitle,
+		content: confirmText || text.value.detailEscrowConfirmFallback,
+		tone: action.action === 'fund' || action.action === 'confirm' ? 'payment' : (action.action === 'cancel' ? 'danger' : 'info'),
+		amount: action.action === 'fund' || action.action === 'confirm' ? `￥${formatAmount(order.value?.amount)}` : ''
 	})
-	if (!confirmed) return
+	if (!confirm) return
 	try {
 		await updateDemandHallOrderStatusApi(order.value.id, { action: action.action })
 		uni.showToast({ title: text.value.detailActionDone, icon: 'success' })
@@ -594,20 +596,17 @@ async function contact() {
 			uni.showToast({ title: text.value.contactPending, icon: 'none' })
 			return
 		}
-		uni.showModal({
+		const { confirm, content } = await blessDialog.value.open({
 			title: text.value.contactTitle,
 			editable: true,
 			content: buildContactMessage(),
 			placeholderText: text.value.contactPlaceholder,
 			confirmText: text.value.contactSend,
-			success: async ({ confirm, content }) => {
-				if (!confirm) return
-				try {
-					await createChatRequestApi({ targetUserId: post.value.userId, message: (content || buildContactMessage()).slice(0, 500) })
-					uni.showToast({ title: text.value.contactSent, icon: 'success' })
-				} catch (error) { /* 请求层已提示 */ }
-			}
+			tone: 'heart'
 		})
+		if (!confirm) return
+		await createChatRequestApi({ targetUserId: post.value.userId, message: (content || buildContactMessage()).slice(0, 500) })
+		uni.showToast({ title: text.value.contactSent, icon: 'success' })
 	} catch (error) { /* 请求层已提示 */ }
 }
 
@@ -636,10 +635,12 @@ function editPost() {
 }
 
 async function removePost() {
-	const confirmed = await new Promise(resolve => {
-		uni.showModal({ title: text.value.detailDeleteTitle, content: text.value.detailDeleteContent, success: ({ confirm }) => resolve(confirm), fail: () => resolve(false) })
+	const { confirm } = await blessDialog.value.open({
+		title: text.value.detailDeleteTitle,
+		content: text.value.detailDeleteContent,
+		tone: 'danger'
 	})
-	if (!confirmed) return
+	if (!confirm) return
 	try {
 		await deleteDemandHallPostApi(postId.value)
 		uni.showToast({ title: text.value.detailDeleted, icon: 'success' })

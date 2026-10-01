@@ -1,5 +1,8 @@
 <template>
-	<view class="container app-h5-min-screen liquid-tab-page" :class="{ 'is-tutorial-home': model === 'tutorial' || model === 'activity', 'is-recommend-home': model === 'recommend', 'is-card-home': model === 'recommend' && currentEntryIndex === 1 && blessingViewMode === 'cards' }" :style="{ '--blessing-header-height': recommendationHeaderHeight + 'px' }">
+	<page-meta :page-style="accountDrawerOpen ? 'overflow: hidden;' : ''" />
+	<view class="home-drawer-scene">
+		<AccountPushDrawer ref="accountDrawer" :open="accountDrawerOpen" :width="accountDrawerWidth" :top-inset="homeGeometry.contentTop" @close="closeAccountDrawer" />
+	<view class="container app-h5-min-screen liquid-tab-page home-push-stage" :class="{ 'is-tutorial-home': model === 'tutorial' || model === 'activity', 'is-recommend-home': model === 'recommend', 'is-card-home': model === 'recommend' && currentEntryIndex === 1 && blessingViewMode === 'cards', 'is-drawer-open': accountDrawerOpen }" :style="{ '--blessing-header-height': recommendationHeaderHeight + 'px', '--account-drawer-width': accountDrawerWidth + 'px' }">
 		<!-- 状态栏占位 -->
 		<!-- <view
 			class="status-bar"
@@ -120,35 +123,39 @@
 					>
 						<view
 							class="post-card featured-card"
-							:class="{ navigable: featuredCardRoute(item), 'featured-market-card': isFeaturedMarket(item) }"
+							:class="{ navigable: featuredCardRoute(item), 'featured-market-card': isFeaturedMarket(item), 'featured-locked-card': item.membershipLocked }"
 							v-for="item in columnItems"
 							:key="item.feedKey"
 							@click="openFeaturedItem(item)"
 						>
 							<view
-								class="post-media"
-								:class="{
-									'is-image-loading': !isFeaturedImageLoaded(
+							class="post-media"
+							:class="{
+								'featured-locked-media': item.membershipLocked,
+								'is-image-loading': !isFeaturedImageLoaded(
 										item.feedKey,
 									),
 								}"
-								v-if="featuredItemImage(item)"
+							v-if="featuredItemImage(item) || item.membershipLocked"
 							>
 								<view
-									v-if="!isFeaturedImageLoaded(item.feedKey)"
+								v-if="featuredItemImage(item) && !isFeaturedImageLoaded(item.feedKey)"
 									class="media-skeleton"
 								>
 									<view class="skeleton-line skeleton-line-wide"></view>
 									<view class="skeleton-line skeleton-line-short"></view>
 								</view>
-								<image
-									class="media-img"
+							<image
+								v-if="featuredItemImage(item)"
+								class="media-img"
+								:class="{ 'featured-locked-image': item.membershipLocked }"
 									:src="getFullImageUrl(featuredItemImage(item))"
-									mode="widthFix"
+								:mode="item.membershipLocked ? 'aspectFill' : 'widthFix'"
 									@load="markFeaturedImageLoaded(item.feedKey)"
 									@error="markFeaturedImageLoaded(item.feedKey)"
-								></image>
-								<text v-if="item.type === 'antique' || item.type === 'second_hand'" class="featured-kind">{{ t(item.type === 'antique' ? 'home.antique' : 'home.secondHand') }}</text>
+							></image>
+							<text v-if="item.type === 'antique' || item.type === 'second_hand'" class="featured-kind">{{ t(item.type === 'antique' ? 'home.antique' : 'home.secondHand') }}</text>
+							<view v-if="item.membershipLocked" class="featured-locked-badge"><uni-icons type="locked" size="13" color="#775E25"/><text>{{ t('marketAccess.badge') }}</text></view>
 							</view>
 
 							<view
@@ -158,7 +165,7 @@
 								"
 								class="featured-title"
 							>
-								<text>{{ item.title }}</text>
+								<text>{{ item.membershipLocked ? t(item.type === 'antique' ? 'marketAccess.antiqueLockedTitle' : 'marketAccess.secondHandLockedTitle') : item.title }}</text>
 							</view>
 							<view
 								v-if="
@@ -167,16 +174,16 @@
 								"
 								class="featured-price"
 							>
-								<text>¥ {{ item.meta }}</text>
+								<text>{{ item.membershipLocked ? t('marketAccess.priceLocked') : `¥ ${item.meta}` }}</text>
 							</view>
 							<view
-								v-if="item.type === 'moment' || item.summary"
+								v-if="item.membershipLocked || item.type === 'moment' || item.summary"
 								class="featured-summary"
 							>
-								<text>{{ item.summary }}</text>
+								<text>{{ item.membershipLocked ? t('marketAccess.cardHint') : item.summary }}</text>
 							</view>
 
-							<view class="featured-footer">
+							<view v-if="!item.membershipLocked" class="featured-footer">
 <view class="post-header">
 								<view class="post-avatar">
 									<image
@@ -207,7 +214,6 @@
 									</view>
 								</view>
 							</view>
-
 							<view class="post-actions">
 								<view class="actions-left">
 									<view
@@ -242,6 +248,7 @@
 							</view>
 
 							</view>
+							<button v-if="item.membershipLocked" class="featured-locked-upgrade" @click.stop="openMembershipUpgrade('market')">{{ t('marketAccess.upgrade') }}</button>
 <view
 								v-if="
 									isFeaturedCommentAvailable(item) &&
@@ -442,6 +449,8 @@
           </view>
         </SlideUpPanel>
 		<ProfileDetailSheet :profile-id="sheetProfileId" :page-visible="sheetPageVisible" @closed="closeProfileSheet" />
+		<view v-if="accountDrawerOpen" class="home-drawer-close-target" role="button" :aria-label="hs('close')" @tap.stop="closeAccountDrawer" />
+	</view>
 	</view>
 </template>
 
@@ -471,6 +480,8 @@ import ProfileDetailSheet from '@/components/profile/ProfileDetailSheet.vue';
 import { useProfileDetailSheet } from '@/utils/useProfileDetailSheet.js';
 import FeedContentState from '@/components/feedback/FeedContentState.vue';
 import LiquidGlassTabBar from '@/components/navigation/LiquidGlassTabBar.vue';
+import AccountPushDrawer from '@/components/account/AccountPushDrawer.vue';
+import { getUserInfo } from '@/utils/auth.js';
 import { getProfileAge, getProfilePhotos, mergeProfileBatch } from '@/utils/blessingDeck.js';
 import { createBlessingOperations, filterBlessingCandidates, filterFeaturedBlessings, reconcileBlessingExclusions } from '@/utils/blessingInteractions.js';
 import { getMembershipApi, decideBlessingApi, rewindBlessingApi } from '@/api/membership.js';
@@ -486,12 +497,28 @@ import SlideUpPanel from '@/components/common/SlideUpPanel.vue';
 import { readChatHeaderGeometry } from '@/utils/chatHeaderLayout.js';
 import { homeSearchMessages } from '@/utils/homeSearchMessages.js';
 import { currentLocale, t, updateTabBarLocale } from '@/utils/localeRuntime.js';
+import { publicDisplayName } from '@/utils/publicDisplayName.js';
 
 
 const { profileId: sheetProfileId, pageVisible: sheetPageVisible, open: openProfileSheet, close: closeProfileSheet } = useProfileDetailSheet();
+const accountDrawer = ref(null);
+const accountDrawerOpen = ref(false);
+const accountDrawerWidth = ref(readAccountDrawerWidth());
+let scrollBeforeAccountDrawer = 0;
+let restoreAccountScrollTimer = null;
+let refreshAccountOnShow = false;
+function readAccountDrawerWidth() {
+	try { return Math.min(Math.round((uni.getSystemInfoSync()?.windowWidth || 375) * .76), 360); }
+	catch (_) { return 285; }
+}
 onShow(() => {
 	updateTabBarLocale();
+	userInfo.value = getUserInfo() || {};
+	if (refreshAccountOnShow) { refreshAccountOnShow = false; void accountDrawer.value?.refresh(); }
 	refreshMembership().catch(() => {});
+	if (currentEntryIndex.value === 0 && featuredItems.value.length) loadFeaturedFeed({ isRefresh: true });
+	if (currentEntryIndex.value === 2) antiqueList.value?.refresh();
+	if (currentEntryIndex.value === 3) secondHandList.value?.refresh();
 	const tutorialTarget = consumeTutorialHomeTarget();
 	if (tutorialTarget === 'tutorial') setHomeModel('tutorial');
 	else if (['blessing', 'antique', 'second_hand'].includes(tutorialTarget)) {
@@ -586,8 +613,8 @@ function applyFeaturedSearch() {
  featuredKeyword.value = draftFeaturedKeyword.value.trim(); featuredTypes.value = [...draftFeaturedTypes.value]; featuredFilterOpen.value = false;
  featuredItems.value = []; loadFeaturedFeed({ isRefresh: true }); uni.pageScrollTo({ scrollTop: 0, duration: 0 });
 }
-onBackPress(() => { if (quotaInfoOpen.value) { quotaInfoOpen.value = false; return true; } if (featuredFilterOpen.value) { featuredFilterOpen.value = false; return true; } });
-onHide(() => { featuredFilterOpen.value = false; quotaInfoOpen.value = false; });
+onBackPress(() => { if (accountDrawerOpen.value) { if (!accountDrawer.value?.dismissOverlay()) closeAccountDrawer(); return true; } if (quotaInfoOpen.value) { quotaInfoOpen.value = false; return true; } if (featuredFilterOpen.value) { featuredFilterOpen.value = false; return true; } });
+onHide(() => { closeAccountDrawer({ restore: false }); featuredFilterOpen.value = false; quotaInfoOpen.value = false; });
 const recommendationHeaderFixed = ref(false);
 const recommendationHeaderHeight = ref(homeGeometry.value.contentTop + 161);
 
@@ -605,7 +632,31 @@ function measureRecommendationHeader() {
 }
 
 function openAccountCenter() {
-	uni.navigateTo({ url: "/pages/account/accountCenter" });
+	if (accountDrawerOpen.value) return;
+	quotaInfoOpen.value = false;
+	featuredFilterOpen.value = false;
+	if (sheetProfileId.value != null) closeProfileSheet();
+	if (restoreAccountScrollTimer) {
+		clearTimeout(restoreAccountScrollTimer);
+		restoreAccountScrollTimer = null;
+	} else scrollBeforeAccountDrawer = headerScroll.value;
+	if (scrollBeforeAccountDrawer > 0) uni.pageScrollTo({ scrollTop: 0, duration: 0 });
+	accountDrawerOpen.value = true;
+}
+
+function closeAccountDrawer(options = {}) {
+	if (!accountDrawerOpen.value) return;
+	accountDrawerOpen.value = false;
+	clearTimeout(restoreAccountScrollTimer);
+	if (options?.restore === false || !scrollBeforeAccountDrawer) return;
+	const scrollTop = scrollBeforeAccountDrawer;
+	restoreAccountScrollTimer = setTimeout(() => {
+		restoreAccountScrollTimer = null;
+		try {
+			const pages = getCurrentPages();
+			if (pages[pages.length - 1]?.route === 'pages/index/index360') uni.pageScrollTo({ scrollTop, duration: 0 });
+		} catch (_) { /* Page may already have been replaced. */ }
+	}, 270);
 }
 
 function goFinancial() {
@@ -637,7 +688,7 @@ onMounted(async () => {
 });
 
 watch(currentLocale, updatePageTitle);
-onResize(() => { homeGeometry.value = readChatHeaderGeometry(uni, { clearCapsule: false }, homePlatform); measureRecommendationHeader(); });
+onResize(() => { homeGeometry.value = readChatHeaderGeometry(uni, { clearCapsule: false }, homePlatform); accountDrawerWidth.value = readAccountDrawerWidth(); measureRecommendationHeader(); });
 
 // ------- 回到顶部 -------
 function scrollToTop() {
@@ -717,9 +768,17 @@ function onBlessingChanged(change = {}) {
 }
 uni.$on('blessing:changed', onBlessingChanged);
 uni.$on('auth-session-changed', closeProfileSheet);
+function onAccountIdentityChanged() {
+	refreshAccountOnShow = true;
+	userInfo.value = getUserInfo() || {};
+	if (accountDrawerOpen.value) void accountDrawer.value?.refresh();
+}
+uni.$on('account-identity-changed', onAccountIdentityChanged);
 onBeforeUnmount(() => {
+	clearTimeout(restoreAccountScrollTimer);
 	uni.$off('blessing:changed', onBlessingChanged);
 	uni.$off('auth-session-changed', closeProfileSheet);
+	uni.$off('account-identity-changed', onAccountIdentityChanged);
 });
 
 async function rewindBlessingCard() {
@@ -734,7 +793,7 @@ async function rewindBlessingCard() {
 			try {
 				const response = await getCandidateProfileApi(result.profileId);
 				const p = response.profile;
-				if (p) restored = { ...p, profileId: p.id, userId: p.user_id, displayName: [p.native_first_name || p.en_first_name, p.native_last_name || p.en_last_name].filter(Boolean).join(' '), avatarUrl: p.avatar_url, birthYear: p.birth_year, subRegion: p.sub_region, bio: p.bio || p.Selfintroduction };
+					if (p) restored = { ...p, profileId: p.id, userId: p.user_id, displayName: publicDisplayName(p, p, t('common.user')), avatarUrl: p.avatar_url, birthYear: p.birth_year, subRegion: p.sub_region, bio: p.bio || p.Selfintroduction };
 			} catch (_) { /* A refresh can recover a restored profile if details are temporarily unavailable. */ }
 		}
 		if (restored) profiles.value = [{ ...restored, ...result, showComments: false, comments: restored.comments || [], commentDraft: '' }, ...profiles.value.filter(item => String(item.profileId) !== String(result.profileId))];
@@ -873,6 +932,7 @@ async function loadFeed({ isRefresh }) {
 
 		const newItems = (res.profiles || []).map((p) => ({
 			...p,
+			displayName: publicDisplayName(p, p, t('common.user')),
 			showComments: false,
 			commentsLoading: false,
 			comments: [],
@@ -995,6 +1055,7 @@ function openFeaturedItem(item) {
 }
 
 onPullDownRefresh(async () => {
+ if (accountDrawerOpen.value) { uni.stopPullDownRefresh(); return; }
  if (model.value === 'activity') { try { await activityLibrary.value?.refresh(); } finally { uni.stopPullDownRefresh(); } return; }
 	if (model.value === 'tutorial') {
 		try { await tutorialLibrary.value?.refresh(); }
@@ -1022,6 +1083,7 @@ onPageScroll(({ scrollTop }) => {
 });
 
 onReachBottom(() => {
+	if (accountDrawerOpen.value) return;
 	if (model.value !== 'recommend') return;
 	if (currentEntryIndex.value === 0) {
 		loadFeaturedFeed({ isRefresh: false });
@@ -1052,10 +1114,12 @@ async function toggleLike(item, source = 'list') {
 
 function isFeaturedMarket(item) { return item.type === 'antique' || item.type === 'second_hand'; }
 function isFeaturedLikeAvailable(item) {
+	if (item.membershipLocked) return false;
 	return item.type === "blessing" || item.type === "moment" || isFeaturedMarket(item);
 }
 
 function isFeaturedCommentAvailable(item) {
+	if (item.membershipLocked) return false;
 	return item.type === "moment" || isFeaturedMarket(item);
 }
 
@@ -1081,6 +1145,7 @@ function getFeaturedAddCommentApi(item) {
 }
 
 async function toggleFeaturedLike(item) {
+	if (item.membershipLocked) return openMembershipUpgrade('market');
 	if (item.featuredLikePending) return;
 	if (item.type === 'blessing') {
 		const profile = { profileId: item.id, isLiked: item.isLiked, likeCount: item.likeCount };
@@ -1104,11 +1169,12 @@ async function toggleFeaturedLike(item) {
 		console.error("精选点赞失败", e);
 		item.isLiked = prevLiked;
 		item.likeCount = prevCount;
-		uni.showToast({ title: t('home.actionFailed'), icon: "none" });
+		if (!handleMembershipError(e)) uni.showToast({ title: t('home.actionFailed'), icon: "none" });
 	} finally { item.featuredLikePending = false; }
 }
 
 function toggleFeaturedCommentPanel(item) {
+	if (item.membershipLocked) return openMembershipUpgrade('market');
 	const route = featuredItemRoute(item);
 	if (!route || !isFeaturedCommentAvailable(item)) return;
 	uni.navigateTo({ url: `${route}${route.includes('?') ? '&' : '?'}openComments=1` });
@@ -1242,7 +1308,7 @@ const originalEntries = computed(() => [
 	{ name: t('home.secondHand'), page: "/pages/market/marketList?category=second_hand" },
 	{ name: hs('community'), page: "/pages/community/index" },
 	{ name: hs('requests'), page: "/pages/demandhall/index" },
-	{ name: t('cake.promotionEntry'), page: "/pages/cake/index" },
+	{ name: hs('promotionEntry'), page: "/pages/cake/index" },
 ]);
 
 const currentEntryIndex = ref(1);
@@ -1895,4 +1961,26 @@ $gray-bg: #f5f6f8;
 @media(max-width:350px){.home-brand-row{gap:6px;}.home-brand-wordmark{font-size:22px;letter-spacing:2px;}.header-nav .nav-center .nav-links{gap:18px;}}
 .recommendation-sticky-header .header-nav{transition:height 180ms cubic-bezier(.23,1,.32,1),opacity 150ms ease-out;}
 @media(prefers-reduced-motion:reduce){.recommendation-sticky-header .header-nav{transition:none;}}
+</style>
+
+<style scoped>
+.home-drawer-scene{position:relative;min-height:100vh;background:#e8e6e1}
+.home-push-stage{position:relative;z-index:1;transform:none;transform-origin:left center;backface-visibility:hidden;transition:transform 280ms cubic-bezier(.32,.72,0,1),border-radius 280ms cubic-bezier(.32,.72,0,1),box-shadow 280ms ease-out}
+.home-push-stage.is-drawer-open{height:100vh;min-height:100vh;max-height:100vh;padding-bottom:0;overflow:hidden;box-sizing:border-box;border-radius:30px;box-shadow:inset 2px 0 0 rgba(218,215,208,.95),inset 5px 0 7px rgba(42,44,50,.14),-18px 10px 40px rgba(28,32,39,.24),0 20px 48px rgba(34,38,45,.22);transform:translate3d(var(--account-drawer-width),0,0) perspective(950px) rotateY(16deg) scale(.9)}
+.home-drawer-close-target{position:fixed;inset:0;z-index:1000;background:transparent;cursor:pointer}
+@media(prefers-reduced-motion:reduce){.home-push-stage{transition:none}}
+</style>
+
+<style scoped>
+.post-card.featured-locked-card .featured-locked-media{position:relative;height:174px;overflow:hidden;background:radial-gradient(circle at 28% 22%,#f4e5c9,transparent 43%),linear-gradient(135deg,#d4c4ad,#a69b89 57%,#665f58)}
+.post-card.featured-locked-card .featured-locked-media::before{content:"";position:absolute;left:30%;top:20%;width:40%;height:80%;border-radius:42% 42% 25% 25%;background:linear-gradient(110deg,#e9d9bb,#75634f);filter:blur(14px)}
+.post-card.featured-locked-card .featured-locked-image{display:block;width:100%;height:174px;filter:blur(8px) saturate(.75);transform:scale(1.08)}
+.post-card.featured-locked-card .featured-locked-media::after{content:"";position:absolute;inset:0;background:rgba(34,29,25,.13);pointer-events:none}
+.featured-locked-badge{position:absolute;z-index:2;left:50%;top:50%;transform:translate(-50%,-50%);display:flex;align-items:center;justify-content:center;gap:5px;max-width:calc(100% - 12px);padding:7px 10px;border-radius:22px;background:rgba(255,253,247,.94);color:#775E25;font-size:11px;font-weight:600;line-height:1.3;text-align:center}
+.featured-locked-badge text{overflow-wrap:anywhere}
+.post-card.featured-locked-card .featured-price{font-size:12px}
+.post-card.featured-locked-card .featured-summary{color:#8b8781;font-size:11px;line-height:1.5;white-space:normal;overflow-wrap:anywhere}
+.featured-locked-upgrade{display:flex;align-items:center;justify-content:center;width:calc(100% - 20px);min-height:39px;margin:10px 10px 12px;padding:6px 8px;border:0;border-radius:22px;background:var(--bless-soft,#F1E4BD);color:var(--bless-text,#775E25);font-size:12px;font-weight:600;line-height:1.35;white-space:normal;overflow-wrap:anywhere;transition:transform 140ms cubic-bezier(.23,1,.32,1)}
+.featured-locked-upgrade::after{border:0}.featured-locked-upgrade:active{transform:scale(.97)}
+@media(prefers-reduced-motion:reduce){.featured-locked-upgrade{transition:none}}
 </style>

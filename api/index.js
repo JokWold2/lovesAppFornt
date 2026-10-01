@@ -26,6 +26,41 @@ export function loginApi(email, password, opts = {}) {
   )
 }
 
+/** 开发环境手机号登录能力。正式环境由后端关闭。 */
+export function getPhoneLoginCapabilityApi() {
+  return get('/api/auth/phone-login-capability', {}, { noAuth: true, silent: true })
+}
+
+/** 使用国家/地区和手机号登录；不存在的号码由后端注册新账号。 */
+export function phoneLoginApi(payload, opts = {}) {
+  const { clientSessionId, ...requestOpts } = opts
+  return post(
+    '/api/auth/phone-login',
+    { ...payload, ...(clientSessionId ? { clientSessionId } : {}) },
+    { noAuth: true, ...requestOpts }
+  )
+}
+
+/** 当前账号的邮箱和手机登录状态，以及本地验证码绑定能力。 */
+export function getAccountIdentitiesApi(opts = {}) {
+  return get('/api/auth/identities', {}, { silent: true, ...opts })
+}
+
+/** 给当前账号增加邮箱密码登录。验证码由后端核对。 */
+export function bindEmailApi(payload, opts = {}) {
+  return post('/api/auth/bind-email', payload, opts)
+}
+
+/** 给当前账号增加手机验证码登录。 */
+export function bindPhoneApi(payload, opts = {}) {
+  return post('/api/auth/bind-phone', payload, opts)
+}
+
+/** 经用户二次确认并重新验证当前账号后注销。 */
+export function cancelAccountApi(payload = {}, opts = {}) {
+  return post('/api/auth/cancel-account', { ...payload, confirm: true }, { silent: true, skipAuthRedirect: true, ...opts })
+}
+
 /**
  * App 原生 Google 授权完成后，将授权结果交给后端校验并换取项目 JWT。
  */

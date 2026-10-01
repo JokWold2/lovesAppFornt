@@ -9,7 +9,8 @@ export function marketListRoute(category) {
   return `/pages/market/marketList?category=${category}`
 }
 
-export function marketFeedRoute(category, postId) {
+export function marketFeedRoute(category, postId, lockedPreviewUrl = '') {
   assertCategory(category)
-  return `/pages/market/marketFeed?category=${category}&postId=${encodeURIComponent(postId)}`
+  const preview = lockedPreviewUrl.startsWith('/api/market/locked-previews/') ? `&lockedPreview=${encodeURIComponent(lockedPreviewUrl)}` : ''
+  return `/pages/market/marketFeed?category=${category}&postId=${encodeURIComponent(postId)}${preview}`
 }

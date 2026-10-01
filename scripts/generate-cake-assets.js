@@ -5,7 +5,7 @@ const fs = require('fs');
 const path = require('path');
 const sharp = require('D:\\OpenClaw\\boss\\my-backend\\node_modules\\sharp');
 
-const OUT_DIR = 'D:\\OpenClaw\\boss\\apps\\static\\cake';
+const OUT_DIR = path.join(__dirname, '..', 'pages', 'cake', 'static');
 const SIZE = 512;
 
 const wrap = (inner, background) => `<svg xmlns="http://www.w3.org/2000/svg" width="${SIZE}" height="${SIZE}" viewBox="0 0 512 512">

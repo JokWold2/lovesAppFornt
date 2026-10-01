@@ -1,6 +1,6 @@
 // 蛋糕 / 月饼商城接口。契约见 my-backend/docs/cake-shop-api.md。
 // 全部使用 silent，由页面按当前语言展示加载/失败状态，避免 request.js 弹出未翻译的中文提示。
-import { get, post, put, del } from '../utils/request.js'
+import { get, post, put, del } from '../../../utils/request.js'
 
 const SILENT = { silent: true }
 

@@ -187,10 +187,12 @@
 				>{{ action.label }}</view>
 			</view>
 		</template>
+		<BlessDialog ref="blessDialog" />
 	</view>
 </template>
 
 <script setup>
+import './locale.js'
 import { computed, ref } from 'vue'
 import { onLoad, onShow } from '@dcloudio/uni-app'
 import { config } from '@/utils/config.js'
@@ -200,9 +202,10 @@ import {
 	updateDemandHallOrderStatusApi,
 	submitDemandHallOrderDeliveryApi,
 	DEMAND_HALL_UPLOAD_URL
-} from '@/api/demandHall.js'
+} from '@/pages/demandhall/api/demandHall.js'
 import { t } from '@/utils/localeRuntime.js'
-import { categoryLabel, formatDeadlineText, formatPriceLabel, formatRelativeTime } from '@/utils/demandHallPresentation.js'
+import BlessDialog from '@/components/common/BlessDialog.vue'
+import { categoryLabel, formatDeadlineText, formatPriceLabel, formatRelativeTime } from '@/pages/demandhall/utils/demandHallPresentation.js'
 import {
 	escrowActionBar,
 	escrowSteps,
@@ -212,7 +215,7 @@ import {
 	formatAmount,
 	orderEventText,
 	overdueState
-} from '@/utils/demandHallWorkspace.js'
+} from '@/pages/demandhall/utils/demandHallWorkspace.js'
 
 const orderId = ref(null)
 const order = ref(null)
@@ -226,6 +229,7 @@ const loading = ref(true)
 // 加载失败要能重试，不能和「订单不存在 / 无权查看」共用一个终态。
 const loadError = ref(false)
 const actionBusy = ref(false)
+const blessDialog = ref(null)
 
 /* ============ 展示派生 ============ */
 const steps = computed(() => escrowSteps(order.value?.status))
@@ -457,7 +461,7 @@ const CONFIRM_KEYS = {
 function onActionTap(action) {
 	// 不可用按钮（等待对方操作 / 已结束）保持可见但不可点，避免重复提交。
 	if (action?.disabled) return
-	// 需要认证服务者的订单在卖家未认证时拦截付款，先弹说明再询问是否继续。
+	// 需要认证服务者的订单在卖家未认证时拦截付款，并说明原因。
 	if (action.action === 'fund' && requiresVerifiedSeller.value) {
 		showVerifiedGate()
 		return
@@ -466,15 +470,12 @@ function onActionTap(action) {
 }
 
 function showVerifiedGate() {
-	uni.showModal({
+	void blessDialog.value.open({
 		title: t('escrow.verifiedGateTitle'),
 		content: t('escrow.verifiedGateContent'),
-		cancelText: t('escrow.verifiedGateCancel'),
-		confirmText: t('escrow.verifiedGateContinue'),
-		success: ({ confirm }) => {
-			// 后端的校验结果是唯一依据；这里只负责把原因说清楚。
-			if (confirm) uni.showToast({ title: t('escrow.fundBlocked'), icon: 'none' })
-		}
+		confirmText: t('escrow.verifiedGateCancel'),
+		showCancel: false,
+		tone: 'info'
 	})
 }
 
@@ -491,7 +492,9 @@ async function runAction(action) {
 	if (keys) {
 		const confirmed = await confirmDialog({
 			title: t(keys.title),
-			content: t(keys.content, { amount: formatAmount(order.value?.amount) })
+			content: t(action === 'fund' ? 'escrow.fundDialogNotice' : action === 'confirm' ? 'escrow.confirmDialogNotice' : keys.content, { amount: formatAmount(order.value?.amount) }),
+			tone: action === 'fund' || action === 'confirm' ? 'payment' : (action === 'cancel' || action === 'refund' ? 'danger' : 'info'),
+			amount: action === 'fund' || action === 'confirm' ? `￥${formatAmount(order.value?.amount)}` : ''
 		})
 		if (!confirmed) return
 	}
@@ -507,17 +510,16 @@ async function runAction(action) {
 	}
 }
 
-function confirmDialog({ title, content }) {
-	return new Promise(resolve => {
-		uni.showModal({
-			title,
-			content,
-			confirmText: t('escrow.confirm'),
-			cancelText: t('escrow.cancel'),
-			success: ({ confirm }) => resolve(confirm),
-			fail: () => resolve(false)
-		})
+async function confirmDialog({ title, content, tone, amount }) {
+	const { confirm } = await blessDialog.value.open({
+		title,
+		content,
+		confirmText: t('escrow.confirm'),
+		cancelText: t('escrow.cancel'),
+		tone,
+		amount
 	})
+	return confirm
 }
 
 /** 滚到交付凭证区，让卖家直接开始填写，而不是只弹一句提示。 */

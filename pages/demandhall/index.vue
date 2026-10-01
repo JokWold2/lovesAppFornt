@@ -453,10 +453,12 @@
 				</view>
 			</view>
 		</SlideUpPanel>
+		<BlessDialog ref="blessDialog" />
 	</view>
 </template>
 
 <script setup>
+import './locale.js'
 import { computed, nextTick, ref } from 'vue'
 import { onLoad, onShow } from '@dcloudio/uni-app'
 import {
@@ -468,10 +470,11 @@ import {
 	updateDemandHallPostApi,
 	toggleDemandHallCollectApi,
 	createDemandHallApplicationApi
-} from '@/api/demandHall.js'
+} from '@/pages/demandhall/api/demandHall.js'
 import { createChatRequestApi, getChatRequestStatusApi } from '@/api/chat.js'
 import { t } from '@/utils/localeRuntime.js'
 import SlideUpPanel from '@/components/common/SlideUpPanel.vue'
+import BlessDialog from '@/components/common/BlessDialog.vue'
 import {
 	DEMAND_HALL_TABS,
 	SORT_OPTIONS,
@@ -495,9 +498,10 @@ import {
 	validatePublishForm,
 	postActionText,
 	canApplyToPost
-} from '@/utils/demandHallPresentation.js'
+} from '@/pages/demandhall/utils/demandHallPresentation.js'
 
 const PAGE_SIZE = 10
+const blessDialog = ref(null)
 const tabs = DEMAND_HALL_TABS
 const sortOptions = SORT_OPTIONS
 const locationOptions = LOCATION_OPTIONS
@@ -929,21 +933,18 @@ async function contact(post) {
 			uni.showToast({ title: text.value.contactPending, icon: 'none' })
 			return
 		}
-		uni.showModal({
+		const { confirm, content } = await blessDialog.value.open({
 			title: text.value.contactTitle,
 			editable: true,
 			placeholderText: text.value.contactPlaceholder,
 			content: buildContactMessage(post),
 			cancelText: text.value.cancel,
 			confirmText: text.value.contactSend,
-			success: async ({ confirm, content }) => {
-				if (!confirm) return
-				try {
-					await createChatRequestApi({ targetUserId: post.userId, message: (content || buildContactMessage(post)).slice(0, 500) })
-					uni.showToast({ title: text.value.contactSent, icon: 'success' })
-				} catch (error) { /* 请求层已提示 */ }
-			}
+			tone: 'heart'
 		})
+		if (!confirm) return
+		await createChatRequestApi({ targetUserId: post.userId, message: (content || buildContactMessage(post)).slice(0, 500) })
+		uni.showToast({ title: text.value.contactSent, icon: 'success' })
 	} catch (error) { /* 请求层已提示 */ }
 }
 

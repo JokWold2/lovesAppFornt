@@ -93,12 +93,13 @@
 </template>
 
 <script setup>
+import './locale.js'
 import { computed, onMounted, ref } from 'vue'
 import { onShow } from '@dcloudio/uni-app'
-import CakeNavBar from '@/components/cake/CakeNavBar.vue'
+import CakeNavBar from '@/pages/cake/components/CakeNavBar.vue'
 import { currentLocale, t } from '@/utils/localeRuntime.js'
-import { getCakeCartApi, getCakeFavoritesApi, getCakeOrdersApi } from '@/api/cake.js'
-import { CAKE_ROUTES, cakeCartState, createCakeScrollProgress, goCakePage, goCakeTab } from '@/utils/cake.js'
+import { getCakeCartApi, getCakeFavoritesApi, getCakeOrdersApi } from '@/pages/cake/api/cake.js'
+import { CAKE_ROUTES, cakeCartState, createCakeScrollProgress, goCakePage, goCakeTab } from '@/pages/cake/utils/cake.js'
 
 const locale = currentLocale
 const { progress: navProgress, update: updateScroll } = createCakeScrollProgress(40)

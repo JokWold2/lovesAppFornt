@@ -202,6 +202,7 @@
 </template>
 
 <script setup>
+import './locale.js'
 import { ref, computed, watch, onMounted } from 'vue'
 import { onLoad } from '@dcloudio/uni-app'
 import {
@@ -211,7 +212,7 @@ import {
 	toggleCommunityLikeApi,
 	createCommunityPostApi,
 	uploadCommunityImagesApi
-} from '@/api/community.js'
+} from '@/pages/community/api/community.js'
 import { currentLocale, t } from '@/utils/localeRuntime.js'
 import {
 	COMMUNITY_TOPIC_DETAIL_ROUTE,
@@ -221,7 +222,7 @@ import {
 	ensureCommunityLogin,
 	formatCommunityNumber,
 	formatCommunityTime
-} from '@/utils/communityHub.js'
+} from '@/pages/community/utils/communityHub.js'
 
 const PAGE_SIZE = 10
 // 与社区首页保持同一套分类契约（后端 COMMUNITY_CATEGORIES）

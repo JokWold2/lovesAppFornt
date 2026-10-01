@@ -1,4 +1,4 @@
-// 校验 pages/cake、components/cake 与 utils/cake.js 的文案：
+// 校验 pages/cake、pages/cake/components 与 pages/cake/utils/cake.js 的文案：
 //  1. 所有 t('cake.xxx') / labelKey: 'cake.xxx' 引用的键，在 6 种语言里都必须存在
 //     （缺失时 translate() 会直接返回键名，页面就会露出翻译键）
 //  2. 6 种语言的键集合必须完全一致，避免某种语言少一句
@@ -7,12 +7,9 @@
 const fs = require('fs');
 const path = require('path');
 
-const ROOT = 'D:\\OpenClaw\\boss\\apps';
-const SOURCES = [
-  path.join(ROOT, 'pages', 'cake'),
-  path.join(ROOT, 'components', 'cake')
-];
-const EXTRA_FILES = [path.join(ROOT, 'utils', 'cake.js')];
+const ROOT = path.resolve(__dirname, '..');
+const SOURCES = [path.join(ROOT, 'pages', 'cake')];
+const EXTRA_FILES = [path.join(ROOT, 'pages', 'cake', 'utils', 'cake.js')];
 const LOCALES = ['zh-Hans', 'zh-Hant', 'en', 'ru', 'ja', 'ko'];
 
 function collect(dir) {
@@ -25,8 +22,8 @@ function collect(dir) {
 
 const files = SOURCES.flatMap(collect).concat(EXTRA_FILES);
 
-// ---- 载入 cakeMessages.js（ESM，去掉 export 后求值） ----
-const messageSource = fs.readFileSync(path.join(ROOT, 'utils', 'cakeMessages.js'), 'utf8')
+// ---- 载入蛋糕分包的 cakeMessages.js（ESM，去掉 export 后求值） ----
+const messageSource = fs.readFileSync(path.join(ROOT, 'pages', 'cake', 'cakeMessages.js'), 'utf8')
   .replace(/^export\s+default\s+cakeMessages\s*$/m, '')
   .replace(/^export\s+/gm, '');
 const cakeMessages = new Function(`${messageSource}\nreturn cakeMessages;`)();

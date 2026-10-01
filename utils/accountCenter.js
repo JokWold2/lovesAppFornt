@@ -1,11 +1,7 @@
-export function getAccountName(profile = {}, user = {}) {
-  const nativeName = `${profile.native_last_name || ''}${profile.native_first_name || ''}`.trim()
-  if (nativeName) return nativeName
+import { publicDisplayName } from './publicDisplayName.js'
 
-  const englishName = [profile.en_first_name, profile.en_last_name].filter(Boolean).join(' ').trim()
-  if (englishName) return englishName
-
-  return user.displayName || user.name || user.nickname || '用户'
+export function getAccountName(profile = {}, user = {}, fallback = '') {
+  return publicDisplayName(profile, user, fallback)
 }
 
 export function getAccountEmail(profile = {}, user = {}) {

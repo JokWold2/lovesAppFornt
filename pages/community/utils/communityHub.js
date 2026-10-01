@@ -2,7 +2,7 @@
  * 社区话题广场 / 榜单的共用跳转与展示助手。
  * 页面只负责渲染，路由拼装与纯计算放在这里，便于用 node:test 直接覆盖。
  */
-import { isLoggedIn } from './auth.js'
+import { isLoggedIn } from '../../../utils/auth.js'
 
 export const COMMUNITY_INDEX_ROUTE = '/pages/community/index'
 export const COMMUNITY_TOPICS_ROUTE = '/pages/community/topics'

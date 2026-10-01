@@ -53,7 +53,7 @@
         </view>
 
         <view class="cake-hero-showcase">
-          <image class="cake-hero-image" src="/static/cake/promo-mooncake.png" mode="aspectFit" :alt="t('cake.promoImageAlt')" />
+          <image class="cake-hero-image" :src="promoMooncakeImage" mode="aspectFit" :alt="t('cake.promoImageAlt')" />
         </view>
 
         <button class="cake-hero-cta" @click="goPromoTransport">{{ t('cake.promoShipping') }}</button>
@@ -239,15 +239,17 @@
 </template>
 
 <script setup>
+import './locale.js'
+import promoMooncakeImage from './static/promo-mooncake.png'
 import { computed, onMounted, ref } from 'vue'
 import { onShow } from '@dcloudio/uni-app'
-import CakeNavBar from '@/components/cake/CakeNavBar.vue'
-import CakeCartFab from '@/components/cake/CakeCartFab.vue'
-import CakeProductCard from '@/components/cake/CakeProductCard.vue'
-import CakeSkuPanel from '@/components/cake/CakeSkuPanel.vue'
-import CakeStateView from '@/components/cake/CakeStateView.vue'
+import CakeNavBar from '@/pages/cake/components/CakeNavBar.vue'
+import CakeCartFab from '@/pages/cake/components/CakeCartFab.vue'
+import CakeProductCard from '@/pages/cake/components/CakeProductCard.vue'
+import CakeSkuPanel from '@/pages/cake/components/CakeSkuPanel.vue'
+import CakeStateView from '@/pages/cake/components/CakeStateView.vue'
 import { currentLocale, t } from '@/utils/localeRuntime.js'
-import { getCakeBannersApi, getCakeCartApi, getCakeProductsApi, addCakeCartItemApi } from '@/api/cake.js'
+import { getCakeBannersApi, getCakeCartApi, getCakeProductsApi, addCakeCartItemApi } from '@/pages/cake/api/cake.js'
 import {
   CAKE_ROUTES,
   cakeCartState,
@@ -255,7 +257,7 @@ import {
   goCakePage,
   goCakeTab,
   pickCakeText
-} from '@/utils/cake.js'
+} from '@/pages/cake/utils/cake.js'
 
 const locale = currentLocale
 const { progress: navProgress, update: updateScroll } = createCakeScrollProgress(56)

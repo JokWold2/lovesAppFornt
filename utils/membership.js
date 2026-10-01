@@ -78,7 +78,7 @@ export function openMembershipUpgrade(action = '') {
   if (typeof uni === 'undefined') return
   const pages = typeof getCurrentPages === 'function' ? getCurrentPages() : []
   if (pages[pages.length - 1]?.route === 'pages/membership/upgrade') return
-  const reason = ['like', 'comment', 'rewind', 'likes', 'search'].includes(action) ? action : ''
+  const reason = ['like', 'comment', 'rewind', 'likes', 'search', 'market'].includes(action) ? action : ''
   uni.navigateTo({ url: `/pages/membership/upgrade${reason ? `?reason=${reason}` : ''}` })
 }
 

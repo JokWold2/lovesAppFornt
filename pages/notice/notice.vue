@@ -41,7 +41,8 @@
       </scroll-view>
       <view v-if="likesState.incoming.error || likesState.membershipError" class="likes-feedback"><text>{{ t('messageInbox.loadFailed') }}</text><button class="likes-retry" @click="retryLikes"><view class="retry-label"><text class="retry-label-text">{{ t('messageInbox.retry') }}</text></view></button></view>
     </view>
-    <TradeInboxPanel :groups="filteredChatGroups" :trades="tradeConversations" :search="searchKeyword" :show-interactions="showInteractions" :interaction-unread="interactionUnread" :interaction-summary="interactionSummary" :interaction-date="interactionDate" :is-admin="isAdmin" :request-count="filteredRequests.length" :error="messageError" :notice-count="tradeNoticeCount" @interactions="openInteractions" @reviews="openRequestReviews" @group="openGroup" @retry="load" />    <LiquidGlassTabBar active-route="pages/notice/notice" :input-active="navigationInputActive" :hidden="!!sheetProfileId" />
+    <TradeInboxPanel :groups="filteredChatGroups" :trades="tradeConversations" :search="searchKeyword" :show-interactions="showInteractions" :interaction-unread="interactionUnread" :interaction-summary="interactionSummary" :interaction-date="interactionDate" :is-admin="isAdmin" :request-count="filteredRequests.length" :error="messageError" :notice-count="tradeNoticeCount" @interactions="openInteractions" @reviews="openRequestReviews" @group="openGroup" @retry="load" @conversation-changed="conversationChanged" />
+    <LiquidGlassTabBar active-route="pages/notice/notice" :input-active="navigationInputActive" :hidden="!!sheetProfileId" />
     <ProfileDetailSheet :profile-id="sheetProfileId" :page-visible="sheetPageVisible" @closed="closeProfileSheet" />
   </view>
 </template>
@@ -108,6 +109,17 @@ function badgeText(value) { const count = Math.max(0, Math.floor(Number(value) |
 function openInteractions() { uni.navigateTo({ url:'/pages/notice/interactionMessages' }) }
 function openGroup(id) { uni.navigateTo({ url:`/pages/chat/chatRoom?id=${id}` }) }
 function openRequestReviews() { uni.navigateTo({ url:'/pages/notice/chatRequestReview' }) }
+function conversationChanged(event) {
+  if (!event || !['group', 'trade'].includes(event.kind)) return
+  const target = event.kind === 'group' ? chatGroups : tradeConversations
+  if (event.action === 'delete') target.value = target.value.filter(item => String(item.id) !== String(event.id))
+  else if (event.action === 'pin') target.value = target.value.map(item => String(item.id) === String(event.id) ? { ...item, pinned_at: event.pinned ? event.pinned_at || new Date().toISOString() : null } : item)
+  else return
+  // Ignore an in-flight poll started before the mutation and refresh from the server.
+  generation++
+  messageLoading = false
+  load()
+}
 function loadMoreLikes() { if (visible && !sheetProfileId.value) likes.loadMore() }
 function retryLikes() { for (const key of Object.keys(failedPhotos)) delete failedPhotos[key]; refreshLikes(true) }
 let visible = false, disposed = false, generation = 0, messageLoading = false, lastToken = '', lastLikesRefresh = 0, lastLikeUnread = null

@@ -56,7 +56,7 @@ import {
   orderStatusKey,
   pickCakeText,
   resolveCakeImageUrl
-} from '@/utils/cake.js'
+} from '@/pages/cake/utils/cake.js'
 
 const props = defineProps({
   order: { type: Object, required: true },

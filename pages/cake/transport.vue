@@ -10,9 +10,10 @@
 </template>
 
 <script setup>
+import './locale.js'
 import { ref } from 'vue'
 import { onLoad } from '@dcloudio/uni-app'
-import CakeProductList from '@/components/cake/CakeProductList.vue'
+import CakeProductList from '@/pages/cake/components/CakeProductList.vue'
 
 // 月饼到家只展示月饼相关分类；后端新增分类时在这里补 code 即可。
 const categoryCodes = ['mooncake-gift', 'mooncake-fresh', 'mooncake-set', 'cookie-gift']

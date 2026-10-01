@@ -25,7 +25,7 @@
 ### 国旗
 
 - [flag-icons v7.5.0](https://github.com/lipis/flag-icons/tree/v7.5.0)，MIT License，Panayiotis Lipiridis。
-- 使用发行包内 `flags/4x3/{ISO alpha-2}.svg`，统一缩放为本地 PNG 精灵图。授权文本保存在 [licenses/profile-flags-mit.txt](licenses/profile-flags-mit.txt)。
+- 使用发行包内 `flags/4x3/{ISO alpha-2}.svg`，统一缩放为教学分包内 `pages/tutorial/static/profile-flags.png`。授权文本保存在 [licenses/profile-flags-mit.txt](licenses/profile-flags-mit.txt)。
 - 国旗图片只用于国家、地区选项。语言和国籍不一一对应，不给语言随意指定国旗。
 - 不依赖系统 emoji 字体，也不依赖运行时外部图片服务。在微信、Windows、H5 和 App 中使用同一张本地资源。
 

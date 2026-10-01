@@ -1,6 +1,7 @@
 // Keep every locale explicit so missing product copy cannot silently fall back.
 export const membershipMessages = {
   'zh-Hans': {
+    marketHeadline: '喜欢的好物，看得更清楚', marketHint: '铜会员起解锁古董与二手市场，查看完整图片、价格与详情，并参与竞拍和交易。', marketBenefit: '古董与二手市场', marketBenefitCaption: '查看完整商品图片、价格与详情，参与竞拍和交易', marketUnavailable: '铜会员起可查看完整商品并参与竞拍和交易', marketCardUnavailable: '古董与二手市场暂不可用', marketCardBronze: '解锁古董与二手市场 · 详情 · 交易', marketCardIncluded: '包含古董与二手市场全部权益',
     confirm: '确定', cancel: '取消',
     title: '点赞', member: '{tier}会员', tier1: '铁', tier2: '铜', tier3: '银', tier4: '金',
     incoming: '给我点赞', outgoing: '我已点赞', allLikes: '全部获赞', likedPeople: '我喜欢的人', mutualHint: '两颗心，代表彼此心动', incomingHint: '每一颗心，都是一次相遇',
@@ -18,6 +19,7 @@ export const membershipMessages = {
     unavailable: '此操作暂不可用，请刷新后重试。', quotaExceeded: '今日额度已用完，请查看会员权益。', membershipRequired: '升级会员后即可使用此功能。', requestConflict: '申请状态已更新，请刷新后重试。', noRewind: '暂无可撤回的卡片操作。'
   },
   'zh-Hant': {
+    marketHeadline: '喜歡的好物，看得更清楚', marketHint: '銅會員起解鎖古董與二手市場，查看完整圖片、價格與詳情，並參與競拍和交易。', marketBenefit: '古董與二手市場', marketBenefitCaption: '查看完整商品圖片、價格與詳情，參與競拍和交易', marketUnavailable: '銅會員起可查看完整商品並參與競拍和交易', marketCardUnavailable: '古董與二手市場暫不可用', marketCardBronze: '解鎖古董與二手市場 · 詳情 · 交易', marketCardIncluded: '包含古董與二手市場全部權益',
     confirm: '確定', cancel: '取消',
     title: '按讚', member: '{tier}會員', tier1: '鐵', tier2: '銅', tier3: '銀', tier4: '金',
     incoming: '誰按我讚', outgoing: '我已按讚', allLikes: '所有收到的讚', likedPeople: '我喜歡的人', mutualHint: '兩顆心，代表彼此心動', incomingHint: '每一顆心，都是一次相遇',
@@ -35,6 +37,7 @@ export const membershipMessages = {
     unavailable: '此操作暫時無法使用，請重新整理後重試。', quotaExceeded: '今日額度已用完，請查看會員權益。', membershipRequired: '升級會員後即可使用此功能。', requestConflict: '申請狀態已更新，請重新整理後重試。', noRewind: '暫無可撤回的卡片操作。'
   },
   en: {
+    marketHeadline: 'See the things you love more clearly', marketHint: 'Bronze and above unlock antiques and secondhand listings, with full photos, prices and details, plus bidding and trading.', marketBenefit: 'Antiques and secondhand market', marketBenefitCaption: 'See full photos, prices and details, and take part in bidding and trading', marketUnavailable: 'Unlock full listings, bidding and trading from Bronze', marketCardUnavailable: 'Antiques and secondhand market unavailable', marketCardBronze: 'Unlock antiques and secondhand · details · trading', marketCardIncluded: 'Includes all antiques and secondhand benefits',
     confirm: 'OK', cancel: 'Back',
     title: 'Likes', member: '{tier} member', tier1: 'Iron', tier2: 'Bronze', tier3: 'Silver', tier4: 'Gold',
     incoming: 'Likes you', outgoing: 'Your likes', allLikes: 'All likes', likedPeople: 'People you like', mutualHint: 'Two hearts, a mutual like', incomingHint: 'Every heart is a new possibility',
@@ -52,6 +55,7 @@ export const membershipMessages = {
     unavailable: 'This action is unavailable. Refresh and try again.', quotaExceeded: 'Today’s allowance is used up. View membership benefits.', membershipRequired: 'Upgrade your membership to use this feature.', requestConflict: 'The request has changed. Refresh and try again.', noRewind: 'There is no card action to undo.'
   },
   ru: {
+    marketHeadline: 'Рассмотрите любимые вещи ближе', marketHint: 'С уровня «Бронза» открываются антиквариат и вторичный рынок: все фото, цены, описание, торги и сделки.', marketBenefit: 'Антиквариат и вторичный рынок', marketBenefitCaption: 'Все фото, цены и описание товаров, участие в торгах и сделках', marketUnavailable: 'Полный доступ к товарам, торгам и сделкам — с уровня «Бронза»', marketCardUnavailable: 'Антиквариат и вторичный рынок пока недоступны', marketCardBronze: 'Антиквариат и вторичный рынок · детали · сделки', marketCardIncluded: 'Все привилегии антиквариата и вторичного рынка включены',
     confirm: 'Да', cancel: 'Нет',
     title: 'Симпатии', member: 'Уровень: {tier}', tier1: 'Железо', tier2: 'Бронза', tier3: 'Серебро', tier4: 'Золото',
     incoming: 'Вам симпатизируют', outgoing: 'Ваши симпатии', allLikes: 'Все симпатии', likedPeople: 'Кто вам нравится', mutualHint: 'Два сердца — взаимная симпатия', incomingHint: 'Каждое сердце — шанс на встречу',
@@ -69,6 +73,7 @@ export const membershipMessages = {
     unavailable: 'Действие недоступно. Обновите страницу и попробуйте снова.', quotaExceeded: 'Дневной лимит исчерпан. Посмотрите привилегии членства.', membershipRequired: 'Для этой функции нужен более высокий уровень.', requestConflict: 'Состояние заявки изменилось. Обновите страницу.', noRewind: 'Нет действия с карточкой для отмены.'
   },
   ja: {
+    marketHeadline: '気になる品を、もっと鮮明に', marketHint: 'ブロンズ会員から骨董品・中古市場の写真、価格、詳細をすべて確認でき、入札や取引にも参加できます。', marketBenefit: '骨董品・中古市場', marketBenefitCaption: '商品の写真、価格、詳細をすべて確認し、入札や取引に参加', marketUnavailable: '商品の全情報と入札・取引はブロンズ会員から利用可能', marketCardUnavailable: '骨董品・中古市場はまだ利用できません', marketCardBronze: '骨董品・中古市場 · 詳細 · 取引を解放', marketCardIncluded: '骨董品・中古市場の特典をすべて含みます',
     confirm: '確認', cancel: '戻る',
     title: 'いいね', member: '{tier}会員', tier1: 'アイアン', tier2: 'ブロンズ', tier3: 'シルバー', tier4: 'ゴールド',
     incoming: 'もらったいいね', outgoing: '送ったいいね', allLikes: 'すべてのいいね', likedPeople: 'いいねした人', mutualHint: '2つのハートは両想いのしるし', incomingHint: 'ひとつのハートから新しい出会いへ',
@@ -86,6 +91,7 @@ export const membershipMessages = {
     unavailable: 'この操作は現在利用できません。更新して再試行してください。', quotaExceeded: '本日の上限に達しました。会員特典をご確認ください。', membershipRequired: 'この機能には会員のアップグレードが必要です。', requestConflict: '申請状況が変わりました。更新して再試行してください。', noRewind: '取り消せるカード操作はありません。'
   },
   ko: {
+    marketHeadline: '마음에 드는 물건을 더 선명하게', marketHint: '브론즈 회원부터 골동품과 중고 시장의 사진, 가격, 상세 정보를 모두 보고 입찰과 거래에 참여할 수 있어요.', marketBenefit: '골동품·중고 시장', marketBenefitCaption: '상품 사진, 가격, 상세 정보를 모두 보고 입찰과 거래에 참여', marketUnavailable: '전체 상품 정보와 입찰·거래는 브론즈 회원부터 이용 가능', marketCardUnavailable: '골동품·중고 시장은 아직 이용할 수 없어요', marketCardBronze: '골동품·중고 시장 · 상세 정보 · 거래 이용', marketCardIncluded: '골동품·중고 시장의 모든 혜택 포함',
     confirm: '확인', cancel: '취소',
     title: '좋아요', member: '{tier} 회원', tier1: '아이언', tier2: '브론즈', tier3: '실버', tier4: '골드',
     incoming: '받은 좋아요', outgoing: '보낸 좋아요', allLikes: '받은 좋아요 전체', likedPeople: '내가 좋아하는 사람', mutualHint: '하트 두 개는 서로의 호감', incomingHint: '하트 하나로 시작되는 새로운 만남',

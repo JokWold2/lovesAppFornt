@@ -23,7 +23,7 @@
 <script setup>
 import { computed } from 'vue'
 import { t } from '@/utils/localeRuntime.js'
-import { formatCakePrice } from '@/utils/cake.js'
+import { formatCakePrice } from '@/pages/cake/utils/cake.js'
 
 const props = defineProps({
   totalQuantity: { type: Number, default: 0 },

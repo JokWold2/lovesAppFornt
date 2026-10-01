@@ -14,7 +14,8 @@ import { onReady, onResize, onShow } from '@dcloudio/uni-app'
 import { getChatHeaderGlassProgress, readChatHeaderGeometry } from '@/utils/chatHeaderLayout.js'
 import GlassCircleButton from './GlassCircleButton.vue'
 import { t } from '@/utils/localeRuntime.js'
-const props = defineProps({ title: String, avatarHeader: Boolean, glass: Boolean, avatarSize: { type: Number, default: 54 }, scrollTop: { type: Number, default: 0 } })
+const props = defineProps({ title: String, avatarHeader: Boolean, glass: Boolean, customBack: Boolean, avatarSize: { type: Number, default: 54 }, scrollTop: { type: Number, default: 0 } })
+const emit = defineEmits(['back'])
 const slots = useSlots()
 let buildPlatformOverride = ''
 // #ifdef MP-WEIXIN
@@ -33,7 +34,10 @@ onReady(refreshLayout)
 onShow(refreshLayout)
 onResize(refreshLayout)
 watch(() => [props.avatarHeader, props.avatarSize, props.glass], refreshLayout)
-function back() { uni.navigateBack({ fail: () => uni.switchTab({ url: '/pages/notice/notice' }) }) }
+function back() {
+  if (props.customBack) { emit('back'); return }
+  uni.navigateBack({ fail: () => uni.switchTab({ url: '/pages/notice/notice' }) })
+}
 </script>
 <style scoped>
 .chat-page-header{position:relative;z-index:5;padding-bottom:12px;background:transparent;box-sizing:border-box;flex:none;}

@@ -30,10 +30,15 @@ export function uploadChatImageApi(id, filePath) {
   })
 }
 export const addChatMemberApi = (id, userId) => post(`/api/chat-groups/${id}/members`, { userId })
-export const getChatGroupDetailApi = (id) => get(`/api/chat-groups/${id}/detail`)
+export const getChatGroupDetailApi = (id, opts = {}) => get(`/api/chat-groups/${id}/detail`, {}, opts)
 export const updateChatGroupApi = (id, payload) => request({ url: `/api/chat-groups/${id}`, method: 'PATCH', data: payload })
 export const removeChatGroupMemberApi = (id, userId) => del(`/api/chat-groups/${id}/members/${userId}`)
 export const dissolveChatGroupApi = (id) => post(`/api/chat-groups/${id}/dissolve`)
+export const createChatGroupExitRequestApi = (id, payload = {}) => post(`/api/chat-groups/${id}/exit-requests`, payload, { silent: true })
+export const getChatGroupExitRequestsApi = (id) => get(`/api/chat-groups/${id}/exit-requests`, {}, { silent: true })
+export const getMyChatGroupExitRequestApi = (id) => get(`/api/chat-groups/${id}/exit-requests/mine`, {}, { silent: true })
+export const approveChatGroupExitRequestApi = (id, requestId) => post(`/api/chat-groups/${id}/exit-requests/${requestId}/approve`, {}, { silent: true })
+export const rejectChatGroupExitRequestApi = (id, requestId) => post(`/api/chat-groups/${id}/exit-requests/${requestId}/reject`, {}, { silent: true })
 export function uploadChatGroupAvatar(id, filePath) {
   return new Promise((resolve, reject) => {
     uni.uploadFile({

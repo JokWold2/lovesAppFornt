@@ -5,10 +5,10 @@ function textValue(value) {
 }
 
 /**
- * Normalise the two comment response formats currently used by the home feed.
- * Moment comments expose `author_name`, while blessing comments expose `email`.
+ * Normalise the comment name fields used by the home feed.
+ * An email address is an account identifier, not a public display name.
  */
-export function commentDisplayName(comment = {}, fallback = '用户') {
+export function commentDisplayName(comment = {}, fallback = '') {
   const name = [
     comment.author_name,
     comment.authorName,
@@ -19,18 +19,14 @@ export function commentDisplayName(comment = {}, fallback = '用户') {
 
   if (name) return name
 
-  const email = textValue(comment.email)
-  if (email) return email.split('@')[0] || email
-
   return fallback
 }
 
-export function commentReplyDisplayName(comment = {}, fallback = '用户') {
+export function commentReplyDisplayName(comment = {}, fallback = '') {
   return commentDisplayName({
     author_name: comment.reply_to_name || comment.replyToName,
     display_name: comment.reply_to_display_name || comment.replyToDisplayName,
-    name: comment.reply_to_user_name || comment.replyToUserName,
-    email: comment.reply_to_email || comment.replyToEmail
+    name: comment.reply_to_user_name || comment.replyToUserName
   }, fallback)
 }
 
@@ -40,6 +36,7 @@ export function commentReplyDisplayName(comment = {}, fallback = '用户') {
  * @returns {string}
  */
 export function featuredItemImage(item = {}) {
+  if (item.membershipLocked) return item.lockedPreviewUrl?.startsWith('/api/market/locked-previews/') ? item.lockedPreviewUrl : ''
   return item.primaryImageUrl || item.images?.[0] || ''
 }
 
@@ -53,7 +50,7 @@ export function featuredItemRoute(item = {}) {
 	if (item.type === 'moment' && item.id) return `/pages/moments/momentDetail?id=${item.id}`
   if (item.type !== 'antique' && item.type !== 'second_hand') return ''
   if (item.marketCategory !== 'antique' && item.marketCategory !== 'second_hand') return ''
-  return marketFeedRoute(item.marketCategory, item.id)
+  return marketFeedRoute(item.marketCategory, item.id, item.membershipLocked ? item.lockedPreviewUrl : '')
 }
 
 /**

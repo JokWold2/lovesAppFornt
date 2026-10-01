@@ -2,18 +2,20 @@
   <view class="market-section">
     <view v-if="!compact" class="search"><uni-icons type="search" size="23" color="#555"/><input v-model="keyword" :placeholder="t(category === 'antique' ? 'marketSearch.antique' : 'marketSearch.secondHand')" maxlength="100" confirm-type="search" @confirm="search"/><view v-if="keyword" class="clear" @click="clearSearch"><uni-icons type="clear" size="18" color="#aaa"/></view><view class="search-submit" @click="search"><uni-icons type="arrow-right" size="24" color="#333"/></view></view>
     <view v-if="!compact || appliedKeyword || hasPrice || sort !== 'latest'" class="toolbar"><view @click="openFilters">{{ appliedKeyword ? appliedKeyword + ' · ' : '' }}{{ t('marketSearch.' + sort) }} <uni-icons type="bottom" size="12"/></view><view @click="openFilters"><uni-icons type="settings" size="18"/> {{ t('marketSearch.filter') }}<text v-if="hasPrice" class="dot"> •</text></view></view>
+    <view v-if="marketLocked" class="market-access-note" @click="goUpgrade"><uni-icons type="locked" size="15" color="#775E25"/><text>{{ t('marketAccess.banner') }}</text></view>
     <view v-if="loading && !posts.length" class="state">{{ t('home.loading') }}</view>
     <view v-else-if="error && !posts.length" class="state" @click="load(true)">{{ t('marketSearch.failed') }}</view>
     <view v-else-if="!posts.length" class="state">{{ t('marketSearch.empty') }}</view>
     <view v-else class="waterfall">
       <view v-for="(column, index) in columns" :key="index" class="column">
-        <view v-for="post in column" :key="post.id" class="card" @click="openPost(post.id)">
-          <image v-if="imageOf(post)" class="cover" :src="imageOf(post)" mode="widthFix"/><view v-else class="empty-cover">{{ t('market.noImage') }}</view>
+        <view v-for="post in column" :key="post.id" class="card" @click="openPost(post)">
+          <template v-if="post.membershipLocked"><view class="locked-cover-frame"><MarketLockedCover :src="post.lockedPreviewUrl || ''" /></view><view class="card-body locked-card-body"><text class="post-title">{{ t(post.category === 'second_hand' ? 'marketAccess.secondHandLockedTitle' : 'marketAccess.antiqueLockedTitle') }}</text><text class="locked-price">{{ t('marketAccess.priceLocked') }}</text><text class="locked-hint">{{ t('marketAccess.cardHint') }}</text><button class="locked-upgrade" @click.stop="goUpgrade">{{ t('marketAccess.upgrade') }}</button></view></template>
+          <template v-else><image v-if="imageOf(post)" class="cover" :src="imageOf(post)" mode="widthFix"/><view v-else class="empty-cover">{{ t('market.noImage') }}</view>
           <view class="card-body"><MarketAuctionStatus :auction="post.auction"/><text class="post-title ellipsis">{{ post.title }}</text><text class="price">¥ {{ post.price }}</text><text v-if="post.description" class="description ellipsis">{{ post.description }}</text>
             <view class="foot"><view class="author"><image v-if="post.author_avatar_url" :src="post.author_avatar_url" mode="aspectFill"/><view v-else class="avatar-placeholder"><uni-icons type="person-filled" size="16" color="#bbb"/></view><text class="ellipsis">{{ post.author_name || t('moment.user') }}</text></view>
-              <view class="actions"><view @click.stop="like(post)"><uni-icons :type="post.isLiked ? 'heart-filled' : 'heart'" size="18" :color="post.isLiked ? 'var(--bless-primary, #C2A052)' : '#96969c'"/><text>{{ post.likeCount || 0 }}</text></view><view @click.stop="openPost(post.id, true)"><uni-icons type="chatbubble" size="18" color="#96969c"/><text>{{ post.commentCount || 0 }}</text></view></view>
+              <view class="actions"><view @click.stop="like(post)"><uni-icons :type="post.isLiked ? 'heart-filled' : 'heart'" size="18" :color="post.isLiked ? 'var(--bless-primary, #C2A052)' : '#96969c'"/><text>{{ post.likeCount || 0 }}</text></view><view @click.stop="openPost(post, true)"><uni-icons type="chatbubble" size="18" color="#96969c"/><text>{{ post.commentCount || 0 }}</text></view></view>
             </view>
-          </view>
+          </view></template>
         </view>
       </view>
     </view>
@@ -32,12 +34,14 @@
 import { computed, ref, watch, onBeforeUnmount } from 'vue'
 import { onBackPress } from '@dcloudio/uni-app'
 import MarketAuctionStatus from '@/components/market/MarketAuctionStatus.vue'
+import MarketLockedCover from '@/components/market/MarketLockedCover.vue'
 import SlideUpPanel from '@/components/common/SlideUpPanel.vue'
 import { getMarketPostsApi, toggleMarketLikeApi } from '@/api/market.js'
 import { t } from '@/utils/localeRuntime.js'
 import { marketFeedRoute } from '@/utils/marketNavigation.js'
+import { openMembershipUpgrade } from '@/utils/membership.js'
 const props = defineProps({ category: { type: String, required: true }, title: String, compact: Boolean, active: { type: Boolean, default: true } })
-const posts = ref([]), loading = ref(false), error = ref(false), hasMore = ref(false), page = ref(1)
+const posts = ref([]), loading = ref(false), error = ref(false), hasMore = ref(false), page = ref(1), marketLocked = ref(false)
 const keyword = ref(''), appliedKeyword = ref(''), minPrice = ref(''), maxPrice = ref(''), sort = ref('latest')
 const draftKeyword = ref('')
 const filterOpen = ref(false), draftMin = ref(''), draftMax = ref(''), draftSort = ref('latest')
@@ -46,7 +50,8 @@ let revision = 0
 const columns = computed(() => [posts.value.filter((_, i) => i % 2 === 0), posts.value.filter((_, i) => i % 2 === 1)])
 const hasPrice = computed(() => minPrice.value !== '' || maxPrice.value !== '')
 function imageOf(post) { return Array.isArray(post.images) ? post.images.find(Boolean) || '' : '' }
-function openPost(id, comments = false) { uni.navigateTo({ url: marketFeedRoute(props.category, id) + (comments ? '&openComments=1' : '') }) }
+function openPost(post, comments = false) { uni.navigateTo({ url: marketFeedRoute(props.category, post.id, post.membershipLocked ? post.lockedPreviewUrl : '') + (comments ? '&openComments=1' : '') }) }
+function goUpgrade() { openMembershipUpgrade('market') }
 async function load(reset = false) {
   if (!reset && (loading.value || (!hasMore.value && !error.value))) return
   const current = ++revision, nextPage = reset ? 1 : page.value + 1
@@ -56,13 +61,14 @@ async function load(reset = false) {
     const data = await getMarketPostsApi({ category: props.category, keyword: appliedKeyword.value, minPrice: minPrice.value, maxPrice: maxPrice.value, sort: sort.value, page: nextPage, pageSize: 20 })
     if (current !== revision) return
     posts.value = reset ? data.posts || [] : [...posts.value, ...(data.posts || [])]
+    marketLocked.value = !!data.membershipLocked || posts.value.some(post => post.membershipLocked)
     page.value = nextPage; hasMore.value = !!data.hasMore
-  } catch (_) { if (current === revision) error.value = true }
+  } catch (cause) { if (current === revision) { if (cause?.code === 'MEMBERSHIP_REQUIRED' && cause?.action === 'market') { marketLocked.value = true; goUpgrade() } else error.value = true } }
   finally { if (current === revision) loading.value = false }
 }
-function search() { appliedKeyword.value = keyword.value.trim(); load(true) }
+function search() { if (marketLocked.value) return goUpgrade(); appliedKeyword.value = keyword.value.trim(); load(true) }
 function clearSearch() { keyword.value = ''; search() }
-function openFilters() { draftKeyword.value = appliedKeyword.value; draftMin.value = minPrice.value; draftMax.value = maxPrice.value; draftSort.value = sort.value; filterOpen.value = true }
+function openFilters() { if (marketLocked.value) return goUpgrade(); draftKeyword.value = appliedKeyword.value; draftMin.value = minPrice.value; draftMax.value = maxPrice.value; draftSort.value = sort.value; filterOpen.value = true }
 function resetDraft() { draftKeyword.value = ''; draftMin.value = ''; draftMax.value = ''; draftSort.value = 'latest' }
 function applyFilters() {
   const min = draftMin.value.trim(), max = draftMax.value.trim()
@@ -90,4 +96,17 @@ onBeforeUnmount(() => { revision++ })
 
 <style scoped>
 .sheet-search{background:#f4f3f1;padding:12px 16px}.sheet-title>text{flex:1;min-width:0;overflow-wrap:anywhere}.toolbar>view{min-width:0;overflow-wrap:anywhere}.sort-options .selected,.sheet-actions .confirm{background:var(--bless-soft, #F1E4BD);border-color:var(--bless-soft, #F1E4BD);color:var(--bless-text, #775E25)}
+</style>
+<style scoped>
+.market-access-note{display:flex;align-items:center;gap:7px;margin:0 0 11px;padding:10px 11px;border-radius:12px;background:#f8f1df;color:var(--bless-text,#775E25);font-size:12px;line-height:1.45}
+.market-access-note text{flex:1;min-width:0;overflow-wrap:anywhere}
+.locked-cover-frame{height:174px;overflow:hidden}
+.locked-card-body{padding:11px 10px 12px}
+.locked-card-body .post-title{white-space:normal;overflow-wrap:anywhere}
+.locked-price,.locked-hint{display:block;font-size:12px;line-height:1.5;margin-top:5px;overflow-wrap:anywhere}
+.locked-price{color:var(--bless-text,#775E25);font-weight:600}
+.locked-hint{color:#8b8781;min-height:36px;font-size:11px}
+.locked-upgrade{display:flex;align-items:center;justify-content:center;width:100%;min-height:39px;margin:10px 0 0;padding:6px 8px;border:0;border-radius:22px;background:var(--bless-soft,#F1E4BD);color:var(--bless-text,#775E25);font-size:12px;font-weight:600;line-height:1.35;white-space:normal;overflow-wrap:anywhere;transition:transform 140ms cubic-bezier(.23,1,.32,1)}
+.locked-upgrade::after{border:0}.locked-upgrade:active{transform:scale(.97)}
+@media (prefers-reduced-motion: reduce){.locked-upgrade{transition:none}}
 </style>

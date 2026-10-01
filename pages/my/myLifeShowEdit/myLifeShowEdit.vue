@@ -51,6 +51,7 @@ import { config } from '@/utils/config.js'
 import { currentLocale, t } from '@/utils/localeRuntime.js'
 import { momentComposerMessages } from '@/utils/momentComposerMessages.js'
 import { readChatHeaderGeometry } from '@/utils/chatHeaderLayout.js'
+import { publicDisplayName } from '@/utils/publicDisplayName.js'
 const c = (key, params={}) => Object.entries(params).reduce((text,[k,v]) => text.replace('{'+k+'}',String(v)), (momentComposerMessages[currentLocale.value] || momentComposerMessages.en)[key])
 let platform = ''
 // #ifdef MP-WEIXIN
@@ -63,7 +64,7 @@ onPageScroll(e => {scroll.value=Math.max(0,e.scrollTop)})
 onResize(() => {geometry.value=readChatHeaderGeometry(uni,{clearCapsule:false},platform)})
 let user={}; try {const stored=uni.getStorageSync('USER_INFO');user=typeof stored==='string'?JSON.parse(stored):stored||{}} catch (_) {}
 const avatar = user.avatar_url || user.avatarUrl || ''
-const authorName = user.displayName || user.en_first_name || user.native_first_name || t('moment.user')
+const authorName = publicDisplayName(user, user, t('moment.user'))
 const activitySlug=ref(''), activityTitle=ref(''), activityError=ref(false), activityLoading=ref(false)
 const availableActivities=ref([]), eventsLoading=ref(false), eventsError=ref(false)
 const contentLimit=computed(()=>Math.max(0,2000-(activitySlug.value ? activityTitle.value.replace(/[#\r\n]/g,'').trim().length+3 : 0)))

@@ -35,7 +35,7 @@ import { onLoad, onResize, onShow } from '@dcloudio/uni-app'
 import { currentLocale } from '@/utils/localeRuntime.js'
 import { readChatHeaderGeometry } from '@/utils/chatHeaderLayout.js'
 import { getTutorial, tutorialMessages, queueTutorialHomeTarget } from '@/utils/tutorials.js'
-import TutorialArtwork from '@/components/tutorial/TutorialArtwork.vue'
+import TutorialArtwork from './components/TutorialArtwork.vue'
 import { editorialMessages, contentLanguageNames } from '@/utils/editorial.js'
 import GlassCircleButton from '@/components/chat/GlassCircleButton.vue'
 

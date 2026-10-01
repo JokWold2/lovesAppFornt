@@ -1,7 +1,7 @@
 <template><view v-if="index >= 0" class="profile-country-flag" aria-hidden="true"><image :src="flagSprite" class="profile-country-atlas" :style="flagStyle" mode="scaleToFill" /></view></template>
 <script setup>
 import { computed } from 'vue'
-import flagSprite from '@/static/profile-flags.png'
+import flagSprite from '@/pages/tutorial/static/profile-flags.png'
 import { profileFlagStyle } from '../utils/profileCatalog.js'
 const props = defineProps({ index: { type: Number, default: -1 } })
 const flagStyle = computed(() => {

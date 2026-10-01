@@ -46,6 +46,7 @@
         </button>
       </view>
     </view>
+    <BlessDialog ref="blessDialog" />
   </view>
 </template>
 
@@ -54,6 +55,7 @@ import { computed, nextTick, onBeforeUnmount, ref, watch } from 'vue'
 import { getCandidateProfileApi, getProfileLikesApi, toggleProfileLikeApi } from '@/api/index.js'
 import ProfileDetailSections from '@/components/profile/ProfileDetailSections.vue'
 import ProfileUserActivity from '@/components/profile/ProfileUserActivity.vue'
+import BlessDialog from '@/components/common/BlessDialog.vue'
 import { createChatRequestApi, getChatRequestStatusApi } from '@/api/chat.js'
 import { getChatRequestButtonState, getChatRequestEntryState } from '@/utils/chatRequestState.js'
 import { decideBlessingApi } from '@/api/membership.js'
@@ -64,6 +66,7 @@ import { getToken } from '@/utils/auth.js'
 import { markProfileLikeViewedApi } from '@/api/notifications.js'
 import { refreshUnreadBadge } from '@/utils/unreadBadge.js'
 import { useFixedPageHeader } from '@/utils/useFixedPageHeader.js'
+import { publicDisplayName } from '@/utils/publicDisplayName.js'
 
 const props = defineProps({
   id: { type: [Number, String], default: null },
@@ -79,8 +82,7 @@ const profile = ref(null)
 const activeSection = ref('profile')
 const profileName = computed(() => {
   const p = profile.value || {}
-  return [p.native_last_name, p.native_first_name].filter(Boolean).join(' ') ||
-    [p.en_last_name, p.en_first_name].filter(Boolean).join(' ') || t('inbox.user')
+  return publicDisplayName(p, p, t('inbox.user'))
 })
 const profileAge = computed(() => {
   const year = Number(profile.value?.birth_year)
@@ -104,6 +106,7 @@ const profileId = ref(null)
 const canRequestChat = ref(false)
 const chatState = ref({ status: 'none', isLiked: false, mutual: false, groupId: null })
 const chatPending = ref(false)
+const blessDialog = ref(null)
 let unlikeRequestId = null
 let relationshipRevision = 0, likeReadRevision = 0, chatReadRevision = 0
 let pageVisible = false, disposed = false, profileGeneration = 0
@@ -232,21 +235,26 @@ async function refreshChatState() {
 }
 
 function showDialog(options) {
-  return new Promise(resolve => uni.showModal({ ...options, success: resolve, fail: () => resolve({ confirm: false }) }))
+  return blessDialog.value?.open({
+    confirmText: t('membership.confirm'),
+    cancelText: t('membership.cancel'),
+    ...options
+  }) || Promise.resolve({ confirm: false, content: '' })
 }
 
 async function showChatGate(state) {
   const prompt = getMembershipChatPrompt(state, t)
-  if (prompt.type === 'request') return false
+  if (prompt.type === 'request') return { blocked: false, shouldLike: false }
   // The like control is always visible in the fixed action bar.
-  await showDialog({ title: prompt.title, content: prompt.message, showCancel: false, confirmText: prompt.confirmText })
-  return true
+  const result = await showDialog({ title: prompt.title, content: prompt.message, showCancel: false, confirmText: prompt.confirmText, tone: prompt.type === 'like' ? 'heart' : 'info' })
+  return { blocked: true, shouldLike: prompt.type === 'like' && result.confirm }
 }
 
 async function requestChat() {
   if (!props.interactionsEnabled || !pageVisible || chatPending.value || likePending.value || !profile.value) return
   const request = { generation: profileGeneration, token: getToken(), profileId: profileId.value }
   const targetUserId = profile.value.user_id
+  let shouldLikeAfterChat = false
   chatPending.value = true
   try {
     const state = await refreshChatState()
@@ -254,8 +262,10 @@ async function requestChat() {
     const entry = getChatRequestEntryState(state)
     if (entry === 'group') return uni.navigateTo({ url: `/pages/chat/chatRoom?id=${encodeURIComponent(state.groupId)}` })
     if (entry === 'pending') return uni.showToast({ title: t('profile.requestPending'), icon: 'none' })
-    if (await showChatGate(state) || !currentProfileRequest(request)) return
-    const { confirm, content } = await showDialog({ title: t('profile.requestTitle'), editable: true, placeholderText: t('profile.requestPlaceholder'), cancelText: t('membership.cancel'), confirmText: t('membership.confirm') })
+    const gate = await showChatGate(state)
+    if (gate.blocked) { shouldLikeAfterChat = gate.shouldLike; return }
+    if (!currentProfileRequest(request)) return
+    const { confirm, content } = await showDialog({ title: t('profile.requestTitle'), editable: true, placeholderText: t('profile.requestPlaceholder'), cancelText: t('membership.cancel'), confirmText: t('membership.confirm'), tone: 'heart' })
     if (!confirm || !currentProfileRequest(request)) return
     const result = await createChatRequestApi({ targetUserId, message: content || '' })
     if (!currentProfileRequest(request)) return
@@ -269,9 +279,18 @@ async function requestChat() {
     if (error?.code === 'LIKE_REQUIRED' || error?.code === 'MUTUAL_LIKE_REQUIRED') {
       const latest = await refreshChatState().catch(() => ({ isLiked: error.code !== 'LIKE_REQUIRED', mutual: false }))
       if (!currentProfileRequest(request)) return
-      if (latest && !await showChatGate(latest)) uni.showToast({ title: t('profile.requestFailed'), icon: 'none' })
+      if (latest) {
+        const gate = await showChatGate(latest)
+        if (!gate.blocked) uni.showToast({ title: t('profile.requestFailed'), icon: 'none' })
+        else shouldLikeAfterChat = gate.shouldLike
+      }
     } else if (!handleMembershipError(error)) uni.showToast({ title: t('profile.requestFailed'), icon: 'none' })
-  } finally { if (currentProfileRequest(request)) chatPending.value = false }
+  } finally {
+    if (currentProfileRequest(request)) {
+      chatPending.value = false
+      if (shouldLikeAfterChat && !isLiked.value) await toggleProfileLike()
+    }
+  }
 }
 
 // Only apply the authoritative response; a rejected quota must leave the heart unchanged.
@@ -343,13 +362,13 @@ function showLikeGuideOnce() {
   guideTimer = setTimeout(() => {
     guideTimer = null
     if (!props.interactionsEnabled || !pageVisible || !currentProfileRequest(request)) return
-    uni.showModal({
+    showDialog({
       title: t('profile.likeGuideTitle'),
       content: t('profile.likeGuideContent'),
       showCancel: false,
       confirmText: t('membership.confirm'),
-      success: () => uni.setStorageSync(GUIDE_KEY, '1')
-    })
+      tone: 'heart'
+    }).then(result => { if (result.confirm) uni.setStorageSync(GUIDE_KEY, '1') })
   }, 250)
 }
 

@@ -122,16 +122,19 @@
         <button v-else-if="canConfirmOrder(order)" class="cake-detail-primary" :disabled="!!pending" @click="confirmOrder">{{ t('cake.confirmReceipt') }}</button>
       </view>
     </template>
+    <BlessDialog ref="blessDialog" />
   </view>
 </template>
 
 <script setup>
+import './locale.js'
 import { computed, reactive, ref } from 'vue'
 import { onLoad, onPageScroll } from '@dcloudio/uni-app'
-import CakeNavBar from '@/components/cake/CakeNavBar.vue'
-import CakeStateView from '@/components/cake/CakeStateView.vue'
+import CakeNavBar from '@/pages/cake/components/CakeNavBar.vue'
+import CakeStateView from '@/pages/cake/components/CakeStateView.vue'
+import BlessDialog from '@/components/common/BlessDialog.vue'
 import { currentLocale, t } from '@/utils/localeRuntime.js'
-import { cancelCakeOrderApi, confirmCakeOrderApi, getCakeOrderDetailApi, payCakeOrderApi } from '@/api/cake.js'
+import { cancelCakeOrderApi, confirmCakeOrderApi, getCakeOrderDetailApi, payCakeOrderApi } from '@/pages/cake/api/cake.js'
 import {
   cakePlaceholderImage,
   canCancelOrder,
@@ -144,7 +147,7 @@ import {
   orderStatusKey,
   pickCakeText,
   resolveCakeImageUrl
-} from '@/utils/cake.js'
+} from '@/pages/cake/utils/cake.js'
 
 const locale = currentLocale
 const { progress: navProgress, update: updateScroll } = createCakeScrollProgress(48)
@@ -152,6 +155,7 @@ const { progress: navProgress, update: updateScroll } = createCakeScrollProgress
 const order = ref(null)
 const state = ref('loading')
 const pending = ref('')
+const blessDialog = ref(null)
 const failedImages = reactive({})
 let orderId = 0
 let payRequestId = ''
@@ -195,21 +199,23 @@ async function loadOrder() {
   }
 }
 
-function confirmModal(options) {
-  return new Promise(resolve => uni.showModal({
+async function confirmModal(options) {
+  const result = await blessDialog.value?.open({
     confirmText: t('cake.confirm'),
     cancelText: t('cake.cancel'),
-    ...options,
-    success: result => resolve(!!result.confirm),
-    fail: () => resolve(false)
-  }))
+    ...options
+  })
+  return !!result?.confirm
 }
 
 async function payOrder() {
   if (pending.value || !order.value) return
   const confirmed = await confirmModal({
     title: t('cake.payConfirmTitle'),
-    content: t('cake.payConfirmContent', { amount: (Number(order.value.payableCents || 0) / 100).toFixed(2) })
+    content: t('cake.paySimulationNotice'),
+    confirmText: t('cake.paySimulationConfirm'),
+    amount: `¥${(Number(order.value.payableCents || 0) / 100).toFixed(2)}`,
+    tone: 'payment'
   })
   if (!confirmed) return
 
@@ -230,7 +236,7 @@ async function payOrder() {
 
 async function cancelOrder() {
   if (pending.value || !order.value) return
-  const confirmed = await confirmModal({ title: t('cake.cancelOrder'), content: t('cake.cancelOrderConfirm') })
+  const confirmed = await confirmModal({ title: t('cake.cancelOrder'), content: t('cake.cancelOrderConfirm'), confirmText: t('cake.cancelOrder'), tone: 'danger' })
   if (!confirmed) return
 
   pending.value = 'cancel'
@@ -249,7 +255,9 @@ async function confirmOrder() {
   if (pending.value || !order.value) return
   const confirmed = await confirmModal({
     title: t('cake.confirmReceipt'),
-    content: t('cake.orderTotalQuantity', { count: order.value.totalQuantity || 0 })
+    content: t('cake.orderTotalQuantity', { count: order.value.totalQuantity || 0 }),
+    confirmText: t('cake.confirmReceipt'),
+    tone: 'success'
   })
   if (!confirmed) return
 

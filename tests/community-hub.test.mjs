@@ -1,7 +1,8 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
 import { readFile } from 'node:fs/promises'
-import { SUPPORTED_LOCALES, translate } from '../utils/locale.js'
+import { SUPPORTED_LOCALES, registerLocaleNamespace, translate } from '../utils/locale.js'
+import { communityHubMessages } from '../pages/community/communityMessages.js'
 import {
 	COMMUNITY_INDEX_ROUTE,
 	COMMUNITY_LEADERBOARD_ROUTE,
@@ -16,9 +17,10 @@ import {
 	formatCommunityNumber,
 	formatCommunityTime,
 	rankTier
-} from '../utils/communityHub.js'
+} from '../pages/community/utils/communityHub.js'
 
 const read = relativePath => readFile(new URL(relativePath, import.meta.url), 'utf8')
+registerLocaleNamespace('community', communityHubMessages)
 
 // 轻量标签配对检查：uni-app 模板里的标签都必须成对或自闭合。
 function assertBalancedTags(source, label) {
@@ -118,7 +120,7 @@ test('社区首页出现话题广场与排行榜两个入口', async () => {
 	for (const keyword of ['class="community-entries"', 'communityEntries', 'openCommunityEntry', 'COMMUNITY_TOPICS_ROUTE', 'COMMUNITY_LEADERBOARD_ROUTE']) {
 		assert.ok(source.includes(keyword), `社区首页缺少 ${keyword}`)
 	}
-	assert.match(source, /from ['"]@\/utils\/communityHub\.js['"]/, '社区首页需要复用话题/榜单路由常量')
+	assert.match(source, /from ['"]@\/pages\/community\/utils\/communityHub\.js['"]/, '社区首页需要复用话题/榜单路由常量')
 	assert.ok(source.includes("t('community.entryTopics')") || source.includes('t("community.entryTopics")'), '入口文案需要接入语言系统')
 	assert.ok(source.includes("t('community.entryLeaderboard')") || source.includes('t("community.entryLeaderboard")'), '入口文案需要接入语言系统')
 })
@@ -180,7 +182,7 @@ test('排行榜覆盖双 Tab、时间范围、前三名样式、我的排名与�
 })
 
 test('接口封装覆盖话题与榜单的全部后端路由', async () => {
-	const source = await read('../api/community.js')
+	const source = await read('../pages/community/api/community.js')
 	for (const path of [
 		'/api/community/topics', '/api/community/topics/hot', '/api/community/topics/detail',
 		'/api/community/topics/follow', '/api/community/leaderboard'

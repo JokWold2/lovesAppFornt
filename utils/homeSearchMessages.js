@@ -16,7 +16,8 @@ export const homeSearchMessages = {
     "close": "关闭",
     "people": "搜索用户",
     "community": "社区",
-    "requests": "需求市场"
+    "requests": "需求市场",
+    "promotionEntry": "月饼活动"
   },
   "zh-Hant": {
     "recommend": "推薦",
@@ -35,7 +36,8 @@ export const homeSearchMessages = {
     "close": "關閉",
     "people": "搜尋用戶",
     "community": "社區",
-    "requests": "需求市場"
+    "requests": "需求市場",
+    "promotionEntry": "月餅活動"
   },
   "en": {
     "recommend": "For you",
@@ -54,7 +56,8 @@ export const homeSearchMessages = {
     "close": "Close",
     "people": "Search people",
     "community": "Community",
-    "requests": "Requests"
+    "requests": "Requests",
+    "promotionEntry": "Mooncake event"
   },
   "ru": {
     "recommend": "Для вас",
@@ -73,7 +76,8 @@ export const homeSearchMessages = {
     "close": "Закрыть",
     "people": "Поиск людей",
     "community": "Сообщество",
-    "requests": "Заявки"
+    "requests": "Заявки",
+    "promotionEntry": "Акция с лунными пряниками"
   },
   "ja": {
     "recommend": "おすすめ",
@@ -92,7 +96,8 @@ export const homeSearchMessages = {
     "close": "閉じる",
     "people": "ユーザー検索",
     "community": "コミュニティ",
-    "requests": "依頼市場"
+    "requests": "依頼市場",
+    "promotionEntry": "月餅キャンペーン"
   },
   "ko": {
     "recommend": "추천",
@@ -111,6 +116,7 @@ export const homeSearchMessages = {
     "close": "닫기",
     "people": "사용자 검색",
     "community": "커뮤니티",
-    "requests": "요청 시장"
+    "requests": "요청 시장",
+    "promotionEntry": "월병 이벤트"
   }
 }

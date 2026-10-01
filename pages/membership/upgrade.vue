@@ -22,7 +22,7 @@
         <view class="plan-row">
           <button v-for="plan in membership.plans" :id="`membership-plan-${plan.level}`" :key="plan.level" class="plan-card" :class="{ selected: selectedLevel === plan.level }" @click="selectedLevel = plan.level">
             <view class="plan-top"><text class="plan-label">{{ plan.level === membership.tierLevel ? t('membership.current') : (plan.level === 4 ? t('membership.fullBenefits') : t('membership.permanentMember')) }}</text><text v-if="selectedLevel === plan.level" class="plan-check">✓</text></view>
-            <text class="plan-name">{{ planName(plan.level) }}</text><text class="plan-price">{{ price(plan.priceCents) }}</text><text class="plan-term">{{ plan.priceCents ? t('membership.onePayment') : t('membership.freeForever') }}</text><text class="plan-difference">{{ priceHint(plan) }}</text>
+            <text class="plan-name">{{ planName(plan.level) }}</text><text class="plan-price">{{ price(plan.priceCents) }}</text><text class="plan-term">{{ plan.priceCents ? t('membership.onePayment') : t('membership.freeForever') }}</text><text class="plan-market" :class="{ 'plan-market-locked': plan.level < 2 }">{{ t(plan.level < 2 ? 'membership.marketCardUnavailable' : plan.level === 2 ? 'membership.marketCardBronze' : 'membership.marketCardIncluded') }}</text><text class="plan-difference">{{ priceHint(plan) }}</text>
           </button>
         </view>
       </scroll-view>
@@ -56,12 +56,13 @@ const pending = computed(() => membership.value?.pendingRequest || requests.valu
 const lastRequest = computed(() => requests.value.find(item => ['approved', 'rejected'].includes(item.status)))
 const quote = computed(() => getUpgradeQuote(membership.value?.plans, membership.value?.accountLevel, selectedLevel.value))
 const canPurchase = computed(() => quote.value !== null)
-const headline = computed(() => ({ like: t('membership.likeExhausted'), comment: t('membership.commentExhausted'), rewind: t('membership.rewindExhausted'), likes: t('membership.discoverLikes'), search: t('membership.discoverSearch') }[reason.value] || t('membership.headline')))
-const subtitle = computed(() => membership.value?.accountLevel >= 4 && ['like', 'comment', 'rewind'].includes(reason.value) ? t('membership.resetHint') : reason.value === 'likes' ? t('membership.unlockHint') : t('membership.chooseHint'))
+const headline = computed(() => ({ like: t('membership.likeExhausted'), comment: t('membership.commentExhausted'), rewind: t('membership.rewindExhausted'), likes: t('membership.discoverLikes'), search: t('membership.discoverSearch'), market: t('membership.marketHeadline') }[reason.value] || t('membership.headline')))
+const subtitle = computed(() => membership.value?.accountLevel >= 4 && ['like', 'comment', 'rewind'].includes(reason.value) ? t('membership.resetHint') : reason.value === 'likes' ? t('membership.unlockHint') : reason.value === 'market' ? t('membership.marketHint') : t('membership.chooseHint'))
 const benefits = computed(() => {
   const plan = selectedPlan.value
   if (!plan) return []
   return [
+    { title: t('membership.marketBenefit'), caption: t(plan.level >= 2 ? 'membership.marketBenefitCaption' : 'membership.marketUnavailable'), enabled: plan.level >= 2 },
     { title: t('membership.likeBenefit', { quota: quota(plan.likeLimit, 'people') }), caption: t('membership.likeCaption'), enabled: true },
     { title: t('membership.commentBenefit', { quota: quota(plan.commentLimit, 'comments') }), caption: t('membership.commentCaption'), enabled: true },
     { title: t('membership.rewindBenefit', { quota: quota(plan.rewindLimit) }), caption: t('membership.rewindCaption'), enabled: true },
@@ -86,7 +87,7 @@ async function load() {
     if (!Array.isArray(data?.plans) || !data.plans.length) throw Error(t('membership.configUnavailable'))
     membership.value = data
     requests.value = Array.isArray(history?.items) ? history.items : (Array.isArray(history?.requests) ? history.requests : [])
-    if (!selectedLevel.value) selectedLevel.value = Math.min(4, Math.max(Number(data.tierLevel) + 1, reason.value === 'likes' ? 3 : reason.value === 'search' ? 4 : 2))
+    if (!selectedLevel.value) selectedLevel.value = reason.value === 'market' && Number(data.tierLevel) < 2 ? 2 : Math.min(4, Math.max(Number(data.tierLevel) + 1, reason.value === 'likes' ? 3 : reason.value === 'search' ? 4 : 2))
     notifyBlessingChanged({ source: 'membership' })
   } catch (error) { if (generation === loadGeneration) loadError.value = getMembershipErrorMessage(error, t, 'membershipFailed') }
   finally { if (generation === loadGeneration) loading.value = false }
@@ -115,11 +116,12 @@ onShow(load)
 .membership-header { display:flex;align-items:center;gap:8px;min-height:72px;box-sizing:border-box;padding:10px 20px; }.close-button { flex:0 0 44px;width:44px;height:44px;padding:0;margin:0;display:flex;align-items:center;justify-content:center;border-radius:50%;background:#fff; }button::after { border:0; }.brand { flex:1;min-width:0;display:flex;align-items:center;justify-content:center;flex-wrap:wrap;gap:4px 8px;font-size:28px;font-weight:900;letter-spacing:-1px;line-height:1.2; }.brand-name { flex-shrink:0; }.header-balance { flex:0 0 44px;width:44px; }.brand-badge { max-width:100%;box-sizing:border-box;font-size:12px;line-height:1.4;padding:6px 12px;border-radius:20px;background:var(--bless-primary, #C2A052);font-weight:600;letter-spacing:0;overflow-wrap:break-word;text-align:center; }
 .intro { padding:34px 24px 22px; }.eyebrow { display:block;font-size:11px;color:var(--bless-text, #775E25);letter-spacing:2px;margin-bottom:16px; }.headline { display:block;font-size:31px;font-weight:650;line-height:1.4;letter-spacing:-.8px; }.intro-text { display:block;font-size:15px;line-height:1.75;color:#67645d;margin-top:16px; }.current-tier { display:block;margin-top:18px;font-size:12px;color:#888075; }.section-heading { display:block;padding:16px 24px;font-size:17px; }
 .plan-scroll { width:100%;white-space:nowrap; }.plan-row { display:inline-flex;gap:12px;padding:0 24px 22px; }.plan-card { width:230px;flex:0 0 230px;box-sizing:border-box;white-space:normal;border:1px solid #dedbd3;border-radius:28px;padding:20px;background:transparent;text-align:left;line-height:1.4;margin:0;color:#171717; }.plan-card.selected { border:2px solid var(--bless-primary, #C2A052);padding:19px;background:#fffdf6; }.plan-top { display:flex;justify-content:space-between;align-items:center;height:24px; }.plan-label { font-size:12px;color:var(--bless-text, #775E25); }.plan-check { font-size:24px;color:var(--bless-text, #775E25); }.plan-name { display:block;font-size:34px;margin-top:12px; }.plan-price { display:block;margin-top:36px;font-size:26px;font-weight:600; }.plan-term { display:block;font-size:11px;color:#777268;margin-top:3px; }.plan-difference { display:block;margin-top:18px;font-size:12px;color:var(--bless-text, #775E25); }
+.plan-market { display:block;margin-top:14px;min-height:36px;font-size:12px;line-height:1.5;color:var(--bless-text, #775E25);overflow-wrap:break-word; }.plan-market-locked { color:#99948a; }
 .benefits { margin:22px 24px 0;padding:24px 22px 8px;border:1px solid #e1ded7;border-radius:26px;position:relative; }.benefits-legend { position:absolute;top:-12px;left:50%;transform:translateX(-50%);background:#f8f7f4;padding:0 12px;font-size:13px;color:#766f62;white-space:nowrap; }.benefit { display:flex;gap:16px;margin:12px 0 23px; }.benefit>view { flex:1;min-width:0; }.check { font-size:23px;font-weight:700;line-height:1.1; }.benefit-title { display:block;font-size:16px;line-height:1.5; }.benefit-caption { display:block;font-size:12px;line-height:1.7;color:#888073;margin-top:4px; }.unavailable { color:#99948a; }
 .membership-notes { padding:22px 27px;font-size:11px;line-height:1.8;color:#8c877f; }.membership-notes text,.request-status text { display:block; }.request-status { margin:0 24px 12px;padding:18px;background:var(--bless-soft, #F1E4BD);border-radius:18px;font-size:12px;line-height:1.8; }.request-title { font-weight:650;font-size:15px;margin-bottom:5px; }
 .purchase-dock { position:fixed;z-index:30;bottom:0;left:0;right:0;display:flex;align-items:center;gap:12px;padding:18px 24px calc(18px + env(safe-area-inset-bottom));border-top:1px solid #e5e2dc;background:#f8f7f4; }.purchase-summary { flex:1;min-width:0; }.purchase-name,.purchase-amount { display:block; }.purchase-name { font-size:14px;font-weight:600; }.purchase-amount { font-size:11px;margin-top:5px;color:#70695e; }.purchase-button { margin:0;flex:0 0 auto;border-radius:30px;padding:0 20px;min-height:48px;line-height:48px;font-size:13px;background:#171614;color:white; }.purchase-button[disabled] { background:#e3dfd5;color:#918b7e; }.page-state { display:flex;flex-direction:column;align-items:center;padding:120px 24px;gap:20px;color:#777;font-size:14px; }
-.close-button { transition:transform 140ms cubic-bezier(.23,1,.32,1); }
-.close-button:active { transform:scale(.97); }
-@media (prefers-reduced-motion:reduce) { .close-button { transition:none; } }
+.close-button,.plan-card,.purchase-button { transition:transform 140ms cubic-bezier(.23,1,.32,1); }
+.close-button:active,.plan-card:active,.purchase-button:active { transform:scale(.97); }
+@media (prefers-reduced-motion:reduce) { .close-button,.plan-card,.purchase-button { transition:none; } }
 @media (min-width:600px) { .membership-page,.membership-chrome { max-width:620px;margin:0 auto; }.purchase-dock { max-width:572px;margin:0 auto; }.headline { font-size:38px; } }
 </style>

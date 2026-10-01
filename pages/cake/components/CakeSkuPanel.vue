@@ -80,7 +80,7 @@
 import { computed, ref, watch } from 'vue'
 import SlideUpPanel from '@/components/common/SlideUpPanel.vue'
 import { t } from '@/utils/localeRuntime.js'
-import { cakeMaxQuantity, cakePlaceholderImage, formatCakeAmount, pickCakeText, resolveCakeImageUrl } from '@/utils/cake.js'
+import { cakeMaxQuantity, cakePlaceholderImage, formatCakeAmount, pickCakeText, resolveCakeImageUrl } from '@/pages/cake/utils/cake.js'
 
 const props = defineProps({
   open: { type: Boolean, default: false },

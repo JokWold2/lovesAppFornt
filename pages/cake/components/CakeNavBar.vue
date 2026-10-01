@@ -36,7 +36,7 @@
 import { computed, getCurrentInstance, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { t } from '@/utils/localeRuntime.js'
 import { readPageHeaderInset } from '@/utils/pageHeaderLayout.js'
-import { backFromCakePage, goCakeHome } from '@/utils/cake.js'
+import { backFromCakePage, goCakeHome } from '@/pages/cake/utils/cake.js'
 
 const props = defineProps({
   title: { type: String, default: '' },

@@ -56,12 +56,12 @@ test('localized names fit existing database columns and resolve unambiguously wi
 })
 
 test('bundled flag atlas covers every country at retina resolution within mini-program asset budget', () => {
-  const png = readFileSync(new URL('../static/profile-flags.png', import.meta.url))
+  const png = readFileSync(new URL('../pages/tutorial/static/profile-flags.png', import.meta.url))
   assert.equal(png.toString('hex', 0, 8), '89504e470d0a1a0a')
   assert.equal(png.readUInt32BE(16), catalogFlagSprite.width * catalogFlagSprite.density)
   assert.equal(png.readUInt32BE(20), catalogFlagSprite.height * catalogFlagSprite.density)
   assert.ok(catalogFlagSprite.columns * catalogFlagSprite.height / catalogFlagSprite.tileHeight >= catalogCountries.length)
-  assert.equal(catalogFlagSprite.path, '/static/profile-flags.png')
+  assert.equal(catalogFlagSprite.path, '/pages/tutorial/static/profile-flags.png')
   const dataSize = statSync(new URL('../pages/tutorial/utils/profileCatalogData.js', import.meta.url)).size
   assert.ok(dataSize + png.length < 500 * 1024, `${dataSize + png.length} bytes`)
 })

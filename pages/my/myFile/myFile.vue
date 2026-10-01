@@ -251,11 +251,11 @@
 							<view class="mark"></view><text class="card-title">{{ t('profile.myFile.contactTitle') }}</text><text class="req">{{ t('profile.required') }}</text>
 						</view>
 						<view class="field">
-							<text class="field-label">{{ t('profile.phone') }}</text>
+							<text class="field-label">{{ t('profile.phone') }}<text class="star">*</text></text>
 							<input class="input" type="number" v-model="form.mobile" :placeholder="t('profile.myFile.mobilePlaceholder')" />
 						</view>
 						<view class="field">
-							<text class="field-label">{{ t('profile.email') }}</text>
+							<text class="field-label">{{ t('profile.email') }}<text v-if="!isPhoneAccount" class="star">*</text></text>
 							<input class="input" v-model="form.email" :placeholder="t('profile.myFile.emailPlaceholder')" />
 						</view>
 						<view class="field">
@@ -641,12 +641,14 @@
 <script setup>
 import { computed, reactive, ref, onMounted } from 'vue'
 import { getMyProfileApi, submitMyProfileApi } from '@/api/index.js'
+import { getUserInfo } from '@/utils/auth.js'
 import { t } from '@/utils/localeRuntime.js'
 
 // 當前步驟 1~4
 const step = ref(1)
 const submitting = ref(false)
 const loadingProfile = ref(false)
+const isPhoneAccount = getUserInfo()?.loginType === 'phone'
 
 // 全部表單字段（單文件內自足，不依賴外部 store）
 const form = reactive({
@@ -920,8 +922,11 @@ function goNext(fromStep) {
 		uni.showToast({ title: t('profile.myFile.fillIdError'), icon: 'none' })
 		return
 	}
-	if (fromStep === 2 && (!form.mobile || !form.email)) {
-		uni.showToast({ title: t('profile.myFile.fillContactError'), icon: 'none' })
+	if (fromStep === 2 && (!form.mobile || (!isPhoneAccount && !form.email))) {
+		uni.showToast({
+			title: t(isPhoneAccount ? 'profile.myFile.mobilePlaceholder' : 'profile.myFile.fillContactError'),
+			icon: 'none'
+		})
 		return
 	}
 	step.value = fromStep + 1

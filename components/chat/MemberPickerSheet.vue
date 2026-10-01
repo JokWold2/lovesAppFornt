@@ -30,12 +30,13 @@ import { ref, watch } from 'vue'
 import { getChatRequestCandidatesApi } from '@/api/chat.js'
 import ChatSheet from './ChatSheet.vue'
 import { t } from '@/utils/localeRuntime.js'
+import { publicDisplayName } from '@/utils/publicDisplayName.js'
 const props = defineProps({ visible: Boolean, title: { type: String, default: '' }, showReviewFields: Boolean, excludedUserIds: { type: Array, default: () => [] }, busy: Boolean })
 const emit = defineEmits(['close', 'confirm', 'after-close'])
 const keyword = ref(''), candidates = ref([]), selectedIds = ref([]), loading = ref(false), failed = ref(false), failedAppend = ref(false)
 const groupName = ref('沟通群聊'), reviewMessage = ref(''), page = ref(0), hasMore = ref(false)
 let requestVersion = 0
-function displayName(item) { return [item.native_first_name, item.en_first_name, item.native_last_name, item.en_last_name, item.display_name].find(name => typeof name === 'string' && name.trim())?.trim() || t('profile.user') }
+function displayName(item) { return publicDisplayName(item, item, t('profile.user')) }
 function searchMembers() { page.value = 0; candidates.value = []; hasMore.value = false; void loadCandidates(false) }
 async function loadCandidates(append) {
   if (!props.visible || (append && (loading.value || !hasMore.value))) return

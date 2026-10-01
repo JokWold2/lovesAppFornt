@@ -88,7 +88,11 @@
     <!-- #ifndef MP-WEIXIN -->
     <ProfileEditor v-if="profileEditorOpen" ref="profileEditor" :profile="profileData || {}" :initial-group="profileEditorGroup" @closed="profileEditorOpen = false" @saved="profileSaved" />
     <!-- #endif -->
-    <ProfilePhotoManager v-if="photoManagerOpen" ref="photoManager" :photos="profilePhotos" :busy="photoBusy || facebookImporting" :blocking-overlay="showFacebookPhotoPicker" :initial-index="photoInitialIndex" @closed="photoManagerOpen = false" @overlay-back="closeFacebookPhotoPicker" @upload="chooseProfilePhotos" @remove="deletePhoto" @facebook="openFacebookPhotoImporter" />
+    <ProfilePhotoManager v-if="photoManagerOpen" ref="photoManager" :photos="profilePhotos" :busy="photoBusy || facebookImporting" :blocking-overlay="showFacebookPhotoPicker" :initial-index="photoInitialIndex" @closed="photoManagerOpen = false" @overlay-back="closeFacebookPhotoPicker" @upload="chooseProfilePhotos" @remove="deletePhoto" @facebook="openFacebookPhotoImporter">
+      <!-- #ifdef MP-WEIXIN -->
+      <BlessDialog ref="photoBlessDialog" />
+      <!-- #endif -->
+    </ProfilePhotoManager>
     <view v-if="showFacebookPhotoPicker" class="facebook-photo-mask" @click="closeFacebookPhotoPicker">
       <view class="facebook-photo-sheet" @click.stop>
         <view class="facebook-photo-header"><view class="facebook-header-copy"><text class="facebook-photo-title">{{ t('momentsHub.facebookTitle') }}</text><text class="facebook-photo-hint">{{ t('momentsHub.facebookCapacity', { count: facebookPhotoCapacity }) }}</text></view><button class="facebook-photo-close" :aria-label="t('momentsHub.close')" @click="closeFacebookPhotoPicker"><uni-icons type="closeempty" size="22" color="#818875" /></button></view>
@@ -96,6 +100,7 @@
         <view class="facebook-photo-actions"><text>{{ t('momentsHub.selectedPhotos', { count: facebookSelectedPhotoIds.length, total: facebookPhotoCapacity }) }}</text><button :disabled="!facebookSelectedPhotoIds.length || facebookImporting" @click="importSelectedFacebookPhotos">{{ t('momentsHub.importAction') }}</button></view>
       </view>
     </view>
+    <BlessDialog ref="blessDialog" />
   </view>
 </template>
 
@@ -117,6 +122,7 @@ import { useFixedPageHeader } from '@/utils/useFixedPageHeader.js'
 import { openIncomingLikes } from '@/utils/likesTabIntent.js'
 import ProfileDetailSections from '@/components/profile/ProfileDetailSections.vue'
 import ProfilePhotoManager from '@/components/profile/ProfilePhotoManager.vue'
+import BlessDialog from '@/components/common/BlessDialog.vue'
 // #ifndef MP-WEIXIN
 import ProfileEditor from '@/pages/tutorial/components/ProfileEditor.vue'
 // #endif
@@ -125,6 +131,7 @@ import LiquidGlassTabBar from '@/components/navigation/LiquidGlassTabBar.vue'
 import { t, updateTabBarLocale } from '@/utils/localeRuntime.js'
 import { requestFacebookPhotoAccess } from '@/utils/facebookAuth.js'
 import { normalizeFacebookPhotos, toggleFacebookPhotoSelection } from '@/utils/facebookPhotoSelection.js'
+import { publicDisplayName } from '@/utils/publicDisplayName.js'
 
 // 状态
 const loading = ref(false)
@@ -154,6 +161,8 @@ const photoManager = ref(null)
 const photoManagerOpen = ref(false)
 const photoInitialIndex = ref(-1)
 const photoBusy = ref(false)
+const blessDialog = ref(null)
+const photoBlessDialog = ref(null)
 let photoRevision = 0
 const summaryPhotoSlots = computed(() => Array.from({ length: Math.min(9, Math.max(6, profilePhotos.value.length + 1)) }, (_, index) => profilePhotos.value[index] || ''))
 const receivedLikeTotal = ref(0)
@@ -198,7 +207,7 @@ function profileSaved({ patch, draft }) {
   for (const key of Object.keys(draft)) if (key !== 'birth_date' && draft[key] !== baseline[key]) next[key] = draft[key] === '' ? null : draft[key]
   for (const [camel, snake] of [['birthYear','birth_year'], ['birthMonth','birth_month'], ['birthDay','birth_day']]) if (Object.prototype.hasOwnProperty.call(patch, camel)) next[snake] = patch[camel]
   profileData.value = next
-  userInfo.value.username = next.en_first_name || [next.native_last_name, next.native_first_name].filter(Boolean).join(' ') || userInfo.value.username
+  userInfo.value.username = publicDisplayName(next, {}, userInfo.value.username)
   userInfo.value.bio = next.bio || ''
   const cached = uni.getStorageSync('USER_INFO') || {}
   uni.setStorageSync('USER_INFO', { ...cached, name: userInfo.value.username, bio: userInfo.value.bio })
@@ -228,6 +237,7 @@ function openPhotoManager(index = -1) {
 }
 // #ifdef APP-PLUS
 onBackPress(() => {
+  if (blessDialog.value?.isOpen) { blessDialog.value.close(); return true }
   if (profileEditorOpen.value) { profileEditor.value?.back(); return true }
   if (showFacebookPhotoPicker.value) { if (!facebookImporting.value) closeFacebookPhotoPicker(); return true }
   if (!photoManagerOpen.value) return false
@@ -306,7 +316,7 @@ async function loadUserProfile() {
       profilePhotos.value = normalizePhotoUrls(profile.photos)
       userInfo.value.avatarUrl = getFullImageUrl(profile.avatar_url) || userInfo.value.avatarUrl
       userInfo.value.coverUrl = getFullImageUrl(profile.cover_url) || userInfo.value.coverUrl
-      userInfo.value.username = profile.en_first_name || [profile.native_last_name, profile.native_first_name].filter(Boolean).join(' ') || userInfo.value.username
+      userInfo.value.username = publicDisplayName(profile, {}, userInfo.value.username)
       userInfo.value.email = profile.email || userInfo.value.email
       avatarFailed.value = false
       backPhotoFailed.value = false
@@ -318,7 +328,7 @@ async function loadUserProfile() {
       const cached = uni.getStorageSync('USER_INFO') || {}
       uni.setStorageSync('USER_INFO', {
         ...cached,
-        name: profile.en_first_name || cached.name,
+        name: userInfo.value.username,
         avatar_url: profile.avatar_url,
         cover_url: profile.cover_url,
         photos: profilePhotos.value,
@@ -552,24 +562,23 @@ function showItemActions(item) {
           uni.showToast({ title: t('life.actionFailed'), icon: 'none' })
         }
       } else if (res.tapIndex === 1) {
-        uni.showModal({
+        const modalRes = await blessDialog.value?.open({
           title: t('life.deleteTitle'),
           content: t('life.deleteContent'),
           cancelText: t('common.cancel'),
           confirmText: t('life.delete'),
-          success: async (modalRes) => {
-            if (modalRes.confirm) {
-              try {
-                await deleteMomentApi(item.id)
-                moments.value = moments.value.filter(m => m.id !== item.id)
-                uni.showToast({ title: t('life.deleted'), icon: 'success' })
-              } catch (e) {
-                console.error('删除失败', e)
-                uni.showToast({ title: t('life.deleteFailed'), icon: 'none' })
-              }
-            }
-          }
+          tone: 'danger'
         })
+        if (modalRes?.confirm) {
+          try {
+            await deleteMomentApi(item.id)
+            moments.value = moments.value.filter(m => m.id !== item.id)
+            uni.showToast({ title: t('life.deleted'), icon: 'success' })
+          } catch (e) {
+            console.error('删除失败', e)
+            uni.showToast({ title: t('life.deleteFailed'), icon: 'none' })
+          }
+        }
       }
     }
   })
@@ -680,32 +689,33 @@ async function importSelectedFacebookPhotos() {
   }
 }
 
-function deletePhoto(index) {
+async function deletePhoto(index) {
   const photo = profilePhotos.value[index]
   if (!photo || photoBusy.value || facebookImporting.value) return
   photoBusy.value = true
-  uni.showModal({
+  let dialog = blessDialog.value
+  // #ifdef MP-WEIXIN
+  dialog = photoBlessDialog.value
+  // #endif
+  const result = await dialog?.open({
     title: t('photoManager.removeTitle'),
     content: t('photoManager.removeContent'),
     cancelText: t('common.cancel'),
     confirmText: t('life.delete'),
-    confirmColor: '#fe385c',
-    success: async ({ confirm }) => {
-      if (!confirm) { photoBusy.value = false; return }
-      try {
-        uni.showLoading({ title: t('life.deleting'), mask: true })
-        const result = await deleteProfilePhotoApi(photo)
-        applyProfilePhotos(result)
-      } catch (e) {
-        console.error('删除资料照片失败', e)
-        uni.showToast({ title: t('photoManager.removeFailed'), icon: 'none' })
-      } finally {
-        photoBusy.value = false
-        uni.hideLoading()
-      }
-    },
-    fail: () => { photoBusy.value = false }
+    tone: 'danger'
   })
+  if (!result?.confirm) { photoBusy.value = false; return }
+  try {
+    uni.showLoading({ title: t('life.deleting'), mask: true })
+    const updated = await deleteProfilePhotoApi(photo)
+    applyProfilePhotos(updated)
+  } catch (e) {
+    console.error('删除资料照片失败', e)
+    uni.showToast({ title: t('photoManager.removeFailed'), icon: 'none' })
+  } finally {
+    photoBusy.value = false
+    uni.hideLoading()
+  }
 }
 
 // 修改头像
@@ -737,7 +747,7 @@ function getUserInfo() {
     const info = uni.getStorageSync('USER_INFO')
     if (info) {
       userInfo.value = {
-        username: info.username || info.name || '',
+        username: info.name || info.username || '',
         email: info.email || '',
         avatarUrl: info.avatar_url || '',
         coverUrl: info.cover_url || '',

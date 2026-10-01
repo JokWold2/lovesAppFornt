@@ -224,6 +224,13 @@
 					}
 				},
 				{
+					"path": "groupExitRequests",
+					"style": {
+						"navigationStyle": "custom",
+						"navigationBarTitleText": "退出申请"
+					}
+				},
+				{
 					"path": "groupMembers",
 					"style": {
 						"navigationStyle": "custom",
@@ -299,6 +306,22 @@
 		{
 			"root": "pages/account",
 			"pages": [
+				{
+					"path": "bindEmail",
+					"style": {
+						"navigationStyle": "custom",
+						"backgroundColor": "#f7f5f1",
+						"app-plus": { "softinputMode": "adjustResize" }
+					}
+				},
+				{
+					"path": "bindPhone",
+					"style": {
+						"navigationStyle": "custom",
+						"backgroundColor": "#f7f5f1",
+						"app-plus": { "softinputMode": "adjustResize" }
+					}
+				},
 				{
 					"path": "accountCenter",
 					"style": {

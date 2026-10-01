@@ -174,15 +174,16 @@
 </template>
 
 <script setup>
+import './locale.js'
 import { computed, onMounted, ref } from 'vue'
 import { onPageScroll, onPullDownRefresh } from '@dcloudio/uni-app'
-import CakeNavBar from '@/components/cake/CakeNavBar.vue'
-import CakeStoreCard from '@/components/cake/CakeStoreCard.vue'
-import CakeStateView from '@/components/cake/CakeStateView.vue'
+import CakeNavBar from '@/pages/cake/components/CakeNavBar.vue'
+import CakeStoreCard from '@/pages/cake/components/CakeStoreCard.vue'
+import CakeStateView from '@/pages/cake/components/CakeStateView.vue'
 import SlideUpPanel from '@/components/common/SlideUpPanel.vue'
 import { currentLocale, t } from '@/utils/localeRuntime.js'
-import { getCakeCitiesApi, getCakeStoresApi, setCakeStoreFavoriteApi } from '@/api/cake.js'
-import { CAKE_ROUTES, createCakeScrollProgress, getCakeLocation, goCakePage, pickCakeText } from '@/utils/cake.js'
+import { getCakeCitiesApi, getCakeStoresApi, setCakeStoreFavoriteApi } from '@/pages/cake/api/cake.js'
+import { CAKE_ROUTES, createCakeScrollProgress, getCakeLocation, goCakePage, pickCakeText } from '@/pages/cake/utils/cake.js'
 
 const locale = currentLocale
 const { progress: navProgress, update: updateScroll } = createCakeScrollProgress(40)

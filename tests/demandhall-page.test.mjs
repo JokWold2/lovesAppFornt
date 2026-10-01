@@ -19,7 +19,7 @@ import {
 	postActionText,
 	canApplyToPost,
 	tabDefinition
-} from '../utils/demandHallPresentation.js'
+} from '../pages/demandhall/utils/demandHallPresentation.js'
 
 const read = relativePath => readFile(new URL(relativePath, import.meta.url), 'utf8')
 const FIXED_NOW = Date.parse('2026-09-20T10:00:00+08:00')
@@ -232,8 +232,8 @@ test('主页面包含筛选栏、双 Tab、两类卡片与悬浮发布抽屉', a
 		assert.ok(source.includes(`function ${handler}`) || source.includes(`const ${handler}`), `主页面缺少 ${handler}`)
 	}
 	// 接口与展示逻辑都来自统一封装
-	assert.ok(source.includes("from '@/api/demandHall.js'"))
-	assert.ok(source.includes("from '@/utils/demandHallPresentation.js'"))
+	assert.ok(source.includes("from '@/pages/demandhall/api/demandHall.js'"))
+	assert.ok(source.includes("from '@/pages/demandhall/utils/demandHallPresentation.js'"))
 })
 
 test('主页面区分加载中、空数据、首屏失败与加载更多失败', async () => {
@@ -245,7 +245,7 @@ test('主页面区分加载中、空数据、首屏失败与加载更多失败',
 	]) {
 		assert.ok(source.includes(keyword), `信息流缺少状态分支 ${keyword}`)
 	}
-	const { demandHallMessages } = await import('../utils/demandHallMessages.js')
+	const { demandHallMessages } = await import('../pages/demandhall/demandHallMessages.js')
 	for (const locale of ['zh-Hans', 'zh-Hant', 'en', 'ru', 'ja', 'ko']) {
 		for (const key of ['loadFailed', 'loadMoreFailed', 'retry']) {
 			assert.equal(typeof demandHallMessages[locale]?.[key], 'string', `${locale} 缺少 ${key}`)
@@ -286,7 +286,7 @@ test('详情页覆盖报名、担保交易与 IM 沟通', async () => {
 	assert.ok(source.includes('v-else-if="loadError"'), '详情页需要独立的请求失败态')
 	assert.ok(source.includes('applicationsError'), '报名列表失败不能显示成「还没有人报名」')
 	// 新增文案必须在六种语言里都补齐，避免回退成翻译键名。
-	const { demandHallMessages } = await import('../utils/demandHallMessages.js')
+	const { demandHallMessages } = await import('../pages/demandhall/demandHallMessages.js')
 	const required = [
 		'detailApplicationsTitle', 'detailEscrowTitle', 'detailEscrow', 'contact', 'detailClosePost',
 		'detailApplyTitleDemand', 'detailEscrowConfirmConfirm',
@@ -301,7 +301,7 @@ test('详情页覆盖报名、担保交易与 IM 沟通', async () => {
 })
 
 test('接口封装覆盖需求市场的全部后端路由', async () => {
-	const source = await read('../api/demandHall.js')
+	const source = await read('../pages/demandhall/api/demandHall.js')
 	for (const path of [
 		'/api/demand-hall/posts', '/api/demand-hall/tags/hot', '/api/demand-hall/stats', '/api/demand-hall/mine',
 		'/api/demand-hall/applications/', '/api/demand-hall/orders'

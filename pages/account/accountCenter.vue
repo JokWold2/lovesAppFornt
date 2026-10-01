@@ -6,7 +6,7 @@
         <image v-if="account.avatar" class="account-avatar" :src="account.avatar" mode="aspectFill" />
         <view v-else class="account-avatar account-avatar--placeholder"><uni-icons type="person-filled" size="38" color="#ffffff" /></view>
         <text class="account-name">{{ account.name }}</text>
-        <text class="account-email">{{ account.email || t('common.notBoundEmail') }}</text>
+        <text class="account-email">{{ account.identity || t('common.notBoundEmail') }}</text>
       </view>
 
       <view class="settings-card">
@@ -41,31 +41,36 @@
         </scroll-view>
       </view>
     </ChatSheet>
+    <AccountCancelSheet ref="cancelSheet" @cancelled="finishCancelledAccount" />
   </view>
 </template>
 
 <script setup>
 import { computed, reactive, ref, watch } from 'vue'
-import { onShow } from '@dcloudio/uni-app'
+import { onBackPress, onShow } from '@dcloudio/uni-app'
 import { getMyProfileApi } from '@/api/index.js'
 import ChatPageHeader from '@/components/chat/ChatPageHeader.vue'
 import ChatSheet from '@/components/chat/ChatSheet.vue'
+import AccountCancelSheet from '@/components/account/AccountCancelSheet.vue'
 import { getUserInfo, clearAuth } from '@/utils/auth.js'
-import { logoutPresence } from '@/utils/presence.js'
+import { logoutPresence, stopPresence } from '@/utils/presence.js'
 import { unregisterCurrentDevice } from '@/utils/pushNotifications.js'
 import { getAccountAvatar, getAccountEmail, getAccountName } from '@/utils/accountCenter.js'
 import { currentLocale, currentLocaleMode, localeRuntime, t } from '@/utils/localeRuntime.js'
 
-const account = reactive({ name: t('common.user'), email: '', avatar: '' })
+const account = reactive({ name: t('common.user'), identity: '', avatar: '' })
 const localeOptions = ['auto', 'zh-Hans', 'zh-Hant', 'en', 'ru', 'ja', 'ko']
 const localeNames = computed(() => ({ auto: t('common.followRegion'), 'zh-Hans': '简体中文', 'zh-Hant': '繁體中文', en: 'English', ru: 'Русский', ja: '日本語', ko: '한국어' }))
 const localeOptionItems = computed(() => localeOptions.map((code) => ({ code, label: localeNames.value[code] })))
 const localeLabel = computed(() => localeNames.value[currentLocaleMode.value === 'auto' ? 'auto' : currentLocale.value])
 const showLanguageSheet = ref(false)
+const cancelSheet = ref(null)
 
 function applyAccount(profile = {}, user = {}) {
-  account.name = getAccountName(profile, user)
-  account.email = getAccountEmail(profile, user)
+  account.name = getAccountName(profile, user, t('common.user'))
+  account.identity = user.loginType === 'phone' && user.phoneE164
+    ? user.phoneE164
+    : getAccountEmail(profile, user)
   account.avatar = getAccountAvatar(profile, user)
 }
 
@@ -105,24 +110,27 @@ async function selectLanguage(selected) {
 }
 
 async function finishSession(message) {
-  await logoutPresence()
-  await unregisterCurrentDevice()
+  await Promise.allSettled([logoutPresence(), unregisterCurrentDevice()])
   clearAuth()
   uni.showToast({ title: message, icon: 'success' })
   setTimeout(() => uni.reLaunch({ url: '/pages/login/login360' }), 500)
 }
 
-function confirmCancellation() {
-  uni.showModal({
-	 title: t('common.cancelAccountTitle'),
-	 content: t('common.cancelAccountContent'),
-	 cancelText: t('common.cancel'),
-	 confirmText: t('common.confirm'),
-	 success: (result) => { if (result.confirm) void finishSession(t('common.accountCancelled')) }
-  })
+function finishCancelledAccount() {
+  stopPresence({ clearSession: true })
+  clearAuth()
+  uni.showToast({ title: t('common.accountCancelled'), icon: 'success' })
+  setTimeout(() => uni.reLaunch({ url: '/pages/login/login360' }), 500)
 }
 
+function confirmCancellation() { void cancelSheet.value?.request() }
+
 function logout() { void finishSession(t('common.loggedOut')) }
+
+onBackPress(() => {
+  if (cancelSheet.value?.dismissIfOpen()) return true
+  if (showLanguageSheet.value) { showLanguageSheet.value = false; return true }
+})
 
 onShow(() => { void loadAccount() })
 

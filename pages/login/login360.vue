@@ -1,10 +1,10 @@
 <template>
-  <view class="auth-page" :class="{ 'auth-register': !isLoginView, 'auth-login': isLoginView }">
+  <view class="auth-page" :class="{ 'auth-register': !isLoginView, 'auth-login': isLoginView, 'auth-phone': isPhoneView }">
     <view v-if="restoringSession" class="session-restoring-mask"><text>{{ t('auth.restoring') }}</text></view>
     <view class="auth-nav" :style="navStyle">
       <view class="nav-row" :style="{ paddingTop: geometry.contentTop + 'px', paddingRight: geometry.contentRight + 'px' }">
-        <button v-if="!isLoginView" class="back-button" hover-class="control-pressed" @click="handleBack" :aria-label="t('blessAuth.back')"><uni-icons :type="isLoginView ? 'closeempty' : 'left'" size="24" color="#615c54" /></button>
-        <text class="region-label">{{ t('auth.country') }}</text>
+        <button v-if="!isLoginView || isPhoneView" class="back-button" hover-class="control-pressed" @click="handleBack" :aria-label="t('blessAuth.back')"><uni-icons type="left" size="24" color="#615c54" /></button>
+        <text class="region-label">{{ isPhoneView ? selectedCountryName : t('auth.country') }}</text>
       </view>
     </view>
     <view class="auth-shell">
@@ -17,10 +17,29 @@
       </view>
       <view class="auth-sheet">
         <view class="sheet-heading">
-          <text class="page-title">{{ isLoginView ? t('auth.loginTitle') : t('auth.registerTitle') }}</text>
-          <button v-if="isLoginView" class="text-button register-link" @click="switchView(false)">{{ t('auth.registerLink') }}</button>
+          <text class="page-title">{{ isPhoneView ? t('phoneAuth.title') : (isLoginView ? t('auth.loginTitle') : t('auth.registerTitle')) }}</text>
+          <button v-if="isLoginView && !isPhoneView" class="text-button register-link" @click="switchView(false)">{{ t('auth.registerLink') }}</button>
         </view>
-        <view v-if="isLoginView" class="form-content">
+        <view v-if="isPhoneView" class="form-content phone-form">
+          <text class="phone-subtitle">{{ t('phoneAuth.subtitle') }}</text>
+          <view class="input-row phone-number-row">
+            <button class="country-code-button" hover-class="control-pressed" :aria-label="t('phoneAuth.selectCountry')" @click="openCountryPicker"><text>{{ selectedCountry?.dialCode || '+86' }}</text><uni-icons type="bottom" size="15" color="#302e29" /></button>
+            <view class="phone-divider" />
+            <input class="field" type="number" :value="phoneForm.phoneNumber" maxlength="15" :placeholder="t('phoneAuth.phonePlaceholder')" placeholder-class="field-placeholder" :adjust-position="true" :cursor-spacing="24" :aria-label="t('phoneAuth.phonePlaceholder')" @input="onPhoneNumberInput" />
+          </view>
+          <text class="phone-code-label">{{ t('phoneAuth.codeLabel') }}</text>
+          <view class="phone-code-entry">
+            <view v-for="index in 6" :key="index" class="phone-code-cell" :class="{ filled: phoneForm.code.length >= index }"><text>{{ phoneForm.code[index - 1] || '' }}</text></view>
+            <input class="phone-code-input" type="number" :value="phoneForm.code" maxlength="6" :aria-label="t('phoneAuth.codeLabel')" @input="onPhoneCodeInput" @confirm="handlePhoneLogin" />
+          </view>
+          <button class="main-btn phone-submit" hover-class="main-btn-pressed" :disabled="loading || socialLoading || restoringSession" @click="handlePhoneLogin">{{ loading ? t('blessAuth.processing') : t('phoneAuth.submit') }}</button>
+          <view class="privacy-agree phone-privacy">
+            <button class="agreement-button" @click="toggleAgree" :aria-label="t('auth.agreedPrefix')" :aria-pressed="agreePrivacy"><view class="radio-circle" :class="{ active: agreePrivacy }"><text v-if="agreePrivacy">✓</text></view></button>
+            <view class="privacy-text"><text @click="toggleAgree">{{ t('auth.agreedPrefix') }} </text><text class="legal-link" @click="openLegalDocument('service')">{{ t('common.serviceAgreement') }}</text><text> · </text><text class="legal-link" @click="openLegalDocument('privacy')">{{ t('common.privacyPolicy') }}</text></view>
+          </view>
+          <button class="text-button email-login-link" @click="showEmailLogin">{{ t('phoneAuth.emailLogin') }}</button>
+        </view>
+        <view v-else-if="isLoginView" class="form-content">
           <view class="input-row">
             <uni-icons type="email" size="22" color="#75726c" />
             <input class="field" type="text" :placeholder="t('auth.email')" placeholder-class="field-placeholder" v-model="loginForm.email" :adjust-position="true" :cursor-spacing="24" :aria-label="t('auth.email')" />
@@ -32,7 +51,7 @@
           </view>
           <view class="forgot-row"><button class="text-button" @click="handleForgotPassword">{{ t('auth.forgotPassword') }}</button></view>
           <button class="main-btn" hover-class="main-btn-pressed" :disabled="loading || socialLoading || restoringSession" @click="handleLogin">{{ loading ? t('blessAuth.processing') : t('auth.login') }}</button>
-          <button class="text-button code-login" @click="showCodeUnavailable">{{ t('auth.codeLogin') }}</button>
+          <button v-if="phoneLoginEnabled" class="text-button code-login" @click="showPhoneLogin">{{ t('phoneAuth.switchToPhone') }}</button>
           <view class="divider"><view class="divider-line" /><text>{{ t('auth.moreMethods') }}</text><view class="divider-line" /></view>
           <view class="social-row">
             <button class="social-button" hover-class="control-pressed" :disabled="socialLoading || loading || restoringSession" @click="handleGoogleLogin"><image class="google-icon" src="/static/auth/google.png" mode="aspectFit" /><text>Google</text></button>
@@ -47,27 +66,32 @@
           <text class="password-hint">{{ t('auth.passwordHint') }}</text>
           <button class="main-btn" hover-class="main-btn-pressed" :disabled="loading || socialLoading || restoringSession" @click="handleRegister">{{ loading ? t('blessAuth.processing') : t('auth.register') }}</button>
         </view>
-        <view class="privacy-agree">
+        <view v-if="!isPhoneView" class="privacy-agree">
           <button class="agreement-button" @click="toggleAgree" :aria-label="t('auth.agreedPrefix')" :aria-pressed="agreePrivacy"><view class="radio-circle" :class="{ active: agreePrivacy }"><text v-if="agreePrivacy">✓</text></view></button>
           <view class="privacy-text"><text @click="toggleAgree">{{ t('auth.agreedPrefix') }} </text><text class="legal-link" @click="openLegalDocument('service')">{{ t('common.serviceAgreement') }}</text><text> · </text><text class="legal-link" @click="openLegalDocument('privacy')">{{ t('common.privacyPolicy') }}</text></view>
         </view>
         <view v-if="!isLoginView" class="auth-footer"><text>{{ t('auth.hasAccount') }}</text><button class="text-button" @click="switchView(true)">{{ t('auth.backToLogin') }}</button></view>
       </view>
     </view>
+    <PhoneCountryPicker :open="countryPickerOpen" :selected-iso2="phoneForm.countryIso2" :locale="currentLocale" @close="dismissCountryPicker" @select="selectPhoneCountry" @after-close="countryPickerClosing = false" />
+    <BlessDialog ref="blessDialog" />
   </view>
 </template>
 
 <script setup>
 import { ref, reactive, computed, onMounted, watch } from 'vue';
-import { onPageScroll, onResize, onShow } from '@dcloudio/uni-app';
+import { onBackPress, onPageScroll, onResize, onShow } from '@dcloudio/uni-app';
 import { readChatHeaderGeometry } from '@/utils/chatHeaderLayout.js';
-import { loginApi, registerApi, socialLoginApi } from '@/api/index.js';
+import { getPhoneLoginCapabilityApi, loginApi, phoneLoginApi, registerApi, socialLoginApi } from '@/api/index.js';
 import { setToken, setUserInfo, getUserInfo } from '@/utils/auth.js';
 import { registerCurrentDevice } from '@/utils/pushNotifications.js';
 import { signInWithGoogle } from '@/utils/googleAuth.js';
 import { signInWithFacebook } from '@/utils/facebookAuth.js';
 import { getOrCreatePresenceSessionId, startPresence } from '@/utils/presence.js';
 import { bootstrapLocale, currentLocale, t } from '@/utils/localeRuntime.js';
+import { PHONE_COUNTRIES, getPhoneCountryName } from '@/utils/phoneCountries.js';
+import BlessDialog from '@/components/common/BlessDialog.vue';
+import PhoneCountryPicker from '@/components/login/PhoneCountryPicker.vue';
 
 // Native status/capsule geometry is kept separate from the scrolling form.
 let platform = '';
@@ -86,14 +110,19 @@ const showConfirmPassword = ref(false);
 onPageScroll(e => { scrollTop.value = Math.max(0, e.scrollTop || 0); });
 const updateGeometry = () => { geometry.value = readChatHeaderGeometry(uni, { clearCapsule: false }, platform); };
 onResize(updateGeometry);
-onShow(updateGeometry);
+onShow(() => { updateGeometry(); void loadPhoneLoginCapability(); });
 function showCodeUnavailable() { uni.showToast({ title: t('blessAuth.codeUnavailable'), icon: 'none' }); }
 
 // 视图状态：true 为登入视图，false 为注册视图
 const isLoginView = ref(true);
+const isPhoneView = ref(false);
+const phoneLoginEnabled = ref(false);
+const countryPickerOpen = ref(false);
+const countryPickerClosing = ref(false);
 const loading = ref(false);
 const socialLoading = ref(false);
 const restoringSession = ref(false);
+const blessDialog = ref(null);
 
 // 隐私协议同意状态
 const agreePrivacy = ref(false);
@@ -103,6 +132,73 @@ const loginForm = reactive({
   email: '',
   password: ''
 });
+
+function readPhoneCountryIso2() {
+  try {
+    const saved = uni.getStorageSync('PHONE_LOGIN_COUNTRY_ISO2');
+    return PHONE_COUNTRIES.some(country => country.iso2 === saved) ? saved : 'CN';
+  } catch (_) {
+    return 'CN';
+  }
+}
+const phoneForm = reactive({ countryIso2: readPhoneCountryIso2(), phoneNumber: '', code: '' });
+const selectedCountry = computed(() => PHONE_COUNTRIES.find(country => country.iso2 === phoneForm.countryIso2));
+const selectedCountryName = computed(() => selectedCountry.value ? getPhoneCountryName(selectedCountry.value, currentLocale.value) : t('auth.country'));
+
+async function loadPhoneLoginCapability() {
+  try {
+    const capability = await getPhoneLoginCapabilityApi();
+    phoneLoginEnabled.value = capability?.enabled === true;
+    if (!phoneLoginEnabled.value && isPhoneView.value) showEmailLogin();
+  } catch (_) {
+    // 返回本页时的短暂网络失败不清空正在填写的手机号表单。
+    if (!isPhoneView.value) phoneLoginEnabled.value = false;
+  }
+}
+
+function showPhoneLogin() {
+  if (!phoneLoginEnabled.value || loading.value || socialLoading.value) return;
+  isPhoneView.value = true;
+  agreePrivacy.value = false;
+  showPassword.value = false;
+}
+
+function showEmailLogin() {
+  if (loading.value || socialLoading.value) return;
+  if (countryPickerOpen.value) dismissCountryPicker();
+  isPhoneView.value = false;
+  isLoginView.value = true;
+  agreePrivacy.value = false;
+}
+
+function openCountryPicker() {
+  countryPickerClosing.value = false;
+  countryPickerOpen.value = true;
+}
+
+function dismissCountryPicker() {
+  if (countryPickerOpen.value) countryPickerClosing.value = true;
+  countryPickerOpen.value = false;
+}
+
+function selectPhoneCountry(country) {
+  phoneForm.countryIso2 = country.iso2;
+  phoneForm.phoneNumber = '';
+  dismissCountryPicker();
+  try { uni.setStorageSync('PHONE_LOGIN_COUNTRY_ISO2', country.iso2); } catch (_) { /* 本次选择仍然有效 */ }
+}
+
+function onPhoneNumberInput(event) {
+  const value = String(event?.detail?.value || '').replace(/\D/g, '').slice(0, 15);
+  phoneForm.phoneNumber = value;
+  return value;
+}
+
+function onPhoneCodeInput(event) {
+  const value = String(event?.detail?.value || '').replace(/\D/g, '').slice(0, 6);
+  phoneForm.code = value;
+  return value;
+}
 
 // 注册表单数据
 const registerForm = reactive({
@@ -150,6 +246,7 @@ function openLegalDocument(type) {
 // 切换视图的方法
 const switchView = (isLogin) => {
   if (loading.value || socialLoading.value) return;
+  isPhoneView.value = false;
   isLoginView.value = isLogin;
   showPassword.value = false;
   showConfirmPassword.value = false;
@@ -158,7 +255,11 @@ const switchView = (isLogin) => {
 
 // 左上角返回/关闭按钮处理
 const handleBack = () => {
-  if (!isLoginView.value) {
+  if (countryPickerOpen.value) {
+    dismissCountryPicker();
+  } else if (isPhoneView.value) {
+    showEmailLogin();
+  } else if (!isLoginView.value) {
     switchView(true);
   } else {
     // 根据你的业务逻辑关闭页面或返回
@@ -166,6 +267,15 @@ const handleBack = () => {
     else uni.switchTab({ url: '/pages/index/index360' });
   }
 };
+
+onBackPress(() => {
+  if (countryPickerClosing.value) return true;
+  if (countryPickerOpen.value || isPhoneView.value || !isLoginView.value) {
+    handleBack();
+    return true;
+  }
+  return false;
+});
 
 // 路由守卫跳转解析
 function getRedirectUrl() {
@@ -202,8 +312,8 @@ const handleLogin = async () => {
       setToken(data.token);
 	  await bootstrapLocale();
       void startPresence();
-      // 仅邮箱密码登录保存密码；第三方授权凭证不写入本地存储。
-      if (data.user) setUserInfo({ ...data.user, loginType: data.user.loginType || 'email', password: loginForm.password });
+      // 登录密码只用于本次请求，不写入 USER_INFO。
+      if (data.user) setUserInfo({ ...data.user, loginType: data.user.loginType || 'email' });
       registerCurrentDevice();
       uni.showToast({ title: t('auth.loginSuccess'), icon: 'success' });
       navigateAfterAuth();
@@ -216,6 +326,40 @@ const handleLogin = async () => {
     loading.value = false;
   }
 };
+
+async function handlePhoneLogin() {
+  if (loading.value || socialLoading.value || restoringSession.value) return;
+  if (!phoneLoginEnabled.value) return invalidForm('phoneAuth.unavailable');
+  if (!selectedCountry.value || phoneForm.phoneNumber.length < 4 || phoneForm.phoneNumber.length > 15) return invalidForm('phoneAuth.invalidPhone');
+  if (!/^\d{6}$/.test(phoneForm.code)) return invalidForm('phoneAuth.invalidCode');
+  if (!agreePrivacy.value) return invalidForm('auth.needAgreement');
+
+  loading.value = true;
+  try {
+    const data = await phoneLoginApi({
+      countryIso2: phoneForm.countryIso2,
+      dialCode: selectedCountry.value.dialCode,
+      phoneNumber: phoneForm.phoneNumber,
+      code: phoneForm.code
+    }, { clientSessionId: getOrCreatePresenceSessionId(), silent: true });
+    if (!data?.token) throw new Error('missing_token');
+    setToken(data.token);
+    await bootstrapLocale();
+    void startPresence();
+    if (data.user) setUserInfo({ ...data.user, loginType: 'phone' });
+    registerCurrentDevice();
+    uni.showToast({ title: t('auth.loginSuccess'), icon: 'success' });
+    navigateAfterAuth();
+  } catch (error) {
+    const key = error?.code === 1001 || error?.statusCode === 401
+      ? 'phoneAuth.wrongCode'
+      : error?.statusCode === 400 ? 'phoneAuth.invalidPhone'
+        : error?.statusCode === 403 ? 'phoneAuth.unavailable' : 'phoneAuth.loginFailed';
+    uni.showToast({ title: t(key), icon: 'none' });
+  } finally {
+    loading.value = false;
+  }
+}
 
 async function completeSocialLogin(provider, authResult) {
   const clientSessionId = getOrCreatePresenceSessionId();
@@ -245,11 +389,12 @@ async function handleSocialLogin(provider, signIn) {
     // 原生 SDK 的失败对象通常使用 errMsg / errCode，不是标准 Error.message。
     const errorCode = error?.errCode || error?.code || t('auth.unknownError');
     const errorMessage = typeof error === 'string' ? error : error?.errMsg || error?.message || t('auth.nativeErrorMissing');
-    uni.showModal({
+    await blessDialog.value?.open({
       title: t('blessAuth.authorizationFailed', { provider: provider === 'facebook' ? 'Facebook' : 'Google', code: errorCode }),
       content: errorMessage,
       showCancel: false,
-      confirmText: t('common.confirm')
+      confirmText: t('common.confirm'),
+      tone: 'error'
     });
   } finally {
     socialLoading.value = false;
@@ -390,7 +535,21 @@ watch(currentLocale, () => uni.setNavigationBarTitle({ title: t('navigation.logi
 .auth-register .brand-name{font-size:38px}
 .auth-register .brand-copy{width:50%;left:25%}
 .auth-register .brand-tagline{font-size:11px}
+.auth-phone .sheet-heading{margin-bottom:6px}
+.phone-subtitle{display:block;font-size:14px;line-height:1.5;color:#89857e;overflow-wrap:break-word;margin-bottom:24px}
+.phone-number-row{min-height:58px;margin-bottom:24px;padding-left:10px}
+.phone-number-row .field{height:58px}
+.country-code-button{min-width:75px;min-height:46px;display:flex;align-items:center;justify-content:center;gap:8px;background:transparent;padding:0 6px;color:#302e29;font-size:18px;font-weight:600;flex-shrink:0}
+.phone-divider{width:1px;height:28px;background:#b8b3ac;flex-shrink:0}
+.phone-code-label{display:block;font-size:15px;font-weight:600;margin-bottom:10px}
+.phone-code-entry{position:relative;display:flex;align-items:center;gap:8px;min-height:54px;margin-bottom:34px}
+.phone-code-cell{flex:1;min-width:0;height:54px;border:1px solid transparent;background:#f4f3f1;border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:23px;font-weight:600;box-sizing:border-box;color:#302e29}
+.phone-code-cell.filled{border-color:#d7bd83;background:#faf6eb}
+.phone-code-input{position:absolute;top:0;left:0;width:100%;height:100%;opacity:.01;z-index:2;font-size:16px}
+.phone-submit{margin-top:0}
+.phone-privacy{margin-top:25px!important}
+.email-login-link{display:block;text-decoration:underline;text-underline-offset:3px;margin:28px auto 0!important;min-height:44px}
 .session-restoring-mask{position:fixed;inset:0;background:rgba(247,245,239,.96);z-index:100;display:flex;align-items:center;justify-content:center;color:#615c54}
-@media(max-width:350px){.auth-sheet{padding-left:18px;padding-right:18px}.page-title{font-size:22px}.social-row{gap:8px}.social-button{font-size:13px}.brand-tagline{font-size:11px}.tagline-long{font-size:10px}}
+@media(max-width:350px){.auth-sheet{padding-left:18px;padding-right:18px}.page-title{font-size:22px}.social-row{gap:8px}.social-button{font-size:13px}.brand-tagline{font-size:11px}.tagline-long{font-size:10px}.phone-code-entry{gap:5px}.phone-code-cell{height:48px}}
 @media(prefers-reduced-motion:reduce){.main-btn,.auth-nav{transition:none}}
 </style>

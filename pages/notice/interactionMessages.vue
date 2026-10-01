@@ -44,6 +44,7 @@ onPageScroll(e => { scrollProgress.value = Math.min(1, Math.max(0, e.scrollTop /
 onResize(() => { geometry.value = readChatHeaderGeometry(uni, { clearCapsule: false }, platform) })
 // 需求市场的通知类型与点赞/评论不同，单独给出文案，避免被显示成“赞了你”。
 function typeLabel(item) {
+  if (item.type?.startsWith('group_exit_')) return interactionSummary(item, t)
   if (item.type === 'demand_hall_application') return t('inbox.demandHallApplied')
   if (item.type === 'demand_hall_application_result' || item.type === 'demand_hall_order') return t('inbox.demandHallUpdated')
   return t('inbox.interactions')

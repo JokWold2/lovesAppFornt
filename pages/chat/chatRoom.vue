@@ -4,11 +4,16 @@
       <view class="group-copy">
         <GroupAvatar :avatar-url="groupAvatarUrl" :members="members" :size="54" />
         <text class="group-name">{{ groupName || t('inbox.groupChat') }}</text>
-        <view class="group-subtitle"><text>{{ t('group.memberCount', { count: members.length }) }}</text><text class="online-count" @tap="openOnlineMembers">· {{ onlineLabel }}</text></view>
+        <view v-if="!leftGroup" class="group-subtitle"><text>{{ t('group.memberCount', { count: members.length }) }}</text><text class="online-count" @tap="openOnlineMembers">· {{ onlineLabel }}</text></view>
       </view>
       <template #action><GlassCircleButton v-if="isGroupMember" class="group-manage" :label="t('inbox.groupManage')" @tap="openGroupManage"><view class="more-dots"><view /><view /><view /></view></GlassCircleButton></template>
     </ChatPageHeader>
-    <view class="messages-area">
+    <view v-if="leftGroup" class="left-group-state">
+      <view class="left-group-mark"><uni-icons type="chatboxes" size="31" color="var(--bless-text, #775E25)" /></view>
+      <text class="left-group-title">{{ t('groupExit.leftGroup') }}</text>
+      <button class="left-group-button" @tap="backToMessages">{{ t('groupExit.backToMessages') }}</button>
+    </view>
+    <view v-else class="messages-area">
 		<!-- #ifdef H5 -->
 		<scroll-view
 			ref="h5MessagesRef"
@@ -124,7 +129,7 @@ import { onHide, onLoad, onReady, onResize, onShow, onUnload } from "@dcloudio/u
 import {
 	getChatGroupMembersApi,
 	getChatGroupOnlineMembersApi,
-	getChatGroupsApi,
+	getChatGroupDetailApi,
 	getChatMessagesApi,
 	sendChatMessageApi,
 	uploadChatImageApi,
@@ -144,7 +149,7 @@ import {
 	shouldLoadOlderMessagesFromH5Scroll,
 	shouldShowChatLatestButton,
 	shouldStickToBottom,
-} from "@/utils/chatMessageListState.js";
+} from "@/pages/chat/utils/chatMessageListState.js";
 import {
 	attachReplyMessage,
 	unwrapComponentEventPayload,
@@ -162,6 +167,7 @@ const memberSheetMembers = ref([]);
 const memberSheetUnreadMembers = ref(null);
 
 const isGroupMember = ref(false);
+const leftGroup = ref(false);
 const scrollTop = ref(0);
 const scrollWithAnimation = ref(false);
 const h5MessagesRef = ref(null);
@@ -299,11 +305,12 @@ async function load({ silent = false, refreshAfterPending = false } = {}) {
 	try {
 		const [messageData, groupData, memberData] = await Promise.all([
 		getChatMessagesApi(groupId.value, { limit: messagePageSize }),
-			getChatGroupsApi(),
+			getChatGroupDetailApi(groupId.value),
 			getChatGroupMembersApi(groupId.value),
 		]);
 
 		loadFailed.value = false;
+		leftGroup.value = false;
 		const incomingMessages = messageData?.messages || messageData?.data?.messages || [];
 		messages.value = hasLoadedInitialMessages
 			? mergeChatMessages(messages.value, incomingMessages)
@@ -313,9 +320,7 @@ async function load({ silent = false, refreshAfterPending = false } = {}) {
 			: Boolean(messageData?.hasMore ?? messageData?.data?.hasMore);
 		members.value = memberData?.members || [];
 		void loadOnlineMembers({ silent: true });
-		const group = (groupData?.groups || []).find(
-			(item) => Number(item.id) === Number(groupId.value),
-		);
+		const group = groupData?.group;
 		isGroupMember.value = Boolean(group);
 
 		groupName.value = presentGroupName(group?.name);
@@ -341,6 +346,10 @@ async function load({ silent = false, refreshAfterPending = false } = {}) {
 			console.warn("刷新未读角标失败", error),
 		);
 	} catch (error) {
+		if (error?.statusCode === 403 || error?.statusCode === 404) {
+			showLeftGroup();
+			return;
+		}
 		loadFailed.value = true;
 		if (!silent)
 			uni.showToast({
@@ -355,6 +364,19 @@ async function load({ silent = false, refreshAfterPending = false } = {}) {
     }
 	}
 }
+
+function showLeftGroup() {
+	leftGroup.value = true;
+	isGroupMember.value = false;
+	messages.value = [];
+	members.value = [];
+	menuMessage.value = null;
+	replyMessage.value = null;
+	loadFailed.value = false;
+	stopPolling();
+}
+
+function backToMessages() { uni.switchTab({ url: '/pages/notice/notice' }); }
 
 async function loadOnlineMembers({ silent = false } = {}) {
 	if (!groupId.value) return;
@@ -505,6 +527,7 @@ async function sendMessage(payload) {
 		}
 		await load({ silent: true, refreshAfterPending: true });
 	} catch (error) {
+		if (error?.statusCode === 403 || error?.statusCode === 404) { showLeftGroup(); return; }
 		uni.showToast({ title: error?.error || t('inbox.sendFailed'), icon: "none" });
 	} finally {
 		sending.value = false;
@@ -620,5 +643,10 @@ onUnload(() => {
 	text-align: center;
 	font-size: 25rpx;
 }
+.left-group-state{flex:1;min-height:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;padding:24px;text-align:center;color:#292825}
+.left-group-mark{display:flex;align-items:center;justify-content:center;width:62px;height:62px;border-radius:22px;background:var(--bless-soft, #F1E4BD)}
+.left-group-title{font-size:17px;font-weight:600;line-height:1.5;overflow-wrap:anywhere}
+.left-group-button{min-height:46px;min-width:150px;margin:4px 0 0;padding:9px 20px;border-radius:20px;background:var(--bless-primary, #C2A052);color:#292825;font-size:14px;font-weight:600}
+.left-group-button::after{border:0}.left-group-button:active{transform:scale(.97)}
 @media(prefers-reduced-motion:reduce){.back-to-latest{transition:none;}}
 </style>

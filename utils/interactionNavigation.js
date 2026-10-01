@@ -2,6 +2,12 @@ import { marketFeedRoute } from './marketNavigation.js'
 
 export function interactionRoute(notification) {
   if (notification?.type === 'profile_like') return '/pages/likes/likes'
+  if (notification?.target_type === 'chat_group' && notification.target_id) {
+    const groupId = encodeURIComponent(notification.target_id)
+    if (notification.type === 'group_exit_requested') return `/pages/chat/groupExitRequests?id=${groupId}`
+    if (notification.type === 'group_exit_rejected') return `/pages/chat/groupManage?id=${groupId}`
+    if (notification.type === 'group_exit_approved') return '/pages/notice/notice'
+  }
   // 社区帖子暂无详情页，互动提醒统一进入社区列表
   if (notification?.target_type === 'community_post') return '/pages/community/index'
   // 需求市场的报名 / 选定通知直接进入信息详情；托管交易通知进入担保交易订单页
@@ -30,5 +36,8 @@ export function isLockedBlessingNotification(notification) {
 export function interactionSummary(notification, t) {
   if (!notification) return t('inbox.noInteractions')
   if (isLockedBlessingNotification(notification)) return t('membership.secretAdmirer')
+  if (notification.type === 'group_exit_requested') return `${notification.actor_name || notification.actor_email || t('inbox.user')} ${t('groupExit.notificationRequested')}`
+  if (notification.type === 'group_exit_approved') return t('groupExit.notificationApproved')
+  if (notification.type === 'group_exit_rejected') return t('groupExit.notificationRejected')
   return `${notification.actor_name || notification.actor_email || t('inbox.user')} ${notification.type?.includes('comment') ? t('inbox.commented') : t('inbox.liked')}`
 }

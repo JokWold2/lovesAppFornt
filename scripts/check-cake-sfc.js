@@ -1,4 +1,4 @@
-// 一次性校验脚本：用真正的 Vue SFC 编译器解析 pages/cake 与 components/cake 下的每个
+// 一次性校验脚本：用真正的 Vue SFC 编译器解析 pages/cake 下的每个
 // .vue 文件，编译模板 / script setup / scss，把编译错误暴露出来（原始的 order.vue 就是
 // 模板标签不匹配导致的编译失败，只看文件内容是看不出来的）。
 // 用法：node scripts/check-cake-sfc.js <compiler-sfc 所在 node_modules 路径>
@@ -13,11 +13,8 @@ if (!MODULES) {
 const sfc = require(path.join(MODULES, '@vue', 'compiler-sfc'));
 const sass = require(path.join(MODULES, 'sass'));
 
-const ROOT = 'D:\\OpenClaw\\boss\\apps';
-const TARGETS = [
-  path.join(ROOT, 'pages', 'cake'),
-  path.join(ROOT, 'components', 'cake')
-];
+const ROOT = path.resolve(__dirname, '..');
+const TARGETS = [path.join(ROOT, 'pages', 'cake')];
 
 function collect(dir) {
   return fs.readdirSync(dir, { withFileTypes: true }).flatMap(entry => {

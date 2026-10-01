@@ -2,7 +2,7 @@ import test from 'node:test'
 import assert from 'node:assert/strict'
 import { readFile } from 'node:fs/promises'
 import { runInNewContext } from 'node:vm'
-import * as listState from '../utils/chatMessageListState.js'
+import * as listState from '../pages/chat/utils/chatMessageListState.js'
 import * as composerState from '../utils/chatComposerState.js'
 const source=(await readFile(new URL('../pages/chat/chatRoom.vue',import.meta.url),'utf8')).match(/<script setup>([\s\S]*?)<\/script>/)[1]
 function nativeScript(){const stack=[true];return source.replace(/^import[\s\S]*?from\s*['"][^'"]+['"];?/gm,'').split('\n').filter(line=>{const m=line.match(/\/\/ #(ifdef|ifndef) (\S+)/);if(m){stack.push(stack.at(-1)&&(m[1]==='ifdef'?m[2]==='APP-PLUS':m[2]!=='APP-PLUS'));return false}if(line.includes('// #endif')){stack.pop();return false}return stack.at(-1)}).join('\n')}

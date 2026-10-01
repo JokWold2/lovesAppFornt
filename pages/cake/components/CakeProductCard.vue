@@ -54,7 +54,7 @@
 <script setup>
 import { computed, ref, watch } from 'vue'
 import { t } from '@/utils/localeRuntime.js'
-import { cakePlaceholderImage, formatCakeAmount, pickCakeText, resolveCakeImageUrl } from '@/utils/cake.js'
+import { cakePlaceholderImage, formatCakeAmount, pickCakeText, resolveCakeImageUrl } from '@/pages/cake/utils/cake.js'
 
 const props = defineProps({
   product: { type: Object, required: true },

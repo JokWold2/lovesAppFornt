@@ -235,15 +235,18 @@
         </scroll-view>
       </view>
     </SlideUpPanel>
+    <BlessDialog ref="blessDialog" />
   </view>
 </template>
 
 <script setup>
+import './locale.js'
 import { computed, reactive, ref } from 'vue'
 import { onLoad, onPageScroll, onShow } from '@dcloudio/uni-app'
-import CakeNavBar from '@/components/cake/CakeNavBar.vue'
-import CakeStateView from '@/components/cake/CakeStateView.vue'
+import CakeNavBar from '@/pages/cake/components/CakeNavBar.vue'
+import CakeStateView from '@/pages/cake/components/CakeStateView.vue'
 import SlideUpPanel from '@/components/common/SlideUpPanel.vue'
+import BlessDialog from '@/components/common/BlessDialog.vue'
 import { currentLocale, t } from '@/utils/localeRuntime.js'
 import {
   clearCakeCartApi,
@@ -253,7 +256,7 @@ import {
   getCakeStoresApi,
   removeCakeCartItemApi,
   updateCakeCartItemApi
-} from '@/api/cake.js'
+} from '@/pages/cake/api/cake.js'
 import {
   CAKE_PRICING,
   CAKE_ROUTES,
@@ -271,7 +274,7 @@ import {
   normalizeTimeText,
   pickCakeText,
   resolveCakeImageUrl
-} from '@/utils/cake.js'
+} from '@/pages/cake/utils/cake.js'
 
 const CONTACT_STORAGE_KEY = 'lovesapp.cake.contact'
 
@@ -286,6 +289,7 @@ const contactPhone = ref('')
 const remark = ref('')
 const submitting = ref(false)
 const linePendingKey = ref('')
+const blessDialog = ref(null)
 const marketingCode = ref('')
 
 // 服务端购物车行
@@ -488,19 +492,18 @@ async function changeQuantity(line, delta) {
   }
 }
 
-function confirmModal(options) {
-  return new Promise(resolve => uni.showModal({
+async function confirmModal(options) {
+  const result = await blessDialog.value?.open({
     confirmText: t('cake.confirm'),
     cancelText: t('cake.cancel'),
-    ...options,
-    success: result => resolve(!!result.confirm),
-    fail: () => resolve(false)
-  }))
+    ...options
+  })
+  return !!result?.confirm
 }
 
 async function removeLine(line) {
   if (linePendingKey.value) return
-  const confirmed = await confirmModal({ title: t('cake.removeItem'), content: t('cake.removeItemConfirm', { name: line.title }) })
+  const confirmed = await confirmModal({ title: t('cake.removeItem'), content: t('cake.removeItemConfirm', { name: line.title }), confirmText: t('cake.removeItem'), tone: 'danger' })
   if (!confirmed) return
   linePendingKey.value = line.key
   try {
@@ -514,7 +517,7 @@ async function removeLine(line) {
 }
 
 async function clearCart() {
-  const confirmed = await confirmModal({ title: t('cake.clearCart'), content: t('cake.clearCartConfirm') })
+  const confirmed = await confirmModal({ title: t('cake.clearCart'), content: t('cake.clearCartConfirm'), confirmText: t('cake.clearCart'), tone: 'danger' })
   if (!confirmed) return
   try {
     await clearCakeCartApi()

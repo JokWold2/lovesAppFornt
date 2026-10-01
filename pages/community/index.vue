@@ -478,10 +478,12 @@
 				</view>
 			</view>
 		</view>
+		<BlessDialog ref="blessDialog" />
 	</view>
 </template>
 
 <script setup>
+import './locale.js'
 import { ref, computed, onMounted, onUnmounted, nextTick } from "vue";
 import {
 	getCommunityHotTagsApi,
@@ -497,11 +499,12 @@ import {
 	getCommunityCommentRepliesApi,
 	toggleCommunityCommentLikeApi,
 	uploadCommunityImagesApi
-} from "@/api/community.js";
+} from "@/pages/community/api/community.js";
 import { getUnreadCountApi } from "@/api/notifications.js";
 import { getUserInfo } from "@/utils/auth.js";
 import { t } from "@/utils/localeRuntime.js";
-import { COMMUNITY_LEADERBOARD_ROUTE, COMMUNITY_TOPICS_ROUTE } from "@/utils/communityHub.js";
+import BlessDialog from "@/components/common/BlessDialog.vue";
+import { COMMUNITY_LEADERBOARD_ROUTE, COMMUNITY_TOPICS_ROUTE } from "@/pages/community/utils/communityHub.js";
 
 /* 后端无数据时兜底展示的热门话题（与后端 DEFAULT_HOT_TAGS 保持一致） */
 const DEFAULT_TAGS = ["技术分享", "创业经验", "生活随笔", "美食探索", "旅行故事", "摄影作品", "设计讨论", "行业交流"];
@@ -516,6 +519,7 @@ const showSearchPanel = ref(false);
 const showBackToTop = ref(false);
 const scrollTopTarget = ref(0);
 const unreadCount = ref(0);
+const blessDialog = ref(null);
 const pageSize = 10;
 const currentPage = ref(1);
 const hasMore = ref(false);
@@ -871,7 +875,7 @@ async function deletePost(item) {
 		posts.value = posts.value.filter(post => post.id !== item.id);
 		totalCount.value = Math.max(totalCount.value - 1, 0);
 		totalPosts.value = Math.max(totalPosts.value - 1, 0);
-		uni.showToast({ title: "已删除", icon: "success" });
+		uni.showToast({ title: t('community.postDeleted'), icon: "success" });
 		loadStats();
 	} catch (e) {
 		// 请求层已提示失败原因
@@ -880,22 +884,23 @@ async function deletePost(item) {
 
 function openMoreMenu(item) {
 	const isMine = isMyPost(item);
-	const itemList = isMine ? ["删除", "举报"] : ["屏蔽TA", "举报"];
+	const itemList = isMine
+		? [t('community.deletePostLabel'), t('community.reportPostLabel')]
+		: [t('community.blockUserLabel'), t('community.reportPostLabel')];
 	uni.showActionSheet({
 		itemList,
-		success: (res) => {
-			const tapped = itemList[res.tapIndex];
-			if (tapped === "删除") {
-				uni.showModal({
-					title: "确认删除",
-					content: "删除后无法恢复，是否继续？",
-					success: (r) => {
-						if (r.confirm) deletePost(item);
-					}
+		success: async (res) => {
+			if (res.tapIndex === 0 && isMine) {
+				const answer = await blessDialog.value?.open({
+					title: t('community.deletePostTitle'),
+					content: t('community.deletePostContent'),
+					confirmText: t('community.deletePostLabel'),
+					tone: 'danger'
 				});
+				if (answer?.confirm) await deletePost(item);
 				return;
 			}
-			uni.showToast({ title: `已${tapped}`, icon: "none" });
+			uni.showToast({ title: t(isMine || res.tapIndex === 1 ? 'community.postReported' : 'community.userBlocked'), icon: "none" });
 		}
 	});
 }

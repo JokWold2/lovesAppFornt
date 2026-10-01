@@ -9,9 +9,10 @@
 </template>
 
 <script setup>
+import './locale.js'
 import { ref } from 'vue'
 import { onLoad } from '@dcloudio/uni-app'
-import CakeProductList from '@/components/cake/CakeProductList.vue'
+import CakeProductList from '@/pages/cake/components/CakeProductList.vue'
 
 // 蛋糕页覆盖蛋糕、面包与茶饮；点单页选中门店后会带 storeId 与 pickup 进来。
 const categoryCodes = ['cake-birthday', 'cake-slice', 'bread', 'drink']

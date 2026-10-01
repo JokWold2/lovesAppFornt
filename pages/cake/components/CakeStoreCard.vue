@@ -38,7 +38,7 @@
 <script setup>
 import { computed } from 'vue'
 import { t } from '@/utils/localeRuntime.js'
-import { formatCakeDistance, isStoreOpen, normalizeTimeText, pickCakeText, storeServiceKeys, storeStatusKey } from '@/utils/cake.js'
+import { formatCakeDistance, isStoreOpen, normalizeTimeText, pickCakeText, storeServiceKeys, storeStatusKey } from '@/pages/cake/utils/cake.js'
 
 const props = defineProps({
   store: { type: Object, required: true },

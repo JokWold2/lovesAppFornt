@@ -30,6 +30,7 @@
     <view v-if="membership && direction === 'incoming' && !membership.canViewLikes && !membershipError" class="unlock-dock"><button @click="openMembershipUpgrade('likes')">{{ t('membership.unlockLikes') }}</button></view>
     <LiquidGlassTabBar active-route="pages/likes/likes" :hidden="!!sheetProfileId" />
     <ProfileDetailSheet :profile-id="sheetProfileId" :page-visible="sheetPageVisible" @closed="onProfileSheetClosed" />
+    <BlessDialog ref="blessDialog" />
   </view>
 </template>
 
@@ -46,12 +47,13 @@ import { BLESSING_CHANGED_EVENT, mergeBlessingLikes, getMembershipTierName, getM
 import { useFixedPageHeader } from '@/utils/useFixedPageHeader.js'
 import { useProfileDetailSheet } from '@/utils/useProfileDetailSheet.js'
 import ProfileDetailSheet from '@/components/profile/ProfileDetailSheet.vue'
+import BlessDialog from '@/components/common/BlessDialog.vue'
 import { consumeIncomingLikesIntent } from '@/utils/likesTabIntent.js'
 
 const { profileId: sheetProfileId, pageVisible: sheetPageVisible, open: openProfileSheet, close: closeProfileSheet } = useProfileDetailSheet()
 function onProfileSheetClosed() { closeProfileSheet(); refresh() }
 
-const direction = ref('incoming'), membership = ref(null), membershipError = ref(''), applying = ref(null)
+const direction = ref('incoming'), membership = ref(null), membershipError = ref(''), applying = ref(null), blessDialog = ref(null)
 const emptyFeed = () => ({ items: [], total: 0, page: 0, hasMore: true, loading: false, error: '', generation: 0 })
 const feeds = reactive({ incoming: emptyFeed(), outgoing: emptyFeed() })
 const feed = computed(() => feeds[direction.value])
@@ -110,21 +112,25 @@ function switchDirection(value) {
   direction.value = value
   if (value === 'incoming' || !feed.value.page) loadFeed(true)
 }
-const modal = options => new Promise(resolve => uni.showModal({ confirmText: t('membership.confirm'), cancelText: t('membership.cancel'), ...options, success: resolve, fail: () => resolve({ confirm: false }) }))
+const modal = options => blessDialog.value?.open({
+  confirmText: t('membership.confirm'),
+  cancelText: t('membership.cancel'),
+  ...options
+}) || Promise.resolve({ confirm: false, content: '' })
 async function apply(item) {
   if (applying.value !== null || isLocked(item) || !item.userId) return
   applying.value = item.userId
   try {
     const status = await getChatRequestStatusApi(item.userId)
     if (status.status === 'approved' && status.groupId) return uni.navigateTo({ url: `/pages/chat/chatRoom?id=${status.groupId}` })
-    if (['pending', 'processing'].includes(status.status)) return await modal({ title: t('membership.chatPendingTitle'), content: t('membership.chatPending'), showCancel: false })
+    if (['pending', 'processing'].includes(status.status)) return await modal({ title: t('membership.chatPendingTitle'), content: t('membership.chatPending'), showCancel: false, tone: 'info' })
     const prompt = getMembershipChatPrompt(status, t)
     if (prompt.type !== 'request') {
-      const result = await modal({ title: prompt.title, content: prompt.message, confirmText: prompt.confirmText, showCancel: false })
+      const result = await modal({ title: prompt.title, content: prompt.message, confirmText: prompt.confirmText, showCancel: false, tone: prompt.type === 'like' ? 'heart' : 'info' })
       if (result.confirm && prompt.type === 'like') openPerson(item)
       return
     }
-    const result = await modal({ title: t('membership.applyChat'), content: t('membership.chatApply'), editable: true, placeholderText: t('membership.chatNote'), confirmText: t('membership.submit') })
+    const result = await modal({ title: t('membership.applyChat'), content: t('membership.chatApply'), editable: true, placeholderText: t('membership.chatNote'), confirmText: t('membership.submit'), tone: 'heart' })
     if (!result.confirm) return
     const submitted = await createChatRequestApi({ targetUserId: item.userId, message: result.content || '' })
     if (submitted?.groupId) return uni.navigateTo({ url: `/pages/chat/chatRoom?id=${submitted.groupId}` })
@@ -133,7 +139,7 @@ async function apply(item) {
     if (!handleMembershipError(error)) {
       if (['LIKE_REQUIRED', 'MUTUAL_LIKE_REQUIRED'].includes(error?.code)) {
         const prompt = getMembershipChatPrompt({ isLiked: error.code !== 'LIKE_REQUIRED', mutual: false }, t)
-        const result = await modal({ title: prompt.title, content: prompt.message, confirmText: prompt.confirmText, showCancel: false })
+        const result = await modal({ title: prompt.title, content: prompt.message, confirmText: prompt.confirmText, showCancel: false, tone: prompt.type === 'like' ? 'heart' : 'info' })
         if (result.confirm && prompt.type === 'like') openPerson(item)
       } else uni.showToast({ title: getMembershipErrorMessage(error, t, 'chatFailed'), icon: 'none' })
     }
